@@ -6,6 +6,7 @@ from pdbfixer import *
 import mdtraj as md
 from Bio.PDB.Polypeptide import *
 from Bio.PDB.PDBParser import PDBParser
+from itertools import combinations
 
 def identify_terminal_residues(pdb_filename):
 	# identify terminal residues
@@ -149,6 +150,7 @@ class OpenMMAWSEMSystem:
 		self.nres = self.pdb.topology.getNumResidues()
 		self.natoms = self.pdb.topology.getNumAtoms()
 		self.residues = list(self.pdb.topology.residues())
+		self.resi = [x.residue.index for x in list(self.pdb.topology.atoms())]
 		# build lists of atoms and residue types
 		self.n, self.h, self.ca, self.c, self.o, self.cb, self.res_type = build_lists_of_atoms(self.nres, self.residues)
 		# setup virtual sites
@@ -162,7 +164,7 @@ def apply_con_term(oa):
 	system, nres, n, h, ca, c, o, cb, res_type = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type
 	# add con forces
 	con = HarmonicBondForce()
-	k_con = 400
+	k_con = 40
 	for i in range(nres):
 		con.addBond(ca[i], o[i], .243, k_con)
 		if not res_type[i] == "IGL":
@@ -177,7 +179,7 @@ def apply_chain_term(oa):
 	system, nres, n, h, ca, c, o, cb, res_type = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type
 	# add chain forces
 	chain = HarmonicBondForce()
-	k_chain = 200
+	k_chain = 20
 	for i in range(nres):      
 		if not i == 0 and not res_type[i] == "IGL":
 			chain.addBond(n[i], cb[i], .246, k_chain)
@@ -192,7 +194,7 @@ def apply_chi_term(oa):
 	system, nres, n, h, ca, c, o, cb, res_type = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type
 	# add chi forces 
 	# The sign of the equilibrium value is opposite and magnitude differs slightly
-	k_chi = 800
+	k_chi = 80
 	chi0 = .0093
 	chi = CustomCompoundBondForce(4, "k_chi*(chi-chi0)^2;\
 								  chi=crossproduct_x*r_cacb_x+crossproduct_y*r_cacb_y+crossproduct_z*r_cacb_z;\
@@ -234,7 +236,7 @@ def apply_rama_term(oa):
 	system, nres, n, h, ca, c, o, cb, res_type = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type
 	# add Rama potential
 	# Still need to add proline parameters and secondary structure biases
-	k_rama = 5
+	k_rama = 50
 	num_rama_wells = 3
 	w = [1.3149, 1.32016, 1.0264]
 	sigma = [15.398, 49.0521, 49.0954]
@@ -259,3 +261,68 @@ def apply_rama_term(oa):
 
 	system.addForce(rama)
 
+def apply_direct_term(oa):
+	system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds
+	# add direct contact
+	# Still need to add residue specific parameters
+	k_direct = 0.00
+	gamma = 1
+	r_min = .45
+	r_max = .65
+	eta = 10
+	direct = CustomNonbondedForce("-k_direct*gamma*theta; theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r))); gamma=%f; eta=%f" % (gamma, eta))
+	direct.addGlobalParameter("k_direct", k_direct)
+	direct.addGlobalParameter("rmin", r_min)
+	direct.addGlobalParameter("rmax", r_max)
+	for i in range(natoms):
+		direct.addParticle()
+	direct.addInteractionGroup([x for x in cb if x > 0], [x for x in cb if x > 0])
+
+	direct.createExclusionsFromBonds(bonds, 9)
+	system.addForce(direct)
+
+def apply_mediated_term(oa):
+	system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi
+	# add mediated contact
+	# Still need to add residue specific parameters
+	k_mediated = 0.001
+	gamma_water = 1
+	gamma_protein = 0
+	r_min = .65
+	r_max = .95
+	eta = 10
+	density_r_min = 0.45
+	density_r_max = 0.65
+	density_threshold = 2.6
+	mediated = CustomGBForce()
+	mediated.addGlobalParameter("k_mediated", k_mediated)
+	mediated.addGlobalParameter("gamma_water", gamma_water)
+	mediated.addGlobalParameter("gamma_protein", gamma_protein)
+	mediated.addComputedValue("rho", "0.25*(1+tanh(eta*(r-%f)))*(1+tanh(eta*(%f-r))); eta=%f" % (density_r_min, density_r_max, eta), CustomGBForce.ParticlePairNoExclusions)
+	sigma_water="0.25*(1-tanh(%f*(rho1-%f)))*(1-tanh(%f*(rho2-%f)))" % (eta, density_threshold, eta, density_threshold)
+	mediated.addEnergyTerm("-k_mediated*theta*(gamma_water*%s+gamma_protein*(1-%s)); theta=0.25*(1+tanh(eta*(r-%f)))*(1+tanh(eta*(%f-r))); gamma_water=%f; gamma_protein=%f; eta=%f" % (sigma_water, sigma_water, r_min, r_max, gamma_water, gamma_protein, eta), CustomGBForce.ParticlePair)
+
+	# add all particles to the force
+	for i in range(natoms):
+		mediated.addParticle()
+
+	# find all pairs to include in the force
+	interactions = []
+	for cbi, cbj in combinations([x for x in cb if x >= 0], 2):
+		if abs(resi[cbi]-resi[cbj]) >= 9:
+			interactions.append((cbi, cbj))
+
+	# get list of exclusions
+	exclusions = get_exclusions(oa, interactions)
+
+	# apply exclusions
+	for exclusion in exclusions:
+		mediated.addExclusion(exclusion[0], exclusion[1])
+	
+	system.addForce(mediated)
+
+def get_exclusions(oa, interactions):
+	natoms = oa.natoms
+	all_interactions = combinations(range(natoms), 2)
+	exclusions = [x for x in all_interactions if x not in interactions]
+	return exclusions

@@ -7,6 +7,7 @@ import mdtraj as md
 from Bio.PDB.Polypeptide import *
 from Bio.PDB.PDBParser import PDBParser
 from itertools import combinations
+import numpy as np
 
 def identify_terminal_residues(pdb_filename):
 	# identify terminal residues
@@ -229,6 +230,8 @@ def apply_excl_term(oa):
 	excl.addInteractionGroup([x for x in cb if x > 0], [x for x in cb if x > 0])
 	excl.addInteractionGroup(o, o)
 
+	excl.setCutoffDistance(r_excl)
+
 	excl.createExclusionsFromBonds(bonds, 1)
 	system.addForce(excl)
 
@@ -286,30 +289,44 @@ def apply_mediated_term(oa):
 	# add mediated contact
 	# Still need to add residue specific parameters
 	k_mediated = 0.001
-	gamma_water = 1
-	gamma_protein = 0
+	gamma_water = 0
+	gamma_protein = 1
 	r_min = .65
 	r_max = .95
 	eta = 10
 	density_r_min = 0.45
 	density_r_max = 0.65
 	density_threshold = 2.6
+	interaction_cutoff = .1
+	min_sequence_separation = 10
 	mediated = CustomGBForce()
 	mediated.addGlobalParameter("k_mediated", k_mediated)
 	mediated.addGlobalParameter("gamma_water", gamma_water)
 	mediated.addGlobalParameter("gamma_protein", gamma_protein)
-	mediated.addComputedValue("rho", "0.25*(1+tanh(eta*(r-%f)))*(1+tanh(eta*(%f-r))); eta=%f" % (density_r_min, density_r_max, eta), CustomGBForce.ParticlePairNoExclusions)
+	mediated.addPerParticleParameter("index")
+	include_pairwise_interaction = [0]*natoms*natoms
+	for i in range(natoms):
+		for j in range(natoms):
+			# if this is not a cbeta atom, don't include in pairwise interaction
+			if i in cb and j in cb and abs(resi[i]-resi[j]) >= min_sequence_separation:
+				include_pairwise_interaction[i+j*natoms] = 1
+
+	mediated.addTabulatedFunction("include_pairwise_interaction", Discrete2DFunction(natoms, natoms, include_pairwise_interaction))
+	mediated.addComputedValue("rho", "0.25*(1+tanh(eta*(r-%f)))*(1+tanh(eta*(%f-r))); eta=%f" % (density_r_min, density_r_max, eta), CustomGBForce.ParticlePair)
 	sigma_water="0.25*(1-tanh(%f*(rho1-%f)))*(1-tanh(%f*(rho2-%f)))" % (eta, density_threshold, eta, density_threshold)
-	mediated.addEnergyTerm("-k_mediated*theta*(gamma_water*%s+gamma_protein*(1-%s)); theta=0.25*(1+tanh(eta*(r-%f)))*(1+tanh(eta*(%f-r))); gamma_water=%f; gamma_protein=%f; eta=%f" % (sigma_water, sigma_water, r_min, r_max, gamma_water, gamma_protein, eta), CustomGBForce.ParticlePair)
+	mediated.addEnergyTerm("-k_mediated*include_pairwise_interaction(index1,index2)*theta*(gamma_water*%s+gamma_protein*(1-%s)); theta=0.25*(1+tanh(eta*(r-%f)))*(1+tanh(eta*(%f-r))); gamma_water=%f; gamma_protein=%f; eta=%f" % (sigma_water, sigma_water, r_min, r_max, gamma_water, gamma_protein, eta), CustomGBForce.ParticlePair)
+
+	# set interaction cutoff
+	mediated.setCutoffDistance(interaction_cutoff)
 
 	# add all particles to the force
 	for i in range(natoms):
-		mediated.addParticle()
+		mediated.addParticle([i])
 
 	# find all pairs to include in the force
 	interactions = []
 	for cbi, cbj in combinations([x for x in cb if x >= 0], 2):
-		if abs(resi[cbi]-resi[cbj]) >= 9:
+		if abs(resi[cbi]-resi[cbj]) >= 1:
 			interactions.append((cbi, cbj))
 
 	# get list of exclusions
@@ -326,3 +343,264 @@ def get_exclusions(oa, interactions):
 	all_interactions = combinations(range(natoms), 2)
 	exclusions = [x for x in all_interactions if x not in interactions]
 	return exclusions
+
+def apply_contact_term(oa):
+	system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi
+
+	# setup parameters
+	k_direct = 0.01
+	k_mediated = 0.01
+	k_burial = 1
+
+	r_direct_min = .45
+	r_direct_max = .65
+
+	r_mediated_min = .65
+	r_mediated_max = .95
+
+	r_density_min = 0.45
+	r_density_max = 0.65
+	rho0 = 2.6
+
+	interaction_cutoff_distance = .1
+	min_sequence_separation = 10
+
+	eta_direct = 50
+	eta_mediated = 50
+	eta_sigma = 70
+	eta_burial = 40
+
+	rho_min_1 = 0
+	rho_min_2 = 3
+	rho_min_3 = 6
+	rho_max_1 = 3
+	rho_max_2 = 6
+	rho_max_3 = 9
+
+	# setup matrix of pairwise weights of interactions
+	# this also serves to exclude interactions below the
+	# minimum sequence separation by setting those gamma values to zero
+	gamma_direct = [0]*natoms*natoms
+	gamma_water = [0]*natoms*natoms
+	gamma_protein = [0]*natoms*natoms
+	gamma_burial_1 = [0]*natoms
+	gamma_burial_2 = [0]*natoms
+	gamma_burial_3 = [0]*natoms
+	for i in range(natoms):
+		if i in cb:
+			gamma_burial_1[i] = 1
+			gamma_burial_2[i] = 1
+			gamma_burial_3[i] = 1
+		for j in range(natoms):
+			# if this is not a cbeta atom, don't include in pairwise interaction
+			if i in cb and j in cb and abs(resi[i]-resi[j]) >= min_sequence_separation:
+				gamma_direct[i+j*natoms] = 1
+				gamma_water[i+j*natoms] = 1
+				gamma_protein[i+j*natoms] = 1
+
+	# create contact force
+	contact = CustomGBForce()
+	# add per-particle parameters
+	contact.addPerParticleParameter("index")
+	# add global parameters
+	contact.addGlobalParameter("k_direct", k_direct)
+	contact.addGlobalParameter("eta_direct", eta_direct)
+	contact.addGlobalParameter("k_mediated", k_mediated)
+	contact.addGlobalParameter("eta_mediated", eta_mediated)
+	contact.addGlobalParameter("k_burial", k_burial)
+	contact.addGlobalParameter("rho0", rho0)
+	contact.addGlobalParameter("eta_burial", eta_burial)
+	contact.addGlobalParameter("eta_sigma", eta_sigma)
+	contact.addGlobalParameter("r_direct_min", r_direct_min)
+	contact.addGlobalParameter("r_direct_max", r_direct_max)
+	contact.addGlobalParameter("r_mediated_min", r_mediated_min)
+	contact.addGlobalParameter("r_mediated_max", r_mediated_max)
+	contact.addGlobalParameter("r_density_min", r_density_min)
+	contact.addGlobalParameter("r_density_max", r_density_max)
+	contact.addGlobalParameter("rho_min_1", rho_min_1)
+	contact.addGlobalParameter("rho_min_2", rho_min_2)
+	contact.addGlobalParameter("rho_min_3", rho_min_3)
+	contact.addGlobalParameter("rho_max_1", rho_max_1)
+	contact.addGlobalParameter("rho_max_2", rho_max_2)
+	contact.addGlobalParameter("rho_max_3", rho_max_3)
+	# add tabulated functions
+	contact.addTabulatedFunction("gamma_direct", Discrete2DFunction(natoms, natoms, gamma_direct))
+	contact.addTabulatedFunction("gamma_water", Discrete2DFunction(natoms, natoms, gamma_water))
+	contact.addTabulatedFunction("gamma_protein", Discrete2DFunction(natoms, natoms, gamma_protein))
+	contact.addTabulatedFunction("gamma_burial_1", Discrete1DFunction(gamma_burial_1))
+	contact.addTabulatedFunction("gamma_burial_2", Discrete1DFunction(gamma_burial_2))
+	contact.addTabulatedFunction("gamma_burial_3", Discrete1DFunction(gamma_burial_3))
+
+	# compute the density, exclusions will be taken care of
+	# using the addExclusion function below
+	contact.addComputedValue("rho", "0.25*(1+tanh(eta_direct*(r-r_density_min)))*(1+tanh(eta_direct*(r_density_max-r)))", CustomGBForce.ParticlePair)
+	# add direct interaction
+	contact.addEnergyTerm("-k_direct*gamma_direct(index1,index2)*theta_direct; theta_direct=0.25*(1+tanh(eta_direct*(r-r_direct_min)))*(1+tanh(eta_direct*(r_direct_max-r)))", CustomGBForce.ParticlePair)
+	# add mediated interaction
+	contact.addEnergyTerm("-k_mediated*theta_mediated*(gamma_water(index1,index2)*sigma_water+gamma_protein(index1,index2)*(1-sigma_water)); theta_mediated=0.25*(1+tanh(eta_mediated*(r-r_mediated_min)))*(1+tanh(eta_mediated*(r_mediated_max-r))); sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho0)))*(1-tanh(eta_sigma*(rho2-rho0)))", CustomGBForce.ParticlePair)
+	# add burial term
+	burial_string = ''.join(["-0.5*k_burial*gamma_burial_%d(index)*(tanh(eta_burial*(rho-rho_min_%d))+tanh(eta_burial*(rho_max_%d-rho)))+" % (x, x, x) for x in range(1,4)])[:-1]
+	contact.addEnergyTerm(burial_string, CustomGBForce.SingleParticle)
+
+	# set interaction cutoff
+	contact.setCutoffDistance(interaction_cutoff_distance)
+
+	# add all particles to the force
+	for i in range(natoms):
+		contact.addParticle([i])
+
+	# find all pairs to include in the force
+	interactions = []
+	for cbi, cbj in combinations([x for x in cb if x >= 0], 2):
+		if abs(resi[cbi]-resi[cbj]) >= 1:
+			interactions.append((cbi, cbj))
+
+	# get list of exclusions
+	exclusions = get_exclusions(oa, interactions)
+
+	# apply exclusions
+	for exclusion in exclusions:
+		contact.addExclusion(exclusion[0], exclusion[1])
+	
+	system.addForce(contact)
+
+def apply_beta_term(oa):
+	system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi
+
+	def lambda_1(i, j):
+		if abs(j-i) >= 4 and abs(j-i) < 18:
+			return 1.37
+		elif abs(j-i) >= 18 and abs(j-i) < 45:
+			return 1.36
+		elif abs(j-i) >= 45:
+			return 1.17
+	def lambda_2(i, j):
+		extra_terms = -0.5*alpha_1(i,j)*np.log(p_hb(i, j))-0.25*alpha_2(i, j)*(np.log(p_nhb(i+1,j-1)+np.log(p_nhb(i-1,j+1))))-alpha_3(i, j)*(np.log(p_anti(i))+np.log(p_anti(j)))
+		if abs(j-i) >= 4 and abs(j-i) < 18:
+			return 3.89+extra_terms
+		elif abs(j-i) >= 18 and abs(j-i) < 45:
+			return 3.50+extra_terms
+		elif abs(j-i) >= 45:
+			return 3.52+extra_terms
+	def lambda_3(i, j):
+		extra_terms = -alpha_4(i,j)*np.log(p_parhb(i+1,j))-alpha_5(i,j)*np.log(p_par(i+1))+alpha_4*np.log(p_par(j))
+		if abs(j-i) >= 4 and abs(j-i) < 18:
+			return 0.0+extra_terms
+		elif abs(j-i) >= 18 and abs(j-i) < 45:
+			return 3.47+extra_terms
+		elif abs(j-i) >= 45:
+			return 3.62+extra_terms
+	def alpha_1(i,j):
+		if abs(j-i) >= 4 and abs(j-i) < 18:
+			return 1.3
+		elif abs(j-i) >= 18 and abs(j-i) < 45:
+			return 1.3
+		elif abs(j-i) >= 45:
+			return 1.3
+	def alpha_2(i,j):
+		if abs(j-i) >= 4 and abs(j-i) < 18:
+			return 1.32
+		elif abs(j-i) >= 18 and abs(j-i) < 45:
+			return 1.32
+		elif abs(j-i) >= 45:
+			return 1.32
+	def alpha_3(i,j):
+		if abs(j-i) >= 4 and abs(j-i) < 18:
+			return 1.22
+		elif abs(j-i) >= 18 and abs(j-i) < 45:
+			return 1.22
+		elif abs(j-i) >= 45:
+			return 1.22	
+	def alpha_4(i,j):
+		if abs(j-i) >= 4 and abs(j-i) < 18:
+			return 0.0
+		elif abs(j-i) >= 18 and abs(j-i) < 45:
+			return 0.33
+		elif abs(j-i) >= 45:
+			return 0.33
+	def alpha_5(i,j):
+		if abs(j-i) >= 4 and abs(j-i) < 18:
+			return 0.0
+		elif abs(j-i) >= 18 and abs(j-i) < 45:
+			return 1.01
+		elif abs(j-i) >= 45:
+			return 1.01
+	
+	# add beta potential
+	# setup parameters
+	k_beta = 1.0
+	lambda_1 = [0]*nres*nres
+	for i in range(nres):
+		for j in range(nres):
+			lambda_1[i+j*nres] = lambda_1(i,j)
+			lambda_2[i+j*nres] = lambda_2(i,j)
+			lambda_3[i+j*nres] = lambda_3(i,j)
+
+	r_ON = .298
+	sigma_NO = .068
+	r_OH = .206
+	sigma_HO = .076
+	eta_beta_1 = 10.0
+	eta_beta_2 = 5.0
+	r_HB_c = 1.2
+
+	theta_ij =   "exp(-(r_Oi_Nj-r_ON)^2/(2*sigma_NO^2)-(r_Oi_Hj-r_OH)^2/(2*sigma_HO^2))"
+	theta_ji =   "exp(-(r_Oj_Ni-r_ON)^2/(2*sigma_NO^2)-(r_Oj_Hi-r_OH)^2/(2*sigma_HO^2))"
+	theta_jip2 = "exp(-(r_Oj_Nip2-r_ON)^2/(2*sigma_NO^2)-(r_Oj_Hip2-r_OH)^2/(2*sigma_HO^2))"
+	nu_i = "0.5*(1+tanh(eta_beta_1*(r_CAim2_CAip2-r_HB_c)))"
+	nu_j = "0.5*(1+tanh(eta_beta_2*(r_CAjm2_CAjp2-r_HB_c)))"
+
+	# Oi Nj Hj CAi-2 CAi+2 CAj-2 CAj+2
+	# 1  2  3  4     5     6     7
+	beta_string_1 = "-k_beta*lambda_1(index_i,index_j)*theta_ij*nu_i*nu_j;theta_ij=%s;r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
+					nu_i=%s;nu_j=%s;r_CAim2_CAip2=distance(p4,p5);r_CAjm2_CAjp2=distance(p6,p7)" % (theta_ij, nu_i, nu_j)
+
+	# Oi Nj Hj Oj Ni Hi CAi-2 CAi+2 CAj-2 CAj+2
+	# 1  2  3  4  5  6  7     8     9     10
+	beta_string_2 = "-k_beta*lambda_2(index_i,index_j)*theta_ij*theta_ji*nu_i*nu_j;\
+					theta_ij=%s;r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
+					theta_ji=%s;r_Oj_Ni=distance(p4,p5);r_Oj_Hi=distance(p4,p6);\
+					nu_i=%s;nu_j=%s;r_CAim2_CAip2=distance(p7,p8);r_CAjm2_CAjp2=distance(p9,p10)" % (theta_ij, theta_ji, nu_i, nu_j)
+
+	# Oi Nj Hj Oj Ni+2 Hi+2 CAi-2 CAi+2 CAj-2 CAj+2
+	# 1  2  3  4  5    6    7     8     9     10
+	beta_string_3 = "-k_beta*lambda_3(index_i,index_j)*theta_ij*theta_jip2*nu_i*nu_j;\
+					theta_ij=%s;r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
+					theta_ji=%s;r_Oj_Ni=distance(p4,p5);r_Oj_Hi=distance(p4,p6);\
+					theta_jip2=%s;r_Oj_Nip2=distance(p4,p5);r_Oj_Hip2=distance(p4,p6);\
+					nu_i=%s;nu_j=%s;r_CAim2_CAip2=distance(p7,p8);r_CAjm2_CAjp2=distance(p9,p10)" % (theta_ij, theta_ji, theta_jip2, nu_i, nu_j)
+
+	beta_1 = CustomCompoundBondForce(7, beta_string_1)
+	beta_2 = CustomCompoundBondForce(10, beta_string_2)
+	beta_3 = CustomCompoundBondForce(10, beta_string_3)
+	# add parameters to force
+	for i in range(1,4):
+		locals()["beta_%d" % i].addGlobalParameter("k_beta", k_beta)
+		locals()["beta_%d" % i].addGlobalParameter("r_ON", r_ON)
+		locals()["beta_%d" % i].addGlobalParameter("sigma_NO", sigma_NO)
+		locals()["beta_%d" % i].addGlobalParameter("r_OH", r_OH)
+		locals()["beta_%d" % i].addGlobalParameter("sigma_HO", sigma_HO)
+		locals()["beta_%d" % i].addGlobalParameter("eta_beta_1", eta_beta_1)
+		locals()["beta_%d" % i].addGlobalParameter("eta_beta_2", eta_beta_2)
+		locals()["beta_%d" % i].addGlobalParameter("r_HB_c", r_HB_c)
+		locals()["beta_%d" % i].addPerBondParameter("index_i")
+		locals()["beta_%d" % i].addPerBondParameter("index_j")
+	beta_1.addTabulatedFunction("lambda_1", Discrete2DFunction(nres, nres, lambda_1))
+	beta_2.addTabulatedFunction("lambda_2", Discrete2DFunction(nres, nres, lambda_2))
+	beta_3.addTabulatedFunction("lambda_3", Discrete2DFunction(nres, nres, lambda_3))
+
+	for i in range(nres):
+		for j in range(i, nres):
+			if i-2 < 0 or i+2 >= nres or \
+			   j-2 < 0 or j+2 >= nres:
+			   continue
+			if not res_type[j] == "IPR":
+				beta_1.addBond([o[i], n[j], h[j], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
+			if not res_type[i] == "IPR" and not res_type[j] == "IPR":
+				beta_2.addBond([o[i], n[j], h[j], o[j], n[i], h[i], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
+			if not res_type[i+2] == "IPR" and not res_type[j] == "IPR":
+				beta_3.addBond([o[i], n[j], h[j], o[j], n[i+2], h[i+2], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
+
+	system.addForce(beta_1)
+	system.addForce(beta_2)
+	system.addForce(beta_3)

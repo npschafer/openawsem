@@ -9,6 +9,10 @@ from Bio.PDB.PDBParser import PDBParser
 from itertools import combinations
 import numpy as np
 
+se_map_3_letter = dict(zip(("ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"), (0, 4, 3, 6, 13, 7, 8, 9, 11, 10, 12, 2, 14, 5, 1, 15, 16, 19, 17, 18)))
+
+se_map_1_letter = dict(zip(("A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"), (0, 4, 3, 6, 13, 7, 8, 9, 11, 10, 12, 2, 14, 5, 1, 15, 16, 19, 17, 18)))
+
 def identify_terminal_residues(pdb_filename):
 	# identify terminal residues
 	p = PDBParser()
@@ -51,6 +55,10 @@ def prepare_pdb(pdb_filename, chains_to_simulate, input_pdb_filename=None):
 	fixer.addMissingHydrogens(7.0)
 	PDBFile.writeFile(fixer.topology, fixer.positions, open('pdbfixeroutput.pdb', 'w'))
 
+	#Read sequence
+	structure = PDBParser().get_structure('pdbfixeroutput','pdbfixeroutput.pdb')
+	res_names = list([x.resname for x in structure.get_residues()])
+
 	# identify terminal residues
 	terminal_residues = identify_terminal_residues('pdbfixeroutput.pdb')
 
@@ -83,6 +91,8 @@ def prepare_pdb(pdb_filename, chains_to_simulate, input_pdb_filename=None):
 			line=''.join(line)    
 			output.write(line)
 	output.close()
+
+	return res_names
 
 def build_lists_of_atoms(nres, residues):
 	# build lists of atoms, residue types, and bonds
@@ -142,7 +152,9 @@ def setup_bonds(nres, n, h, ca, c, o, cb, res_type):
 	return bonds
 
 class OpenMMAWSEMSystem:
-	def __init__(self, pdb_filename, xml_filename='awsem.xml'):
+	def __init__(self, pdb_filename, res_names, xml_filename='awsem.xml'):
+		# get full residue names
+		self.res_names = res_names
 		# read PDB
 		self.pdb = PDBFile(pdb_filename)
 		self.forcefield = ForceField(xml_filename)
@@ -465,76 +477,86 @@ def apply_contact_term(oa):
 	system.addForce(contact)
 
 def apply_beta_term(oa):
-	system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi
+	system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi, res_names = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi, oa.res_names
 
-	def lambda_1(i, j):
+	p_par, p_anti, p_antihb, p_antinhb, p_parhb = read_beta_parameters()
+
+	parameter_i = []
+	for i in range(nres):
+		parameter_i.append(se_map_3_letter[res_names[i]])
+
+	def lambda_coefficient(i, j, lambda_index):
+		lambda_2_extra_terms = -0.5*alpha_coefficient(parameter_i[i],parameter_i[j],1)*np.log(p_antihb[parameter_i[i], parameter_i[j]][0])-0.25*alpha_coefficient(parameter_i[i], parameter_i[j], 2)*(np.log(p_antinhb[parameter_i[i+1],parameter_i[j-1]][0])+np.log(p_antinhb[parameter_i[i-1],parameter_i[j+1]][0]))-alpha_coefficient(parameter_i[i], parameter_i[j], 3)*(np.log(p_anti[parameter_i[i]])+np.log(p_anti[parameter_i[j]]))
+		lambda_3_extra_terms = -alpha_coefficient(parameter_i[i],parameter_i[j], 4)*np.log(p_parhb[parameter_i[i+1],parameter_i[j]][0])-alpha_coefficient(parameter_i[i],parameter_i[j],5)*np.log(p_par[parameter_i[i+1]])+alpha_coefficient(parameter_i[i],parameter_i[j],4)*np.log(p_par[parameter_i[j]])
 		if abs(j-i) >= 4 and abs(j-i) < 18:
-			return 1.37
+			if lambda_index == 1:
+				return 1.37
+			elif lambda_index == 2:
+				return 3.89+lambda_2_extra_terms
+			elif lambda_index == 3:
+				return 0.0+lambda_3_extra_terms
 		elif abs(j-i) >= 18 and abs(j-i) < 45:
-			return 1.36
+			if lambda_index == 1:
+				return 1.36
+			elif lambda_index == 2:
+				return 3.50+lambda_2_extra_terms
+			elif lambda_index == 3:
+				return 3.47+lambda_3_extra_terms
 		elif abs(j-i) >= 45:
-			return 1.17
-	def lambda_2(i, j):
-		extra_terms = -0.5*alpha_1(i,j)*np.log(p_hb(i, j))-0.25*alpha_2(i, j)*(np.log(p_nhb(i+1,j-1)+np.log(p_nhb(i-1,j+1))))-alpha_3(i, j)*(np.log(p_anti(i))+np.log(p_anti(j)))
+			if lambda_index == 1:
+				return 1.17
+			elif lambda_index == 2:
+				return 3.52+lambda_2_extra_terms
+			elif lambda_index == 3:
+				return 3.62+lambda_3_extra_terms
+		return 0.0
+	def alpha_coefficient(i,j, alpha_index):
 		if abs(j-i) >= 4 and abs(j-i) < 18:
-			return 3.89+extra_terms
+			if alpha_index == 1:
+				return 1.3
+			if alpha_index == 2:
+				return 1.32
+			if alpha_index == 3:
+				return 1.22
+			if alpha_index == 4:
+				return 0.0
+			if alpha_index == 5:
+				return 0.0
 		elif abs(j-i) >= 18 and abs(j-i) < 45:
-			return 3.50+extra_terms
+			if alpha_index == 1:
+				return 1.3
+			if alpha_index == 2:
+				return 1.32
+			if alpha_index == 3:
+				return 1.22
+			if alpha_index == 4:
+				return 0.33
+			if alpha_index == 5:
+				return 1.01
 		elif abs(j-i) >= 45:
-			return 3.52+extra_terms
-	def lambda_3(i, j):
-		extra_terms = -alpha_4(i,j)*np.log(p_parhb(i+1,j))-alpha_5(i,j)*np.log(p_par(i+1))+alpha_4*np.log(p_par(j))
-		if abs(j-i) >= 4 and abs(j-i) < 18:
-			return 0.0+extra_terms
-		elif abs(j-i) >= 18 and abs(j-i) < 45:
-			return 3.47+extra_terms
-		elif abs(j-i) >= 45:
-			return 3.62+extra_terms
-	def alpha_1(i,j):
-		if abs(j-i) >= 4 and abs(j-i) < 18:
-			return 1.3
-		elif abs(j-i) >= 18 and abs(j-i) < 45:
-			return 1.3
-		elif abs(j-i) >= 45:
-			return 1.3
-	def alpha_2(i,j):
-		if abs(j-i) >= 4 and abs(j-i) < 18:
-			return 1.32
-		elif abs(j-i) >= 18 and abs(j-i) < 45:
-			return 1.32
-		elif abs(j-i) >= 45:
-			return 1.32
-	def alpha_3(i,j):
-		if abs(j-i) >= 4 and abs(j-i) < 18:
-			return 1.22
-		elif abs(j-i) >= 18 and abs(j-i) < 45:
-			return 1.22
-		elif abs(j-i) >= 45:
-			return 1.22	
-	def alpha_4(i,j):
-		if abs(j-i) >= 4 and abs(j-i) < 18:
-			return 0.0
-		elif abs(j-i) >= 18 and abs(j-i) < 45:
-			return 0.33
-		elif abs(j-i) >= 45:
-			return 0.33
-	def alpha_5(i,j):
-		if abs(j-i) >= 4 and abs(j-i) < 18:
-			return 0.0
-		elif abs(j-i) >= 18 and abs(j-i) < 45:
-			return 1.01
-		elif abs(j-i) >= 45:
-			return 1.01
+			if alpha_index == 1:
+				return 1.3
+			if alpha_index == 2:
+				return 1.32
+			if alpha_index == 3:
+				return 1.22	
+			if alpha_index == 4:
+				return 0.33
+			if alpha_index == 5:
+				return 1.01
+		return 0.0
 	
 	# add beta potential
 	# setup parameters
 	k_beta = 1.0
 	lambda_1 = [0]*nres*nres
-	for i in range(nres):
-		for j in range(nres):
-			lambda_1[i+j*nres] = lambda_1(i,j)
-			lambda_2[i+j*nres] = lambda_2(i,j)
-			lambda_3[i+j*nres] = lambda_3(i,j)
+	lambda_2 = [0]*nres*nres
+	lambda_3 = [0]*nres*nres
+	for i in range(1,nres-1):
+		for j in range(1,nres-1):
+			lambda_1[i+j*nres] = lambda_coefficient(i,j,1)
+			lambda_2[i+j*nres] = lambda_coefficient(i,j,2)
+			lambda_3[i+j*nres] = lambda_coefficient(i,j,3)
 
 	r_ON = .298
 	sigma_NO = .068
@@ -604,3 +626,33 @@ def apply_beta_term(oa):
 	system.addForce(beta_1)
 	system.addForce(beta_2)
 	system.addForce(beta_3)
+
+def read_beta_parameters(parameter_directory='.'):
+	os.chdir(parameter_directory)
+	in_anti_HB = open("anti_HB", 'r').readlines()
+	in_anti_NHB = open("anti_NHB", 'r').readlines()
+	in_para_HB = open("para_HB", 'r').readlines()
+	in_para_one = open("para_one", 'r').readlines()
+	in_anti_one = open("anti_one", 'r').readlines()
+
+	p_par = np.zeros((20))
+	p_anti = np.zeros((20))
+	p_antihb = np.zeros((20,20,2))
+	p_antinhb = np.zeros((20,20,2))
+	p_parhb = np.zeros((20,20,2))
+
+	for i in range(20):
+		p_par[i] = float(in_para_one[i].strip())
+		p_anti[i] = float(in_anti_one[i].strip())
+		for j in range(20):
+			p_antihb[i][j][0] = float(in_anti_HB[i].strip().split()[j])
+			p_antinhb[i][j][0] = float(in_anti_NHB[i].strip().split()[j])
+			p_parhb[i][j][0] = float(in_para_HB[i].strip().split()[j])
+
+	for i in range(20):
+		for j in range(20):
+			p_antihb[i][j][1] = float(in_anti_HB[i+21].strip().split()[j])
+			p_antinhb[i][j][1] = float(in_anti_NHB[i+21].strip().split()[j])
+			p_parhb[i][j][1] = float(in_para_HB[i+21].strip().split()[j])
+
+	return p_par, p_anti, p_antihb, p_antinhb, p_parhb

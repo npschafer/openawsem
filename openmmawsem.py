@@ -694,3 +694,39 @@ def apply_pap_term(oa):
 				pap.addBond([ca[i], ca[j], ca[i+4], ca[j-4]], [gamma_p])
 
 	system.addForce(pap)
+
+def apply_dsb_term(oa):
+	system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi, res_names = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi, oa.res_names
+	
+	k_dsb = 1.0
+	dsb_cutoff = .15
+	eta_dsb = 100
+	r_min_dsb = 0.6
+	r_max_dsb = 0.7
+	shift = {'ALA': 0.00*10, 'ARG': 2.04*10, 'ASN': 0.57*10, 'ASP': 0.57*10, 'CYS': 0.36*10, 'GLN': 1.11*10, 'GLU': 1.17*10, 'GLY': -1.52*10,   'HIS': 0.87*10, 'ILE': 0.67*10, 'LEU': 0.79*10, 'LYS': 1.47*10, 'MET': 1.03*10, 'PHE': 1.00*10, 'PRO': 0.10*10, 'SER': 0.26*10,  'THR': 0.37*10, 'TRP': 1.21*10, 'TYR': 1.15*10, 'VAL': 0.39*10}			                     
+
+	dsb = CustomNonbondedForce("k_dsb*0.5*(tanh(eta_dsb*(r-(r_min+shift1+shift2)))+tanh(eta_dsb*((r_max+shift1+shift2)-r)))")
+	dsb.addGlobalParameter("k_dsb", k_dsb)
+	dsb.addGlobalParameter("eta_dsb", eta_dsb)
+	dsb.addGlobalParameter("r_min", r_min_dsb)
+	dsb.addGlobalParameter("r_max", r_max_dsb)
+	dsb.addPerParticleParameter("shift")
+	for i in range(natoms):
+		dsb.addParticle([shift[res_names[resi[i]]]])
+	cb_with_gly_ca = [x if x >= 0 else y for x,y in zip(cb,ca)]
+	dsb.addInteractionGroup(cb_with_gly_ca, cb_with_gly_ca)
+	dsb.setCutoffDistance(dsb_cutoff)
+
+	# find all pairs to include in the force
+	interactions = []
+	for cbi, cbj in combinations(cb_with_gly_ca, 2):
+		if abs(resi[cbi]-resi[cbj]) >= 10:
+			interactions.append((cbi, cbj))
+
+	# get list of exclusions
+	exclusions = get_exclusions(oa, interactions)
+
+	# apply exclusions
+	dsb.createExclusionsFromBonds(exclusions, 1)
+
+	system.addForce(dsb)

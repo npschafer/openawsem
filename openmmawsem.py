@@ -554,9 +554,9 @@ def apply_beta_term(oa):
 	lambda_3 = [0]*nres*nres
 	for i in range(1,nres-1):
 		for j in range(1,nres-1):
-			lambda_1[i+j*nres] = lambda_coefficient(i,j,1)
-			lambda_2[i+j*nres] = lambda_coefficient(i,j,2)
-			lambda_3[i+j*nres] = lambda_coefficient(i,j,3)
+			lambda_1[i+j*nres] = 1 #lambda_coefficient(i,j,1)
+			lambda_2[i+j*nres] = 1 #lambda_coefficient(i,j,2)
+			lambda_3[i+j*nres] = 1 #lambda_coefficient(i,j,3)
 
 	r_ON = .298
 	sigma_NO = .068
@@ -656,3 +656,41 @@ def read_beta_parameters(parameter_directory='.'):
 			p_parhb[i][j][1] = float(in_para_HB[i+21].strip().split()[j])
 
 	return p_par, p_anti, p_antihb, p_antinhb, p_parhb
+
+def apply_pap_term(oa):
+	system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi, res_names = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi, oa.res_names
+
+	pap_function = "-k_pap*gamma*0.5*(1+tanh(eta_pap*(r0-distance(p1,p2))))*0.5*(1+tanh(eta_pap*(r0-distance(p3,p4))))"
+	# setup parameters
+	k_pap = 10.0
+	r0 = 0.8 # nm
+	eta_pap = 70 # nm^-1
+	gamma_aph = 1.0
+	gamma_ap = 0.4
+	gamma_p = 0.4
+
+	pap = CustomCompoundBondForce(4, pap_function)
+	pap.addGlobalParameter("k_pap", k_pap)
+	pap.addGlobalParameter("r0", r0)
+	pap.addGlobalParameter("eta_pap", eta_pap)
+	pap.addPerBondParameter("gamma")
+
+	for i in range(nres):
+		for j in range(nres):
+			# anti-parallel hairpin for i from 1 to N-13 and j from i+13 to min(i+16,N)
+			# CAi CAj CAi+4 CAj-4
+			# 1   2   3     4
+			if i <= nres-13 and j >= i+13 and j <= min(i+16,nres):
+				pap.addBond([ca[i], ca[j], ca[i+4], ca[j-4]], [gamma_aph])
+			# anti-parallel for i from 1 to N-17 and j from i+17 to N
+			# CAi CAj CAi+4 CAj-4
+			# 1   2   3     4
+			if i <= nres-17 and j >= i+17 and j <= nres:
+				pap.addBond([ca[i], ca[j], ca[i+4], ca[j-4]], [gamma_ap])
+			# parallel for i from 1 to N-13 and j from i+9 to N-4
+			# CAi CAj CAi+4 CAj+4
+			# 1   2   3     4	
+			if i <= nres-13 and j >= i+9 and j <= nres-4:
+				pap.addBond([ca[i], ca[j], ca[i+4], ca[j-4]], [gamma_p])
+
+	system.addForce(pap)

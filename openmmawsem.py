@@ -730,3 +730,161 @@ def apply_dsb_term(oa):
 	dsb.createExclusionsFromBonds(exclusions, 1)
 
 	system.addForce(dsb)
+
+def apply_helix_term(oa):
+	system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi, res_names = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi, oa.res_names
+	helix_frequencies = {
+	'ALA': 0.77,
+	'ARG': 0.68,
+	'ASN': 0.07,
+	'ASP': 0.15,
+	'CYS': 0.23,
+	'GLN': 0.33,
+	'GLU': 0.27,
+	'GLY': 0.0,
+	'HIS': 0.06,
+	'ILE': 0.23,
+	'LEU': 0.62,
+	'LYS': 0.65,
+	'MET': 0.50,
+	'PHE': 0.41,
+	'PRO': 0.4,
+	'SER': 0.35,
+	'THR': 0.11,
+	'TRP': 0.45,
+	'TYR': 0.17,
+	'VAL': 0.14
+	}
+	
+	k_helix = 0
+	gamma_prot = 2.0
+	gamma_wat = -1.0
+	eta_sigma = 70
+	r_ON = .298
+	r_OH = .206
+	sigma_ON = .068
+	sigma_OH = .076
+	eta_direct = 50
+	r_density_min = 0.45
+	r_density_max = 0.65
+	rho0 = 2.6
+
+	rhoi = ""
+	rhoip4 = ""
+	for j in range(1,nres+1-3):
+		rhoi += "0.25*(1+tanh(eta_direct*(distance(p4,p%d)-r_density_min)))*(1+tanh(eta_direct*(r_density_max-distance(p4,p%d))))+" % (j+5, j+5)
+		rhoip4 += "0.25*(1+tanh(eta_direct*(distance(p5,p%d)-r_density_min)))*(1+tanh(eta_direct*(r_density_max-distance(p5,p%d))))+" % (j+5, j+5)
+	rhoi = rhoi[:-1]
+	rhoip4 = rhoip4[:-1]
+
+	helix_function = "-k_helix*(fai+faip4)*(gamma_prot*(1-sigma_wat)+gamma_wat*sigma_wat)*exp(-(distance(p1,p2)-r_ON)^2/2*sigma_ON^2-(distance(p1,p3)-r_OH)^2/2*sigma_OH^2);sigma_wat=0.25*(1-tanh(eta_sigma*(rhoi-rho0))*(1-tanh(eta_sigma*(rhoip4-rho0))));rhoi=%s;rhoip4=%s" % (rhoi, rhoip4)
+
+	helix = CustomCompoundBondForce(5+nres-3, helix_function)
+	helix.addGlobalParameter("k_helix", k_helix)
+	helix.addGlobalParameter("gamma_prot", gamma_prot)
+	helix.addGlobalParameter("gamma_wat", gamma_wat)
+	helix.addGlobalParameter("eta_sigma", eta_sigma)
+	helix.addGlobalParameter("eta_direct", eta_direct)
+	helix.addGlobalParameter("sigma_ON", sigma_ON)
+	helix.addGlobalParameter("sigma_OH", sigma_OH)
+	helix.addGlobalParameter("r_density_min", r_density_min)
+	helix.addGlobalParameter("r_density_max", r_density_max)
+	helix.addGlobalParameter("rho0", rho0)
+	helix.addGlobalParameter("r_ON", r_ON)
+	helix.addGlobalParameter("r_OH", r_OH)
+	helix.addPerBondParameter("i")
+	helix.addPerBondParameter("ip4")
+	helix.addPerBondParameter("fai")
+	helix.addPerBondParameter("faip4")
+
+	cb_with_gly_ca = [x if x >= 0 else y for x,y in zip(cb,ca)]
+	#for i in range(nres-4):
+	for i in range(2,3):
+		print(i)
+		other_cb_with_gly_ca = list(cb_with_gly_ca)
+		print(other_cb_with_gly_ca)
+		del other_cb_with_gly_ca[i-1]
+		print(other_cb_with_gly_ca)
+		del other_cb_with_gly_ca[i-1]
+		print(other_cb_with_gly_ca)
+		del other_cb_with_gly_ca[i-1]
+		print(other_cb_with_gly_ca)
+		if res_names[i+4] == "PRO":
+			continue
+		fai = helix_frequencies[res_names[i]]
+		faip4 = helix_frequencies[res_names[i+4]]
+		helix.addBond([o[i], n[i+4], h[i+4], cb_with_gly_ca[i], cb_with_gly_ca[i+4], *other_cb_with_gly_ca], [i+1, i+5, fai, faip4])
+
+	system.addForce(helix)
+
+def read_memory(pdb_file, chain_name, target_start, fragment_start, length, weight, min_seq_sep, max_seq_sep, ca, cb):
+	memory_interactions = []
+
+	if not os.path.isfile(pdb_file):
+		pdbl = PDBList()
+		pdbl.retrieve_pdb_file(pdb_file.split('.')[0].lower(), pdir='.')
+		os.rename("pdb%s.ent" % pdb_id, "%s.pdb" % pdb_id)
+
+	p = PDBParser()
+	structure = p.get_structure('X', pdb_file)
+	chain = structure[0][chain_name]
+	residues = [x for x in chain if x.get_full_id()[3][1] in range(fragment_start,fragment_start+length-1)]
+	for i, residue_i in enumerate(residues):
+		for j, residue_j in enumerate(residues):
+			if abs(i-j) > max_seq_sep:
+				continue
+			target_index_i = target_start + i - 1
+			target_index_j = target_start + j - 1
+			atom_list = []
+			target_atom_list = []
+			if abs(i-j) >= min_seq_sep:
+				ca_i = residue_i['CA']
+				atom_list.append(ca_i)
+				target_atom_list.append(ca[target_index_i])
+				ca_j = residue_j['CA']
+				atom_list.append(ca_j)
+				target_atom_list.append(ca[target_index_j])
+				if not residue_i.get_resname() == "GLY" and cb[target_index_i] >= 0:
+					cb_i = residue_i['CB']
+					atom_list.append(cb_i)
+					target_atom_list.append(cb[target_index_i])
+				if not residue_j.get_resname() == "GLY" and cb[target_index_j] >= 0:
+					cb_j = residue_j['CB']
+					atom_list.append(cb_j)
+					target_atom_list.append(cb[target_index_j])
+			for atom_i, atom_j in combinations(atom_list, 2):
+				particle_1 = target_atom_list[atom_list.index(atom_i)]
+				particle_2 = target_atom_list[atom_list.index(atom_j)]
+				r_ijm = (atom_i - atom_j)/10.0 # convert to nm
+				sigma_ij = 0.1*abs(i-j)**0.15 # 0.1 nm = 1 A
+				gamma_ij = 1.0
+				w_m = weight			
+				memory_interaction = [particle_1, particle_2, [w_m, gamma_ij, r_ijm, sigma_ij]]
+				memory_interactions.append(memory_interaction)
+	return memory_interactions
+
+def apply_associative_memory_term(oa):
+	system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi, res_names = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi, oa.res_names
+
+	k_am = 1.0
+	min_seq_sep = 3
+	max_seq_sep = 9
+		 #pdbid #chain #target #fragment #length #weight
+	memories = [['1r69.pdb', 'A', 1, 1, 63, 1]]
+
+	am_function = '-k_am*w_m*gamma_ij*exp(-(r-r_ijm)^2/(2*sigma_ij^2))'
+	am = CustomBondForce(am_function)
+
+	am.addGlobalParameter('k_am', k_am)
+	am.addPerBondParameter('w_m')
+	am.addPerBondParameter('gamma_ij')
+	am.addPerBondParameter('r_ijm')
+	am.addPerBondParameter('sigma_ij')
+
+	for memory in memories:
+		memory_interactions = read_memory(*memory, min_seq_sep, max_seq_sep, ca, cb)
+		for memory_interaction in memory_interactions:
+			am.addBond(*memory_interaction)
+
+	system.addForce(am)
+		

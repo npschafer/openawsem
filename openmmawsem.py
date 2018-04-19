@@ -66,19 +66,20 @@ def prepare_pdb(pdb_filename, chains_to_simulate, input_pdb_filename=None):
 	if input_pdb_filename == None:
 		input_pdb_filename = pdb_filename.split('.')[0] + '-openmmawsem.pdb'
 	output = open(input_pdb_filename, 'w')
+	counter=0
 	for line in open("pdbfixeroutput.pdb"):
 		splitline = line.split()
-		if splitline[0] == "ATOM":
+		if len(line)>4 and line[0:4] == "ATOM":
 			try:
-			    atom_index=line[6:11]
-			    atom_type=line[12:16]
-			    res_type=line[17:20]
-			    chain=line[21]
-			    res_index=line[22:26]
-			    x=line[30:38]
-			    y=line[38:46]
-			    z=line[46:54]
-			    element = line[76:78]
+			    atom_index=line[6:11].strip()
+			    atom_type=line[12:16].strip()
+			    res_type=line[17:20].strip()
+			    chain=line[21].strip()
+			    res_index=line[22:26].strip()
+			    x=line[30:38].strip()
+			    y=line[38:46].strip()
+			    z=line[46:54].strip()
+			    element = line[76:78].strip()
 			except ValueError:
 			    print(line)
 			    raise
@@ -89,12 +90,12 @@ def prepare_pdb(pdb_filename, chains_to_simulate, input_pdb_filename=None):
 			awsem_atoms.remove("N")
 			awsem_atoms.remove("H")
 		if int(res_index) == terminal_residues[chain][1]:
-			awsem_atoms.remove("C")
+		    awsem_atoms.remove("C")
 		if atom_type in awsem_atoms:
 			line=list(line)
-			if splitline[3] == "GLY":
+			if res_type == "GLY":
 				line[17:20] = "IGL"
-			elif splitline[3] == "PRO":
+			elif res_type == "PRO":
 				line[17:20] = "IPR"
 			else:
 				line[17:20] = "NGP"
@@ -102,34 +103,44 @@ def prepare_pdb(pdb_filename, chains_to_simulate, input_pdb_filename=None):
 				line[77] = "B"
 			line=''.join(line)    
 			output.write(line)
+			counter+=1
+	#print("The system contains %i atoms"%counter)
 	output.close()
 
 	return res_names
 
 def build_lists_of_atoms(nres, residues):
 	# build lists of atoms, residue types, and bonds
-	n, h, ca, c, o, cb, res_type = [], [], [], [], [], [], []
+	atom_types=['n', 'h', 'ca', 'c', 'o', 'cb']
+	res_types=[]
+	atom_lists=dict(zip(atom_types,[[] for i in range(len(atom_types))]))
 	for residue in residues:
-		res_type.append(residue.name)
-		atom_lists = [n, h, ca, c, o, cb]
+		res_types.append(residue.name)
+		atom_types=['n', 'h', 'ca', 'c', 'o', 'cb']
 		residue_atoms = [x.index for x in residue.atoms()]
+		#print(residue_atoms)
 		if residue.index == 0:
-			atom_lists.remove(n)
-			n.append(-1)
-			atom_lists.remove(h)
-			h.append(-1)
+			atom_types.remove('n')
+			atom_lists['n'].append(-1)
+			atom_types.remove('h')
+			atom_lists['h'].append(-1)
 		if residue.index == nres-1:
-			atom_lists.remove(c)
-			c.append(-1)
-		if residue.name == "IGL" and cb in atom_lists:
-			atom_lists.remove(cb)
-			cb.append(-1)
-		if residue.name == "IPR" and h in atom_lists:
-			atom_lists.remove(h)
-			h.append(-1)
-		for atom, atom_list in zip(residue_atoms, atom_lists):
-				atom_list.append(atom)
-	return n, h, ca, c, o, cb, res_type
+			atom_types.remove('c')
+			atom_lists['c'].append(-1)
+			pass
+		if residue.name == "IGL" and 'cb' in atom_types:
+			atom_types.remove('cb')
+			atom_lists['cb'].append(-1)
+		if residue.name == "IPR" and 'h' in atom_types:
+			atom_types.remove('h')
+			atom_lists['h'].append(-1)
+		assert len(residue_atoms)==len(atom_types), '%s\n%s'%(str(residue_atoms),str(atom_types))
+		for atom, atype in zip(residue_atoms, atom_types):
+				#print(atype,atom)
+				atom_lists[atype].append(atom)
+	#[print(key,len(atom_lists[key])) for key in atom_lists]
+				
+	return atom_lists, res_types
 
 def setup_virtual_sites(nres, system, n, h, ca, c, o, cb, res_type):
 	# set virtual sites
@@ -177,7 +188,14 @@ class OpenMMAWSEMSystem:
 		self.residues = list(self.pdb.topology.residues())
 		self.resi = [x.residue.index for x in list(self.pdb.topology.atoms())]
 		# build lists of atoms and residue types
-		self.n, self.h, self.ca, self.c, self.o, self.cb, self.res_type = build_lists_of_atoms(self.nres, self.residues)
+		self.atom_lists,self.res_type=build_lists_of_atoms(self.nres, self.residues)
+		#print(str(self.atom_lists))
+		self.n =self.atom_lists['n']
+		self.h =self.atom_lists['h']
+		self.ca=self.atom_lists['ca']
+		self.c =self.atom_lists['c']
+		self.o =self.atom_lists['o']
+		self.cb=self.atom_lists['cb']
 		# setup virtual sites
 		setup_virtual_sites(self.nres, self.system, self.n, self.h, self.ca, self.c, self.o, self.cb, self.res_type)
 		# setup bonds
@@ -882,7 +900,7 @@ def apply_associative_memory_term(oa):
 	min_seq_sep = 3
 	max_seq_sep = 9
 		 #pdbid #chain #target #fragment #length #weight
-	memories = [['1r69.pdb', 'A', 1, 1, 63, 1]]
+	memories = [['9-peptide.pdb', 'C', 1, 1, 63, 1]]
 
 	am_function = '-k_am*w_m*gamma_ij*exp(-(r-r_ijm)^2/(2*sigma_ij^2))'
 	am = CustomBondForce(am_function)

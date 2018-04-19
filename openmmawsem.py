@@ -69,7 +69,19 @@ def prepare_pdb(pdb_filename, chains_to_simulate, input_pdb_filename=None):
 	for line in open("pdbfixeroutput.pdb"):
 		splitline = line.split()
 		if splitline[0] == "ATOM":
-			_, atom_index, atom_type, res_type, chain, res_index, x, y, z, _, _, element = splitline
+			try:
+			    atom_index=line[6:11]
+			    atom_type=line[12:16]
+			    res_type=line[17:20]
+			    chain=line[21]
+			    res_index=line[22:26]
+			    x=line[30:38]
+			    y=line[38:46]
+			    z=line[46:54]
+			    element = line[76:78]
+			except ValueError:
+			    print(line)
+			    raise
 		else:
 			continue
 		awsem_atoms = ["CA", "O", "CB", "C", "H", "N"]

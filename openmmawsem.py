@@ -94,8 +94,7 @@ def prepare_pdb(pdb_filename, chains_to_simulate, input_pdb_filename=None):
             awsem_atoms.remove("H")
         if int(res_index) == terminal_residues[chain][1]:
             awsem_atoms.remove("C")
-        #if res_type != "GLY" and "H" in awsem_atoms:
-        #    awsem_atoms.remove("H")
+
         if atom_type in awsem_atoms:
             line=list(line)
             if res_type == "GLY":
@@ -148,7 +147,6 @@ def build_lists_of_atoms(nres, residues):
         res_types.append(residue.name)
         atom_types=['n', 'h', 'ca', 'c', 'o', 'cb']
         residue_atoms = [x.index for x in residue.atoms()]
-        #assert False,"hey"
         #print(residue_atoms)
         if residue.index == 0:
             atom_types.remove('n')
@@ -256,12 +254,12 @@ def apply_con_term(oa):
 def apply_chain_term(oa):
     # add chain forces
     chain = HarmonicBondForce()
-    k = np.array([60., 60., 60.])* 4.184 * 100.      # kcal/A^2 to kJ/nm^2
-    #x = np.array([2.459108, 2.519591, 2.466597])/10. # nm to A 
+    k = np.array([120., 120., 120.])* 4.184 * 100.      # kcal/A^2 to kJ/nm^2
+    x = np.array([2.459108, 2.519591, 2.466597])/10. # nm to A 
     #x = np.array([2.46, 2.7, 2.46])/10. # nm to A 
     #x = np.array([2.46, 2.52, 2.42])/10. # nm to A
     #x = np.array([2.4545970985006895, 2.564555486626491, 2.548508839171672])/10.
-    x = np.array([2.455, 2.565, 2.548])/10. 
+    #x = np.array([2.455, 2.565, 2.548])/10. 
     for i in range(oa.nres):      
         if not i == 0 and not oa.res_type[i] == "IGL":
             chain.addBond(oa.n[i], oa.cb[i], x[0], k[0])

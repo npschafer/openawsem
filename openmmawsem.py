@@ -6,6 +6,7 @@ from pdbfixer import *
 import mdtraj as md
 from Bio.PDB.Polypeptide import *
 from Bio.PDB.PDBParser import PDBParser
+from Bio.PDB import PDBIO
 from itertools import combinations
 import numpy as np
 
@@ -63,8 +64,10 @@ def prepare_pdb(pdb_filename, chains_to_simulate, input_pdb_filename=None):
 	terminal_residues = identify_terminal_residues('pdbfixeroutput.pdb')
 
 	# process pdb for input into OpenMM
+	#Selects only atoms needed for the awsem topology
 	if input_pdb_filename == None:
 		input_pdb_filename = pdb_filename.split('.')[0] + '-openmmawsem.pdb'
+	
 	output = open(input_pdb_filename, 'w')
 	counter=0
 	for line in open("pdbfixeroutput.pdb"):
@@ -91,6 +94,8 @@ def prepare_pdb(pdb_filename, chains_to_simulate, input_pdb_filename=None):
 			awsem_atoms.remove("H")
 		if int(res_index) == terminal_residues[chain][1]:
 		    awsem_atoms.remove("C")
+		#if res_type != "GLY" and "H" in awsem_atoms:
+		#    awsem_atoms.remove("H")
 		if atom_type in awsem_atoms:
 			line=list(line)
 			if res_type == "GLY":
@@ -106,8 +111,33 @@ def prepare_pdb(pdb_filename, chains_to_simulate, input_pdb_filename=None):
 			counter+=1
 	#print("The system contains %i atoms"%counter)
 	output.close()
+	
+	#Fix Virtual Site Coordinates:
+	prepare_virtual_sites(input_pdb_filename)
 
 	return res_names
+	
+def prepare_virtual_sites(pdb_file):
+    p = PDBParser(QUIET=True)
+    structure=p.get_structure('X',pdb_file,)
+    for model in structure:
+        for chain in model:
+            r_im={}
+            r_i={}
+            for residue in chain:
+                r_im=r_i
+                r_i={}
+                for atom in residue:
+                    r_i[atom.get_name()]=atom
+                if 'N' in r_i:
+                    r_i['N'].set_coord( 0.48318*r_im['CA'].get_coord()+ 0.70328*r_i['CA'].get_coord()- 0.18643 *r_im['O'].get_coord())
+                if 'C' in r_im:
+                    r_im['C'].set_coord(0.44365*r_im['CA'].get_coord()+ 0.23520*r_i['CA'].get_coord()+ 0.32115 *r_im['O'].get_coord())
+                if 'H' in r_i:
+                    r_i['H'].set_coord( 0.84100*r_im['CA'].get_coord()+ 0.89296*r_i['CA'].get_coord()- 0.73389 *r_im['O'].get_coord())
+    io = PDBIO()
+    io.set_structure(structure)
+    io.save(pdb_file)
 
 def build_lists_of_atoms(nres, residues):
 	# build lists of atoms, residue types, and bonds
@@ -118,6 +148,7 @@ def build_lists_of_atoms(nres, residues):
 		res_types.append(residue.name)
 		atom_types=['n', 'h', 'ca', 'c', 'o', 'cb']
 		residue_atoms = [x.index for x in residue.atoms()]
+		#assert False,"hey"
 		#print(residue_atoms)
 		if residue.index == 0:
 			atom_types.remove('n')
@@ -131,10 +162,11 @@ def build_lists_of_atoms(nres, residues):
 		if residue.name == "IGL" and 'cb' in atom_types:
 			atom_types.remove('cb')
 			atom_lists['cb'].append(-1)
-		if residue.name == "IPR" and 'h' in atom_types:
+		if residue.name in "IPR" and 'h' in atom_types:
 			atom_types.remove('h')
 			atom_lists['h'].append(-1)
 		assert len(residue_atoms)==len(atom_types), '%s\n%s'%(str(residue_atoms),str(atom_types))
+		atom_types=[a.name.lower() for a in residue._atoms] #Sometimes the atom order may be different
 		for atom, atype in zip(residue_atoms, atom_types):
 				#print(atype,atom)
 				atom_lists[atype].append(atom)
@@ -146,13 +178,16 @@ def setup_virtual_sites(nres, system, n, h, ca, c, o, cb, res_type):
 	# set virtual sites
 	for i in range(nres):
 		if i > 0:
-			n_virtual_site = ThreeParticleAverageSite(ca[i-1], ca[i], o[i-1], 0.48318, 0.70328, -0.18643)
+			n_virtual_site = ThreeParticleAverageSite(ca[i-1], ca[i], o[i-1],
+			                                          0.48318, 0.70328, -0.18643)
 			system.setVirtualSite(n[i], n_virtual_site)
 			if not res_type[i] == "IPR":
-				h_virtual_site = ThreeParticleAverageSite(ca[i-1], ca[i], o[i-1], 0.84100, 0.89296, -0.73389)
+				h_virtual_site = ThreeParticleAverageSite(ca[i-1], ca[i], o[i-1],
+				                                          0.84100, 0.89296, -0.73389)
 				system.setVirtualSite(h[i], h_virtual_site)
 		if  i+1 < nres:
-			c_virtual_site = ThreeParticleAverageSite(ca[i], ca[i+1], o[i], 0.44365, 0.23520, 0.32115)
+			c_virtual_site = ThreeParticleAverageSite(ca[i], ca[i+1], o[i],
+			                                          0.44365, 0.23520, 0.32115)
 			system.setVirtualSite(c[i], c_virtual_site)
 
 def setup_bonds(nres, n, h, ca, c, o, cb, res_type):
@@ -207,7 +242,7 @@ def apply_con_term(oa):
 	system, nres, n, h, ca, c, o, cb, res_type = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type
 	# add con forces
 	con = HarmonicBondForce()
-	k_con = 40
+	k_con = 60 
 	for i in range(nres):
 		con.addBond(ca[i], o[i], .243, k_con)
 		if not res_type[i] == "IGL":
@@ -219,19 +254,22 @@ def apply_con_term(oa):
 	system.addForce(con)
 
 def apply_chain_term(oa):
-	system, nres, n, h, ca, c, o, cb, res_type = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type
 	# add chain forces
 	chain = HarmonicBondForce()
-	k_chain = 20
-	for i in range(nres):      
-		if not i == 0 and not res_type[i] == "IGL":
-			chain.addBond(n[i], cb[i], .246, k_chain)
-		if not i+1 == nres and not res_type[i] == "IGL":
-			chain.addBond(c[i], cb[i], .270, k_chain)
-		if not i == 0 and not i+1 == nres:
-			chain.addBond(n[i], c[i],  .246, k_chain)
-
-	system.addForce(chain)
+	k = np.array([60., 60., 60.])* 4.184 * 100.      # kcal/A^2 to kJ/nm^2
+	#x = np.array([2.459108, 2.519591, 2.466597])/10. # nm to A 
+	#x = np.array([2.46, 2.7, 2.46])/10. # nm to A 
+	#x = np.array([2.46, 2.52, 2.42])/10. # nm to A
+	#x = np.array([2.4545970985006895, 2.564555486626491, 2.548508839171672])/10.
+	x = np.array([2.455, 2.565, 2.548])/10. 
+	for i in range(oa.nres):      
+		if not i == 0 and not oa.res_type[i] == "IGL":
+			chain.addBond(oa.n[i], oa.cb[i], x[0], k[0])
+		if not i+1 == oa.nres and not oa.res_type[i] == "IGL":
+			chain.addBond(oa.c[i], oa.cb[i], x[1], k[1])
+		if not i == 0 and not i+1 == oa.nres:
+			chain.addBond(oa.n[i], oa.c[i],  x[2], k[2])
+	oa.system.addForce(chain)
 
 def apply_chi_term(oa):
 	system, nres, n, h, ca, c, o, cb, res_type = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type

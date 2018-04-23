@@ -254,7 +254,7 @@ def apply_con_term(oa):
 def apply_chain_term(oa):
     # add chain forces
     chain = HarmonicBondForce()
-    k = np.array([120., 120., 120.])* 4.184 * 100.      # kcal/A^2 to kJ/nm^2
+    k = np.array([60., 60., 60.])* 2 *4.184 * 100.      # kcal/A^2 to kJ/nm^2
     x = np.array([2.459108, 2.519591, 2.466597])/10. # nm to A 
     #x = np.array([2.46, 2.7, 2.46])/10. # nm to A 
     #x = np.array([2.46, 2.52, 2.42])/10. # nm to A

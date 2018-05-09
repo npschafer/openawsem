@@ -45,3 +45,10 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# ipython
+.ipynb_checkpoints
+__pycache__
+
+# test Folder
+test

@@ -275,8 +275,8 @@ def apply_chi_term(oa):
     # The sign of the equilibrium value is opposite and magnitude differs slightly
     # k_chi = 80
     # chi0 = .0093
-    k_chi = 60 * 4.184 # kcal/A^6 yo kJ/nm^6
-    chi0 = -0.71 # A^3 to nm^3
+    k_chi = 60 * 4.184 # kCal to kJ
+    chi0 = -0.71 # none dimensional
     # chi = CustomCompoundBondForce(4, "k_chi*(chi-chi0)^2;\
     #                               chi=crossproduct_x*r_cacb_x+crossproduct_y*r_cacb_y+crossproduct_z*r_cacb_z;\
     #                               crossproduct_x=(u2*v3-u3*v2);\

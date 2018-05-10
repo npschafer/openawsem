@@ -67,7 +67,7 @@ def prepare_pdb(pdb_filename, chains_to_simulate, input_pdb_filename=None):
     #Selects only atoms needed for the awsem topology
     if input_pdb_filename == None:
         input_pdb_filename = pdb_filename.split('.')[0] + '-openmmawsem.pdb'
-    
+
     output = open(input_pdb_filename, 'w')
     counter=0
     for line in open("pdbfixeroutput.pdb"):
@@ -105,17 +105,17 @@ def prepare_pdb(pdb_filename, chains_to_simulate, input_pdb_filename=None):
                 line[17:20] = "NGP"
             if atom_type == "CB":
                 line[77] = "B"
-            line=''.join(line)    
+            line=''.join(line)
             output.write(line)
             counter+=1
     #print("The system contains %i atoms"%counter)
     output.close()
-    
+
     #Fix Virtual Site Coordinates:
     prepare_virtual_sites(input_pdb_filename)
 
     return res_names
-    
+
 def prepare_virtual_sites(pdb_file):
     p = PDBParser(QUIET=True)
     structure=p.get_structure('X',pdb_file,)
@@ -169,7 +169,7 @@ def build_lists_of_atoms(nres, residues):
                 #print(atype,atom)
                 atom_lists[atype].append(atom)
     #[print(key,len(atom_lists[key])) for key in atom_lists]
-                
+
     return atom_lists, res_types
 
 def setup_virtual_sites(nres, system, n, h, ca, c, o, cb, res_type):
@@ -194,11 +194,11 @@ def setup_bonds(nres, n, h, ca, c, o, cb, res_type):
         bonds.append((ca[i], o[i]))
         if not res_type[i] == "IGL":
             bonds.append((ca[i], cb[i]))
-        if  i+1 < nres:            
+        if  i+1 < nres:
             bonds.append((ca[i], ca[i+1]))
             bonds.append((o[i], ca[i+1]))
 
-    for i in range(nres):      
+    for i in range(nres):
         if not i == 0 and not res_type[i] == "IGL":
             bonds.append((n[i], cb[i]))
         if not i+1 == nres and not res_type[i] == "IGL":
@@ -240,12 +240,12 @@ def apply_con_term(oa):
     system, nres, n, h, ca, c, o, cb, res_type = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type
     # add con forces
     con = HarmonicBondForce()
-    k_con = 60 
+    k_con = 60
     for i in range(nres):
         con.addBond(ca[i], o[i], .243, k_con)
         if not res_type[i] == "IGL":
             con.addBond(ca[i], cb[i], .154, k_con)
-        if  i+1 < nres:            
+        if  i+1 < nres:
             con.addBond(ca[i], ca[i+1], .380, k_con)
             con.addBond(o[i], ca[i+1], .282, k_con)
 
@@ -255,12 +255,12 @@ def apply_chain_term(oa):
     # add chain forces
     chain = HarmonicBondForce()
     k = np.array([60., 60., 60.])* 2 *4.184 * 100.      # kcal/A^2 to kJ/nm^2
-    x = np.array([2.459108, 2.519591, 2.466597])/10. # nm to A 
-    #x = np.array([2.46, 2.7, 2.46])/10. # nm to A 
+    x = np.array([2.459108, 2.519591, 2.466597])/10. # nm to A
+    #x = np.array([2.46, 2.7, 2.46])/10. # nm to A
     #x = np.array([2.46, 2.52, 2.42])/10. # nm to A
     #x = np.array([2.4545970985006895, 2.564555486626491, 2.548508839171672])/10.
-    #x = np.array([2.455, 2.565, 2.548])/10. 
-    for i in range(oa.nres):      
+    #x = np.array([2.455, 2.565, 2.548])/10.
+    for i in range(oa.nres):
         if not i == 0 and not oa.res_type[i] == "IGL":
             chain.addBond(oa.n[i], oa.cb[i], x[0], k[0])
         if not i+1 == oa.nres and not oa.res_type[i] == "IGL":
@@ -271,26 +271,42 @@ def apply_chain_term(oa):
 
 def apply_chi_term(oa):
     system, nres, n, h, ca, c, o, cb, res_type = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type
-    # add chi forces 
+    # add chi forces
     # The sign of the equilibrium value is opposite and magnitude differs slightly
-    k_chi = 80
-    chi0 = .0093
-    chi = CustomCompoundBondForce(4, "k_chi*(chi-chi0)^2;\
+    # k_chi = 80
+    # chi0 = .0093
+    k_chi = 60 * 4.184 # kcal/A^6 yo kJ/nm^6
+    chi0 = -0.71 # A^3 to nm^3
+    # chi = CustomCompoundBondForce(4, "k_chi*(chi-chi0)^2;\
+    #                               chi=crossproduct_x*r_cacb_x+crossproduct_y*r_cacb_y+crossproduct_z*r_cacb_z;\
+    #                               crossproduct_x=(u2*v3-u3*v2);\
+    #                               crossproduct_y=(u3*v1-u1*v3);\
+    #                               crossproduct_z=(u1*v2-u2*v1);\
+    #                               r_cacb_x=x4-x1;\
+    #                               r_cacb_y=y4-y1;\
+    #                               r_cacb_z=z4-z1;\
+    #                               u1=x1-x2; u2=y1-y2; u3=z1-z2;\
+    #                               v1=x3-x2; v2=y3-y2; v3=z3-z2")
+    chi = CustomCompoundBondForce(4, "k_chi*(chi*norm-chi0)^2;\
                                   chi=crossproduct_x*r_cacb_x+crossproduct_y*r_cacb_y+crossproduct_z*r_cacb_z;\
-                                  crossproduct_x=(u2*v3-u3*v2);\
-                                  crossproduct_y=(u3*v1-u1*v3);\
-                                  crossproduct_z=(u1*v2-u2*v1);\
-                                  r_cacb_x=x4-x1;\
-                                  r_cacb_y=y4-y1;\
-                                  r_cacb_z=z4-z1;\
-                                  u1=x1-x2; u2=y1-y2; u3=z1-z2;\
-                                  v1=x3-x2; v2=y3-y2; v3=z3-z2")
+                                  crossproduct_x=(u_y*v_z-u_z*v_y);\
+                                  crossproduct_y=(u_z*v_x-u_x*v_z);\
+                                  crossproduct_z=(u_x*v_y-u_y*v_x);\
+                                  norm=1/((u_x*u_x+u_y*u_y+u_z*u_z)*(v_x*v_x+v_y*v_y+v_z*v_z)*(r_cacb_x*r_cacb_x+r_cacb_y*r_cacb_y+r_cacb_z*r_cacb_z))^0.5;\
+                                  r_cacb_x=x1-x4;\
+                                  r_cacb_y=y1-y4;\
+                                  r_cacb_z=z1-z4;\
+                                  u_x=x1-x2; u_y=y1-y2; u_z=z1-z2;\
+                                  v_x=x3-x1; v_y=y3-y1; v_z=z3-z1;")
+    # chi = CustomCompoundBondForce(4, "x4")
+    # chi = CustomCompoundBondForce(4, "z1")
     chi.addGlobalParameter("k_chi", k_chi)
     chi.addGlobalParameter("chi0", chi0)
     for i in range(nres):
         if not i == 0 and not i+1 == nres and not res_type[i] == "IGL":
             chi.addBond([ca[i], c[i], n[i], cb[i]])
-
+    # i = 1
+    # chi.addBond([ca[i], c[i], n[i], cb[i]])
     system.addForce(chi)
 
 def apply_excl_term(oa):
@@ -413,7 +429,7 @@ def apply_mediated_term(oa):
     # apply exclusions
     for exclusion in exclusions:
         mediated.addExclusion(exclusion[0], exclusion[1])
-    
+
     system.addForce(mediated)
 
 def get_exclusions(oa, interactions):
@@ -539,7 +555,7 @@ def apply_contact_term(oa):
     # apply exclusions
     for exclusion in exclusions:
         contact.addExclusion(exclusion[0], exclusion[1])
-    
+
     system.addForce(contact)
 
 def apply_beta_term(oa):
@@ -605,13 +621,13 @@ def apply_beta_term(oa):
             if alpha_index == 2:
                 return 1.32
             if alpha_index == 3:
-                return 1.22    
+                return 1.22
             if alpha_index == 4:
                 return 0.33
             if alpha_index == 5:
                 return 1.01
         return 0.0
-    
+
     # add beta potential
     # setup parameters
     k_beta = 1.0
@@ -755,7 +771,7 @@ def apply_pap_term(oa):
                 pap.addBond([ca[i], ca[j], ca[i+4], ca[j-4]], [gamma_ap])
             # parallel for i from 1 to N-13 and j from i+9 to N-4
             # CAi CAj CAi+4 CAj+4
-            # 1   2   3     4    
+            # 1   2   3     4
             if i <= nres-13 and j >= i+9 and j <= nres-4:
                 pap.addBond([ca[i], ca[j], ca[i+4], ca[j-4]], [gamma_p])
 
@@ -763,13 +779,13 @@ def apply_pap_term(oa):
 
 def apply_dsb_term(oa):
     system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi, res_names = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi, oa.res_names
-    
+
     k_dsb = 1.0
     dsb_cutoff = .15
     eta_dsb = 100
     r_min_dsb = 0.6
     r_max_dsb = 0.7
-    shift = {'ALA': 0.00*10, 'ARG': 2.04*10, 'ASN': 0.57*10, 'ASP': 0.57*10, 'CYS': 0.36*10, 'GLN': 1.11*10, 'GLU': 1.17*10, 'GLY': -1.52*10,   'HIS': 0.87*10, 'ILE': 0.67*10, 'LEU': 0.79*10, 'LYS': 1.47*10, 'MET': 1.03*10, 'PHE': 1.00*10, 'PRO': 0.10*10, 'SER': 0.26*10,  'THR': 0.37*10, 'TRP': 1.21*10, 'TYR': 1.15*10, 'VAL': 0.39*10}                                 
+    shift = {'ALA': 0.00*10, 'ARG': 2.04*10, 'ASN': 0.57*10, 'ASP': 0.57*10, 'CYS': 0.36*10, 'GLN': 1.11*10, 'GLU': 1.17*10, 'GLY': -1.52*10,   'HIS': 0.87*10, 'ILE': 0.67*10, 'LEU': 0.79*10, 'LYS': 1.47*10, 'MET': 1.03*10, 'PHE': 1.00*10, 'PRO': 0.10*10, 'SER': 0.26*10,  'THR': 0.37*10, 'TRP': 1.21*10, 'TYR': 1.15*10, 'VAL': 0.39*10}
 
     dsb = CustomNonbondedForce("k_dsb*0.5*(tanh(eta_dsb*(r-(r_min+shift1+shift2)))+tanh(eta_dsb*((r_max+shift1+shift2)-r)))")
     dsb.addGlobalParameter("k_dsb", k_dsb)
@@ -821,7 +837,7 @@ def apply_helix_term(oa):
     'TYR': 0.17,
     'VAL': 0.14
     }
-    
+
     k_helix = 0
     gamma_prot = 2.0
     gamma_wat = -1.0
@@ -924,7 +940,7 @@ def read_memory(pdb_file, chain_name, target_start, fragment_start, length, weig
                 r_ijm = (atom_i - atom_j)/10.0 # convert to nm
                 sigma_ij = 0.1*abs(i-j)**0.15 # 0.1 nm = 1 A
                 gamma_ij = 1.0
-                w_m = weight            
+                w_m = weight
                 memory_interaction = [particle_1, particle_2, [w_m, gamma_ij, r_ijm, sigma_ij]]
                 memory_interactions.append(memory_interaction)
     return memory_interactions
@@ -953,4 +969,4 @@ def apply_associative_memory_term(oa):
             am.addBond(*memory_interaction)
 
     system.addForce(am)
-        
+

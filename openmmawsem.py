@@ -333,29 +333,43 @@ def apply_rama_term(oa):
     system, nres, n, h, ca, c, o, cb, res_type = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type
     # add Rama potential
     # Still need to add proline parameters and secondary structure biases
-    k_rama = 50
-    num_rama_wells = 3
+    k_rama = -2 * 4.184 # in kJ/mol
+    num_rama_wells = 3 # probably better to apply the ssweight bias in another function
     w = [1.3149, 1.32016, 1.0264]
     sigma = [15.398, 49.0521, 49.0954]
     omega_phi = [0.15, 0.25, 0.65]
     phi_i = [-1.74, -1.265, 1.041]
     omega_psi = [0.65, 0.45, 0.25]
-    psi_i = [2.138, 0.318, 0.78]
+    psi_i = [2.138, -0.318, 0.78]
     rama_function = ''.join(["w%d*exp(-sigma%d*(omega_phi%d*phi_term%d^2+omega_psi%d*psi_term%d^2))+" \
-                              % (i, i, i, i, i, i) for i in range(num_rama_wells)])[:-1]+';'
-    rama_parameters = ''.join(["w%d=%f; sigma%d=%f; omega_phi%d = %f;\
-                               phi_term%d=cos(phi_i-%f)-1; phi_i=dihedral(p1, p2, p3, p4);\
-                               omega_psi%d=%f;\
-                               psi_term%d=cos(psi_i-%f)-1; psi_i=dihedral(p2, p3, p4, p5);" \
-                              % (i, w[i], i, sigma[i], i, omega_phi[i], i, phi_i[i], i, omega_psi[i],\
-                                i, psi_i[i]) for i in range(num_rama_wells)])[:-1]
+                              % (i, i, i, i, i, i) for i in range(num_rama_wells)])[:-1]
+    rama_function = 'k_rama*(' + rama_function + ");"
+    # rama_parameters = ''.join(["w%d=%f; sigma%d=%f; omega_phi%d = %f;\
+    #                            phi_term%d=cos(phi_i-%f)-1; phi_i=dihedral(p1, p2, p3, p4);\
+    #                            omega_psi%d=%f;\
+    #                            psi_term%d=cos(psi_i-%f)-1; psi_i=dihedral(p2, p3, p4, p5);" \
+    #                           % (i, w[i], i, sigma[i], i, omega_phi[i], i, phi_i[i], i, omega_psi[i],\
+    #                             i, psi_i[i]) for i in range(num_rama_wells)])[:-1]
+    rama_parameters = ''.join([f"phi_term{i}=cos(phi_{i}-phi0{i})-1; phi_{i}=dihedral(p1, p2, p3, p4);\
+                            psi_term{i}=cos(psi_{i}-psi0{i})-1; psi_{i}=dihedral(p2, p3, p4, p5);"\
+                             for i in range(num_rama_wells)])
     rama_string = rama_function+rama_parameters
-    rama = CustomCompoundBondForce(5, rama_string)
 
+    # rama_string = "dihedral(p1, p2, p3, p4);"
+    rama = CustomCompoundBondForce(5, rama_string)
+    for i in range(num_rama_wells):
+        rama.addGlobalParameter(f"k_rama", k_rama)
+        rama.addGlobalParameter(f"w{i}", w[i])
+        rama.addGlobalParameter(f"sigma{i}", sigma[i])
+        rama.addGlobalParameter(f"omega_phi{i}", omega_phi[i])
+        rama.addGlobalParameter(f"omega_psi{i}", omega_psi[i])
+        rama.addGlobalParameter(f"phi0{i}", phi_i[i])
+        rama.addGlobalParameter(f"psi0{i}", psi_i[i])
     for i in range(nres):
         if not i == 0 and not i+1 == nres and not res_type[i] == "IGL":
             rama.addBond([c[i-1], n[i], ca[i], c[i], n[i+1]])
-
+    # i = 1
+    # rama.addBond([c[i-1], n[i], ca[i], c[i], n[i+1]])
     system.addForce(rama)
 
 def apply_direct_term(oa):

@@ -31,7 +31,7 @@ def identify_terminal_residues(pdb_filename):
         for chain in model:
             residues = list(chain.get_residues())
             terminal_residues[chain.id] = (residues[0].id[1], residues[-1].id[1])
-    return terminal_residues
+        return terminal_residues
 
 def prepare_pdb(pdb_filename, chains_to_simulate):
     # for more information about PDB Fixer, see:
@@ -819,97 +819,97 @@ def compute_perturbed_energies(openmm_awsem_pdb_file, pdb_trajectory_filename, p
     return all_perturbed_energies.T
 
 def pick_structures(label, conditions_string, metadata_file, reference_structure, num_snapshots=6000, order_parameter_file_name="order_parameters.txt", pdb_trajectory_filename="output.pdb"):
-	# parse restrictions (including which file to pull columns from)
-	# read in data (including extra files if necessary)
-	# go through the data and filter out snapshots that do not satisfy the criteria
-	# select a subset of the structures that satisfy the constraints
+    # parse restrictions (including which file to pull columns from)
+    # read in data (including extra files if necessary)
+    # go through the data and filter out snapshots that do not satisfy the criteria
+    # select a subset of the structures that satisfy the constraints
 
-	def parse_conditions_string(conditions_string):
-		conditions = []
-		condition_signs = []
-		conditions_string = conditions_string.split()
-		for condition in conditions_string:
-			if "gt" in condition:
-				condition_signs.append("+")
-				condition = condition.split("gt")
-			if "lt" in condition:
-				condition_signs.append("-")
-				condition = condition.split("lt")
-			conditions.append(condition)
-		return conditions, condition_signs
+    def parse_conditions_string(conditions_string):
+        conditions = []
+        condition_signs = []
+        conditions_string = conditions_string.split()
+        for condition in conditions_string:
+            if "gt" in condition:
+                condition_signs.append("+")
+                condition = condition.split("gt")
+            if "lt" in condition:
+                condition_signs.append("-")
+                condition = condition.split("lt")
+            conditions.append(condition)
+        return conditions, condition_signs
 
-	def load_all_data(metadata_file, conditions):
-		data_files = list(np.loadtxt(metadata_file, dtype=str)[:,0])
-		num_files = len(data_files)
-		num_conditions = len(conditions)
-		# Load all data into array
-		data_array = np.zeros((num_files, num_conditions, num_snapshots))
-		for i, data_file in enumerate(data_files):
-			all_order_parameters = np.loadtxt(data_file)
-			for j, condition in enumerate(conditions):
-				data_array[i][j] = all_order_parameters[0:num_snapshots,int(condition[0])-1]
+    def load_all_data(metadata_file, conditions):
+        data_files = list(np.loadtxt(metadata_file, dtype=str)[:,0])
+        num_files = len(data_files)
+        num_conditions = len(conditions)
+        # Load all data into array
+        data_array = np.zeros((num_files, num_conditions, num_snapshots))
+        for i, data_file in enumerate(data_files):
+            all_order_parameters = np.loadtxt(data_file)
+            for j, condition in enumerate(conditions):
+                data_array[i][j] = all_order_parameters[0:num_snapshots,int(condition[0])-1]
 
-		data_array = np.swapaxes(data_array,1,2)
-		return data_array
+        data_array = np.swapaxes(data_array,1,2)
+        return data_array
 
-	def write_selected_pdbs(pdb_files, snapshots_in_pdb_files):
-		structure_index = 1
-		selected_pdbs = open("%s.pdb" % label, 'w')
-		for pdb_file in pdb_files:
-			pdb_trajectory_contents = open(pdb_file).read().split("MODEL")[1:]
-			pdb_trajectory_contents = ['\n'.join(x.split('\n')[1:]) for x in pdb_trajectory_contents]
-			for snapshot in snapshots_in_pdb_files[pdb_files.index(pdb_file)]:
-				selected_pdbs.write("MODEL        %d\n" % structure_index)
-				selected_pdbs.write(pdb_trajectory_contents[snapshot])
-				structure_index += 1
-		selected_pdbs.close()
+    def write_selected_pdbs(pdb_files, snapshots_in_pdb_files):
+        structure_index = 1
+        selected_pdbs = open("%s.pdb" % label, 'w')
+        for pdb_file in pdb_files:
+            pdb_trajectory_contents = open(pdb_file).read().split("MODEL")[1:]
+            pdb_trajectory_contents = ['\n'.join(x.split('\n')[1:]) for x in pdb_trajectory_contents]
+            for snapshot in snapshots_in_pdb_files[pdb_files.index(pdb_file)]:
+                selected_pdbs.write("MODEL        %d\n" % structure_index)
+                selected_pdbs.write(pdb_trajectory_contents[snapshot])
+                structure_index += 1
+        selected_pdbs.close()
 
-	# Lists
-	files_array = list(np.loadtxt(metadata_file, dtype=str)[:,0])
-	conditions, condition_signs = parse_conditions_string(conditions_string)
-	data_array = load_all_data(metadata_file, conditions)
+    # Lists
+    files_array = list(np.loadtxt(metadata_file, dtype=str)[:,0])
+    conditions, condition_signs = parse_conditions_string(conditions_string)
+    data_array = load_all_data(metadata_file, conditions)
 
-	# File names and parameters
-	output_file_name = label + ".dat"
+    # File names and parameters
+    output_file_name = label + ".dat"
 
-	structure_index = 1
+    structure_index = 1
 
-	# loop over data and output those points that satisfy all conditions
-	output_file = open(output_file_name, "w")
-	pdb_files = []
-	snapshots_in_pdb_files = []
+    # loop over data and output those points that satisfy all conditions
+    output_file = open(output_file_name, "w")
+    pdb_files = []
+    snapshots_in_pdb_files = []
 
-	# loop over files
-	for i, data_file in enumerate(files_array):
-		# loop over snapshots
-		for j, snapshot in enumerate(data_array[i]):
-			bad_condition = False
-			# loop over conditions
-			for k, condition in enumerate(conditions):
-				condition_boundary = float(condition[1])
-				# If all conditions are satisfied, print out the data
-				if condition_signs[k] == "+":
-					if not data_array[i][j][k] > condition_boundary: bad_condition = True
-				elif condition_signs[k] == "-":
-					if not data_array[i][j][k] < condition_boundary: bad_condition = True
-				else:
-					print("Bad condition argument.")
-					sys.exit()
-			if not bad_condition:
-				output_file.write("%d %s %s\n" % (structure_index, data_file, j+1))
-				pdb_file = data_file.replace(order_parameter_file_name, pdb_trajectory_filename)
-				if not pdb_file in pdb_files:
-					pdb_files.append(pdb_file)
-					snapshots_in_pdb_files.append([])
-				snapshots_in_pdb_files[pdb_files.index(pdb_file)].append(j)
-				structure_index += 1
-	output_file.close()
-	write_selected_pdbs(pdb_files, snapshots_in_pdb_files)
+    # loop over files
+    for i, data_file in enumerate(files_array):
+        # loop over snapshots
+        for j, snapshot in enumerate(data_array[i]):
+            bad_condition = False
+            # loop over conditions
+            for k, condition in enumerate(conditions):
+                condition_boundary = float(condition[1])
+                # If all conditions are satisfied, print out the data
+                if condition_signs[k] == "+":
+                    if not data_array[i][j][k] > condition_boundary: bad_condition = True
+                elif condition_signs[k] == "-":
+                    if not data_array[i][j][k] < condition_boundary: bad_condition = True
+                else:
+                    print("Bad condition argument.")
+                    sys.exit()
+            if not bad_condition:
+                output_file.write("%d %s %s\n" % (structure_index, data_file, j+1))
+                pdb_file = data_file.replace(order_parameter_file_name, pdb_trajectory_filename)
+                if not pdb_file in pdb_files:
+                    pdb_files.append(pdb_file)
+                    snapshots_in_pdb_files.append([])
+                snapshots_in_pdb_files[pdb_files.index(pdb_file)].append(j)
+                structure_index += 1
+    output_file.close()
+    write_selected_pdbs(pdb_files, snapshots_in_pdb_files)
 
-	pymol_script = open("%s.pml" % label, 'w')
-	pymol_script.write("load %s\n" % reference_structure)
-	pymol_script.write("load_traj %s.pdb\n" % label)
-	object_name = os.path.basename(reference_structure)[:-4]
-	pymol_script.write("intra_fit %s\n" % object_name)
-	pymol_script.write("smooth\n")
-	pymol_script.close()
+    pymol_script = open("%s.pml" % label, 'w')
+    pymol_script.write("load %s\n" % reference_structure)
+    pymol_script.write("load_traj %s.pdb\n" % label)
+    object_name = os.path.basename(reference_structure)[:-4]
+    pymol_script.write("intra_fit %s\n" % object_name)
+    pymol_script.write("smooth\n")
+    pymol_script.close()

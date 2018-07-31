@@ -93,7 +93,7 @@ am_well_width=0.1
 memories=[single_memory]
 density_only_from_native_contacts=True
 density_pdb_file=cleaned_pdb
-density_chain_name=chain
+density_chain_name=pdb_chain
 density_native_contact_min_seq_sep=amhgo_min_seq_sep
 density_native_contact_threshold=amhgo_contact_threshold
 # qbias

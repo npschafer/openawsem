@@ -343,17 +343,17 @@ class OpenMMAWSEMSystem:
         # 251.04 = 60 * 4.184 kJ, converted from default value in LAMMPS AWSEM
         # multiply interaction strength by overall scaling
         k_chi *= self.k_awsem
-        chi = CustomCompoundBondForce(4, "k_chi*(chi*norm-chi0)^2;\
-                                    chi=crossproduct_x*r_cacb_x+crossproduct_y*r_cacb_y+crossproduct_z*r_cacb_z;\
-                                    crossproduct_x=(u_y*v_z-u_z*v_y);\
-                                    crossproduct_y=(u_z*v_x-u_x*v_z);\
-                                    crossproduct_z=(u_x*v_y-u_y*v_x);\
-                                    norm=1/((u_x*u_x+u_y*u_y+u_z*u_z)*(v_x*v_x+v_y*v_y+v_z*v_z)*(r_cacb_x*r_cacb_x+r_cacb_y*r_cacb_y+r_cacb_z*r_cacb_z))^0.5;\
-                                    r_cacb_x=x1-x4;\
-                                    r_cacb_y=y1-y4;\
-                                    r_cacb_z=z1-z4;\
-                                    u_x=x1-x2; u_y=y1-y2; u_z=z1-z2;\
-                                    v_x=x3-x1; v_y=y3-y1; v_z=z3-z1;")
+        chi = CustomCompoundBondForce(4, "k_chi*(chi*norm-chi0)^2;"
+                                         "chi=crossproduct_x*r_cacb_x+crossproduct_y*r_cacb_y+crossproduct_z*r_cacb_z;"
+                                         "crossproduct_x=(u_y*v_z-u_z*v_y);"
+                                         "crossproduct_y=(u_z*v_x-u_x*v_z);"
+                                         "crossproduct_z=(u_x*v_y-u_y*v_x);"
+                                         "norm=1/((u_x*u_x+u_y*u_y+u_z*u_z)*(v_x*v_x+v_y*v_y+v_z*v_z)*(r_cacb_x*r_cacb_x+r_cacb_y*r_cacb_y+r_cacb_z*r_cacb_z))^0.5;"
+                                         "r_cacb_x=x1-x4;"
+                                         "r_cacb_y=y1-y4;"
+                                         "r_cacb_z=z1-z4;"
+                                         "u_x=x1-x2; u_y=y1-y2; u_z=z1-z2;"
+                                         "v_x=x3-x1; v_y=y3-y1; v_z=z3-z1;")
         chi.addGlobalParameter("k_chi", k_chi)
         chi.addGlobalParameter("chi0", chi0)
         for i in range(self.nres):

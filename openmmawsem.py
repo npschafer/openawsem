@@ -12,9 +12,15 @@ from itertools import product, combinations
 import numpy as np
 import matplotlib.pyplot as plt
 
-se_map_3_letter = dict(zip(("ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"), (0, 4, 3, 6, 13, 7, 8, 9, 11, 10, 12, 2, 14, 5, 1, 15, 16, 19, 17, 18)))
+se_map_3_letter = {'ALA': 0,  'PRO': 1,  'LYS': 2,  'ASN': 3,  'ARG': 4,
+                   'PHE': 5,  'ASP': 6,  'GLN': 7,  'GLU': 8,  'GLY': 9,
+                   'ILE': 10, 'HIS': 11, 'LEU': 12, 'CYS': 13, 'MET': 14,
+                   'SER': 15, 'THR': 16, 'TYR': 17, 'VAL': 18, 'TRP': 19}
 
-se_map_1_letter = dict(zip(("A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"), (0, 4, 3, 6, 13, 7, 8, 9, 11, 10, 12, 2, 14, 5, 1, 15, 16, 19, 17, 18)))
+se_map_1_letter = {'A': 0,  'P': 1,  'K': 2,  'N': 3,  'R': 4,
+                   'F': 5,  'D': 6,  'Q': 7,  'E': 8,  'G': 9,
+                   'I': 10, 'H': 11, 'L': 12, 'C': 13, 'M': 14,
+                   'S': 15, 'T': 16, 'Y': 17, 'V': 18, 'W': 19}
 
 def identify_terminal_residues(pdb_filename):
     # identify terminal residues
@@ -25,7 +31,6 @@ def identify_terminal_residues(pdb_filename):
         for chain in model:
             residues = list(chain.get_residues())
             terminal_residues[chain.id] = (residues[0].id[1], residues[-1].id[1])
-
     return terminal_residues
 
 def prepare_pdb(pdb_filename, chains_to_simulate):

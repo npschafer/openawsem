@@ -6,9 +6,11 @@ from pdbfixer import *
 import mdtraj as md
 from Bio.PDB.Polypeptide import *
 from Bio.PDB.PDBParser import PDBParser
+from Bio.PDB import PDBList
 from Bio.PDB import PDBIO
-from itertools import combinations
+from itertools import product, combinations
 import numpy as np
+import matplotlib.pyplot as plt
 
 se_map_3_letter = dict(zip(("ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"), (0, 4, 3, 6, 13, 7, 8, 9, 11, 10, 12, 2, 14, 5, 1, 15, 16, 19, 17, 18)))
 
@@ -26,10 +28,13 @@ def identify_terminal_residues(pdb_filename):
 
     return terminal_residues
 
-def prepare_pdb(pdb_filename, chains_to_simulate, input_pdb_filename=None):
+def prepare_pdb(pdb_filename, chains_to_simulate):
     # for more information about PDB Fixer, see:
     # http://htmlpreview.github.io/?https://raw.github.com/pandegroup/pdbfixer/master/Manual.html
     # fix up input pdb
+    cleaned_pdb_filename = "%s-cleaned.pdb" % pdb_filename[:-4]
+    input_pdb_filename = "%s-openmmawsem.pdb" % pdb_filename[:-4]
+
     fixer = PDBFixer(filename=pdb_filename)
 
     # remove unwanted chains
@@ -54,23 +59,19 @@ def prepare_pdb(pdb_filename, chains_to_simulate, input_pdb_filename=None):
 
     #Add Missing Hydrogens
     fixer.addMissingHydrogens(7.0)
-    PDBFile.writeFile(fixer.topology, fixer.positions, open('pdbfixeroutput.pdb', 'w'))
+    PDBFile.writeFile(fixer.topology, fixer.positions, open(cleaned_pdb_filename, 'w'))
 
     #Read sequence
-    structure = PDBParser().get_structure('pdbfixeroutput','pdbfixeroutput.pdb')
-    res_names = list([x.resname for x in structure.get_residues()])
+    structure = PDBParser().get_structure('X', cleaned_pdb_filename)
 
     # identify terminal residues
-    terminal_residues = identify_terminal_residues('pdbfixeroutput.pdb')
+    terminal_residues = identify_terminal_residues(cleaned_pdb_filename)
 
     # process pdb for input into OpenMM
     #Selects only atoms needed for the awsem topology
-    if input_pdb_filename == None:
-        input_pdb_filename = pdb_filename.split('.')[0] + '-openmmawsem.pdb'
-
     output = open(input_pdb_filename, 'w')
     counter=0
-    for line in open("pdbfixeroutput.pdb"):
+    for line in open(cleaned_pdb_filename):
         splitline = line.split()
         if len(line)>4 and line[0:4] == "ATOM":
             try:
@@ -114,7 +115,7 @@ def prepare_pdb(pdb_filename, chains_to_simulate, input_pdb_filename=None):
     #Fix Virtual Site Coordinates:
     prepare_virtual_sites(input_pdb_filename)
 
-    return res_names
+    return input_pdb_filename, cleaned_pdb_filename
 
 def prepare_virtual_sites(pdb_file):
     p = PDBParser(QUIET=True)
@@ -147,7 +148,6 @@ def build_lists_of_atoms(nres, residues):
         res_types.append(residue.name)
         atom_types=['n', 'h', 'ca', 'c', 'o', 'cb']
         residue_atoms = [x.index for x in residue.atoms()]
-        #print(residue_atoms)
         if residue.index == 0:
             atom_types.remove('n')
             atom_lists['n'].append(-1)
@@ -166,9 +166,7 @@ def build_lists_of_atoms(nres, residues):
         assert len(residue_atoms)==len(atom_types), '%s\n%s'%(str(residue_atoms),str(atom_types))
         atom_types=[a.name.lower() for a in residue._atoms] #Sometimes the atom order may be different
         for atom, atype in zip(residue_atoms, atom_types):
-                #print(atype,atom)
                 atom_lists[atype].append(atom)
-    #[print(key,len(atom_lists[key])) for key in atom_lists]
 
     return atom_lists, res_types
 
@@ -208,9 +206,7 @@ def setup_bonds(nres, n, h, ca, c, o, cb, res_type):
     return bonds
 
 class OpenMMAWSEMSystem:
-    def __init__(self, pdb_filename, res_names, xml_filename='awsem.xml'):
-        # get full residue names
-        self.res_names = res_names
+    def __init__(self, pdb_filename, xml_filename='awsem.xml', k_awsem=1.0):
         # read PDB
         self.pdb = PDBFile(pdb_filename)
         self.forcefield = ForceField(xml_filename)
@@ -235,752 +231,680 @@ class OpenMMAWSEMSystem:
         self.bonds = setup_bonds(self.nres, self.n, self.h, self.ca, self.c, self.o, self.cb, self.res_type)
         # identify terminal_residues
         self.terminal_residues = identify_terminal_residues(pdb_filename)
-
-def apply_con_term(oa):
-    system, nres, n, h, ca, c, o, cb, res_type = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type
-    # add con forces
-    con = HarmonicBondForce()
-    k_con = 60
-    for i in range(nres):
-        con.addBond(ca[i], o[i], .243, k_con)
-        if not res_type[i] == "IGL":
-            con.addBond(ca[i], cb[i], .154, k_con)
-        if  i+1 < nres:
-            con.addBond(ca[i], ca[i+1], .380, k_con)
-            con.addBond(o[i], ca[i+1], .282, k_con)
-
-    system.addForce(con)
-
-def apply_chain_term(oa):
-    # add chain forces
-    chain = HarmonicBondForce()
-    k = np.array([60., 60., 60.])* 2 *4.184 * 100.      # kcal/A^2 to kJ/nm^2
-    x = np.array([2.459108, 2.519591, 2.466597])/10. # nm to A
-    #x = np.array([2.46, 2.7, 2.46])/10. # nm to A
-    #x = np.array([2.46, 2.52, 2.42])/10. # nm to A
-    #x = np.array([2.4545970985006895, 2.564555486626491, 2.548508839171672])/10.
-    #x = np.array([2.455, 2.565, 2.548])/10.
-    for i in range(oa.nres):
-        if not i == 0 and not oa.res_type[i] == "IGL":
-            chain.addBond(oa.n[i], oa.cb[i], x[0], k[0])
-        if not i+1 == oa.nres and not oa.res_type[i] == "IGL":
-            chain.addBond(oa.c[i], oa.cb[i], x[1], k[1])
-        if not i == 0 and not i+1 == oa.nres:
-            chain.addBond(oa.n[i], oa.c[i],  x[2], k[2])
-    oa.system.addForce(chain)
-
-def apply_chi_term(oa):
-    system, nres, n, h, ca, c, o, cb, res_type = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type
-    # add chi forces
-    # The sign of the equilibrium value is opposite and magnitude differs slightly
-    # k_chi = 80
-    # chi0 = .0093
-    k_chi = 60 * 4.184 # kCal to kJ
-    chi0 = -0.71 # none dimensional
-    # chi = CustomCompoundBondForce(4, "k_chi*(chi-chi0)^2;\
-    #                               chi=crossproduct_x*r_cacb_x+crossproduct_y*r_cacb_y+crossproduct_z*r_cacb_z;\
-    #                               crossproduct_x=(u2*v3-u3*v2);\
-    #                               crossproduct_y=(u3*v1-u1*v3);\
-    #                               crossproduct_z=(u1*v2-u2*v1);\
-    #                               r_cacb_x=x4-x1;\
-    #                               r_cacb_y=y4-y1;\
-    #                               r_cacb_z=z4-z1;\
-    #                               u1=x1-x2; u2=y1-y2; u3=z1-z2;\
-    #                               v1=x3-x2; v2=y3-y2; v3=z3-z2")
-    chi = CustomCompoundBondForce(4, "k_chi*(chi*norm-chi0)^2;\
-                                  chi=crossproduct_x*r_cacb_x+crossproduct_y*r_cacb_y+crossproduct_z*r_cacb_z;\
-                                  crossproduct_x=(u_y*v_z-u_z*v_y);\
-                                  crossproduct_y=(u_z*v_x-u_x*v_z);\
-                                  crossproduct_z=(u_x*v_y-u_y*v_x);\
-                                  norm=1/((u_x*u_x+u_y*u_y+u_z*u_z)*(v_x*v_x+v_y*v_y+v_z*v_z)*(r_cacb_x*r_cacb_x+r_cacb_y*r_cacb_y+r_cacb_z*r_cacb_z))^0.5;\
-                                  r_cacb_x=x1-x4;\
-                                  r_cacb_y=y1-y4;\
-                                  r_cacb_z=z1-z4;\
-                                  u_x=x1-x2; u_y=y1-y2; u_z=z1-z2;\
-                                  v_x=x3-x1; v_y=y3-y1; v_z=z3-z1;")
-    # chi = CustomCompoundBondForce(4, "x4")
-    # chi = CustomCompoundBondForce(4, "z1")
-    chi.addGlobalParameter("k_chi", k_chi)
-    chi.addGlobalParameter("chi0", chi0)
-    for i in range(nres):
-        if not i == 0 and not i+1 == nres and not res_type[i] == "IGL":
-            chi.addBond([ca[i], c[i], n[i], cb[i]])
-    # i = 1
-    # chi.addBond([ca[i], c[i], n[i], cb[i]])
-    system.addForce(chi)
-
-def apply_excl_term(oa):
-    system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds
-    # add excluded volume
-    # Still need to add element specific parameters
-    k_excl = 80
-    r_excl = .35
-    excl = CustomNonbondedForce("k_excl*step(r0-r)*(r-r0)^2")
-    excl.addGlobalParameter("k_excl", k_excl)
-    excl.addGlobalParameter("r0", r_excl)
-    for i in range(natoms):
-        excl.addParticle()
-    excl.addInteractionGroup(ca, ca)
-    excl.addInteractionGroup([x for x in cb if x > 0], [x for x in cb if x > 0])
-    excl.addInteractionGroup(o, o)
-
-    excl.setCutoffDistance(r_excl)
-
-    excl.createExclusionsFromBonds(bonds, 1)
-    system.addForce(excl)
-
-def apply_rama_term(oa):
-    system, nres, n, h, ca, c, o, cb, res_type = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type
-    # add Rama potential
-    # Still need to add proline parameters and secondary structure biases
-    k_rama = -2 * 4.184 # in kJ/mol
-    num_rama_wells = 3 # probably better to apply the ssweight bias in another function
-    w = [1.3149, 1.32016, 1.0264]
-    sigma = [15.398, 49.0521, 49.0954]
-    omega_phi = [0.15, 0.25, 0.65]
-    phi_i = [-1.74, -1.265, 1.041]
-    omega_psi = [0.65, 0.45, 0.25]
-    psi_i = [2.138, -0.318, 0.78]
-    rama_function = ''.join(["w%d*exp(-sigma%d*(omega_phi%d*phi_term%d^2+omega_psi%d*psi_term%d^2))+" \
-                              % (i, i, i, i, i, i) for i in range(num_rama_wells)])[:-1]
-    rama_function = 'k_rama*(' + rama_function + ");"
-    # rama_parameters = ''.join(["w%d=%f; sigma%d=%f; omega_phi%d = %f;\
-    #                            phi_term%d=cos(phi_i-%f)-1; phi_i=dihedral(p1, p2, p3, p4);\
-    #                            omega_psi%d=%f;\
-    #                            psi_term%d=cos(psi_i-%f)-1; psi_i=dihedral(p2, p3, p4, p5);" \
-    #                           % (i, w[i], i, sigma[i], i, omega_phi[i], i, phi_i[i], i, omega_psi[i],\
-    #                             i, psi_i[i]) for i in range(num_rama_wells)])[:-1]
-    rama_parameters = ''.join([f"phi_term{i}=cos(phi_{i}-phi0{i})-1; phi_{i}=dihedral(p1, p2, p3, p4);\
-                            psi_term{i}=cos(psi_{i}-psi0{i})-1; psi_{i}=dihedral(p2, p3, p4, p5);"\
-                             for i in range(num_rama_wells)])
-    rama_string = rama_function+rama_parameters
-
-    # rama_string = "dihedral(p1, p2, p3, p4);"
-    rama = CustomCompoundBondForce(5, rama_string)
-    for i in range(num_rama_wells):
-        rama.addGlobalParameter(f"k_rama", k_rama)
-        rama.addGlobalParameter(f"w{i}", w[i])
-        rama.addGlobalParameter(f"sigma{i}", sigma[i])
-        rama.addGlobalParameter(f"omega_phi{i}", omega_phi[i])
-        rama.addGlobalParameter(f"omega_psi{i}", omega_psi[i])
-        rama.addGlobalParameter(f"phi0{i}", phi_i[i])
-        rama.addGlobalParameter(f"psi0{i}", psi_i[i])
-    for i in range(nres):
-        if not i == 0 and not i+1 == nres and not res_type[i] == "IGL":
-            rama.addBond([c[i-1], n[i], ca[i], c[i], n[i+1]])
-    # i = 1
-    # rama.addBond([c[i-1], n[i], ca[i], c[i], n[i+1]])
-    system.addForce(rama)
-
-def apply_direct_term(oa):
-    system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds
-    # add direct contact
-    # Still need to add residue specific parameters
-    k_direct = 0.00
-    gamma = 1
-    r_min = .45
-    r_max = .65
-    eta = 10
-    direct = CustomNonbondedForce("-k_direct*gamma*theta; theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r))); gamma=%f; eta=%f" % (gamma, eta))
-    direct.addGlobalParameter("k_direct", k_direct)
-    direct.addGlobalParameter("rmin", r_min)
-    direct.addGlobalParameter("rmax", r_max)
-    for i in range(natoms):
-        direct.addParticle()
-    direct.addInteractionGroup([x for x in cb if x > 0], [x for x in cb if x > 0])
-
-    direct.createExclusionsFromBonds(bonds, 9)
-    system.addForce(direct)
-
-def apply_mediated_term(oa):
-    system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi
-    # add mediated contact
-    # Still need to add residue specific parameters
-    k_mediated = 0.001
-    gamma_water = 0
-    gamma_protein = 1
-    r_min = .65
-    r_max = .95
-    eta = 10
-    density_r_min = 0.45
-    density_r_max = 0.65
-    density_threshold = 2.6
-    interaction_cutoff = .1
-    min_sequence_separation = 10
-    mediated = CustomGBForce()
-    mediated.addGlobalParameter("k_mediated", k_mediated)
-    mediated.addGlobalParameter("gamma_water", gamma_water)
-    mediated.addGlobalParameter("gamma_protein", gamma_protein)
-    mediated.addPerParticleParameter("index")
-    include_pairwise_interaction = [0]*natoms*natoms
-    for i in range(natoms):
-        for j in range(natoms):
-            # if this is not a cbeta atom, don't include in pairwise interaction
-            if i in cb and j in cb and abs(resi[i]-resi[j]) >= min_sequence_separation:
-                include_pairwise_interaction[i+j*natoms] = 1
-
-    mediated.addTabulatedFunction("include_pairwise_interaction", Discrete2DFunction(natoms, natoms, include_pairwise_interaction))
-    mediated.addComputedValue("rho", "0.25*(1+tanh(eta*(r-%f)))*(1+tanh(eta*(%f-r))); eta=%f" % (density_r_min, density_r_max, eta), CustomGBForce.ParticlePair)
-    sigma_water="0.25*(1-tanh(%f*(rho1-%f)))*(1-tanh(%f*(rho2-%f)))" % (eta, density_threshold, eta, density_threshold)
-    mediated.addEnergyTerm("-k_mediated*include_pairwise_interaction(index1,index2)*theta*(gamma_water*%s+gamma_protein*(1-%s)); theta=0.25*(1+tanh(eta*(r-%f)))*(1+tanh(eta*(%f-r))); gamma_water=%f; gamma_protein=%f; eta=%f" % (sigma_water, sigma_water, r_min, r_max, gamma_water, gamma_protein, eta), CustomGBForce.ParticlePair)
-
-    # set interaction cutoff
-    mediated.setCutoffDistance(interaction_cutoff)
-
-    # add all particles to the force
-    for i in range(natoms):
-        mediated.addParticle([i])
-
-    # find all pairs to include in the force
-    interactions = []
-    for cbi, cbj in combinations([x for x in cb if x >= 0], 2):
-        if abs(resi[cbi]-resi[cbj]) >= 1:
-            interactions.append((cbi, cbj))
-
-    # get list of exclusions
-    exclusions = get_exclusions(oa, interactions)
-
-    # apply exclusions
-    for exclusion in exclusions:
-        mediated.addExclusion(exclusion[0], exclusion[1])
-
-    system.addForce(mediated)
-
-def get_exclusions(oa, interactions):
-    natoms = oa.natoms
-    all_interactions = combinations(range(natoms), 2)
-    exclusions = [x for x in all_interactions if x not in interactions]
-    return exclusions
-
-def apply_contact_term(oa):
-    system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi
-
-    # setup parameters
-    k_direct = 0.01
-    k_mediated = 0.01
-    k_burial = 1
-
-    r_direct_min = .45
-    r_direct_max = .65
-
-    r_mediated_min = .65
-    r_mediated_max = .95
-
-    r_density_min = 0.45
-    r_density_max = 0.65
-    rho0 = 2.6
-
-    interaction_cutoff_distance = .1
-    min_sequence_separation = 10
-
-    eta_direct = 50
-    eta_mediated = 50
-    eta_sigma = 70
-    eta_burial = 40
-
-    rho_min_1 = 0
-    rho_min_2 = 3
-    rho_min_3 = 6
-    rho_max_1 = 3
-    rho_max_2 = 6
-    rho_max_3 = 9
-
-    # setup matrix of pairwise weights of interactions
-    # this also serves to exclude interactions below the
-    # minimum sequence separation by setting those gamma values to zero
-    gamma_direct = [0]*natoms*natoms
-    gamma_water = [0]*natoms*natoms
-    gamma_protein = [0]*natoms*natoms
-    gamma_burial_1 = [0]*natoms
-    gamma_burial_2 = [0]*natoms
-    gamma_burial_3 = [0]*natoms
-    for i in range(natoms):
-        if i in cb:
-            gamma_burial_1[i] = 1
-            gamma_burial_2[i] = 1
-            gamma_burial_3[i] = 1
-        for j in range(natoms):
-            # if this is not a cbeta atom, don't include in pairwise interaction
-            if i in cb and j in cb and abs(resi[i]-resi[j]) >= min_sequence_separation:
-                gamma_direct[i+j*natoms] = 1
-                gamma_water[i+j*natoms] = 1
-                gamma_protein[i+j*natoms] = 1
-
-    # create contact force
-    contact = CustomGBForce()
-    # add per-particle parameters
-    contact.addPerParticleParameter("index")
-    # add global parameters
-    contact.addGlobalParameter("k_direct", k_direct)
-    contact.addGlobalParameter("eta_direct", eta_direct)
-    contact.addGlobalParameter("k_mediated", k_mediated)
-    contact.addGlobalParameter("eta_mediated", eta_mediated)
-    contact.addGlobalParameter("k_burial", k_burial)
-    contact.addGlobalParameter("rho0", rho0)
-    contact.addGlobalParameter("eta_burial", eta_burial)
-    contact.addGlobalParameter("eta_sigma", eta_sigma)
-    contact.addGlobalParameter("r_direct_min", r_direct_min)
-    contact.addGlobalParameter("r_direct_max", r_direct_max)
-    contact.addGlobalParameter("r_mediated_min", r_mediated_min)
-    contact.addGlobalParameter("r_mediated_max", r_mediated_max)
-    contact.addGlobalParameter("r_density_min", r_density_min)
-    contact.addGlobalParameter("r_density_max", r_density_max)
-    contact.addGlobalParameter("rho_min_1", rho_min_1)
-    contact.addGlobalParameter("rho_min_2", rho_min_2)
-    contact.addGlobalParameter("rho_min_3", rho_min_3)
-    contact.addGlobalParameter("rho_max_1", rho_max_1)
-    contact.addGlobalParameter("rho_max_2", rho_max_2)
-    contact.addGlobalParameter("rho_max_3", rho_max_3)
-    # add tabulated functions
-    contact.addTabulatedFunction("gamma_direct", Discrete2DFunction(natoms, natoms, gamma_direct))
-    contact.addTabulatedFunction("gamma_water", Discrete2DFunction(natoms, natoms, gamma_water))
-    contact.addTabulatedFunction("gamma_protein", Discrete2DFunction(natoms, natoms, gamma_protein))
-    contact.addTabulatedFunction("gamma_burial_1", Discrete1DFunction(gamma_burial_1))
-    contact.addTabulatedFunction("gamma_burial_2", Discrete1DFunction(gamma_burial_2))
-    contact.addTabulatedFunction("gamma_burial_3", Discrete1DFunction(gamma_burial_3))
-
-    # compute the density, exclusions will be taken care of
-    # using the addExclusion function below
-    contact.addComputedValue("rho", "0.25*(1+tanh(eta_direct*(r-r_density_min)))*(1+tanh(eta_direct*(r_density_max-r)))", CustomGBForce.ParticlePair)
-    # add direct interaction
-    contact.addEnergyTerm("-k_direct*gamma_direct(index1,index2)*theta_direct; theta_direct=0.25*(1+tanh(eta_direct*(r-r_direct_min)))*(1+tanh(eta_direct*(r_direct_max-r)))", CustomGBForce.ParticlePair)
-    # add mediated interaction
-    contact.addEnergyTerm("-k_mediated*theta_mediated*(gamma_water(index1,index2)*sigma_water+gamma_protein(index1,index2)*(1-sigma_water)); theta_mediated=0.25*(1+tanh(eta_mediated*(r-r_mediated_min)))*(1+tanh(eta_mediated*(r_mediated_max-r))); sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho0)))*(1-tanh(eta_sigma*(rho2-rho0)))", CustomGBForce.ParticlePair)
-    # add burial term
-    burial_string = ''.join(["-0.5*k_burial*gamma_burial_%d(index)*(tanh(eta_burial*(rho-rho_min_%d))+tanh(eta_burial*(rho_max_%d-rho)))+" % (x, x, x) for x in range(1,4)])[:-1]
-    contact.addEnergyTerm(burial_string, CustomGBForce.SingleParticle)
-
-    # set interaction cutoff
-    contact.setCutoffDistance(interaction_cutoff_distance)
-
-    # add all particles to the force
-    for i in range(natoms):
-        contact.addParticle([i])
-
-    # find all pairs to include in the force
-    interactions = []
-    for cbi, cbj in combinations([x for x in cb if x >= 0], 2):
-        if abs(resi[cbi]-resi[cbj]) >= 1:
-            interactions.append((cbi, cbj))
-
-    # get list of exclusions
-    exclusions = get_exclusions(oa, interactions)
-
-    # apply exclusions
-    for exclusion in exclusions:
-        contact.addExclusion(exclusion[0], exclusion[1])
-
-    system.addForce(contact)
-
-def apply_beta_term(oa):
-    system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi, res_names = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi, oa.res_names
-
-    p_par, p_anti, p_antihb, p_antinhb, p_parhb = read_beta_parameters()
-
-    parameter_i = []
-    for i in range(nres):
-        parameter_i.append(se_map_3_letter[res_names[i]])
-
-    def lambda_coefficient(i, j, lambda_index):
-        lambda_2_extra_terms = -0.5*alpha_coefficient(parameter_i[i],parameter_i[j],1)*np.log(p_antihb[parameter_i[i], parameter_i[j]][0])-0.25*alpha_coefficient(parameter_i[i], parameter_i[j], 2)*(np.log(p_antinhb[parameter_i[i+1],parameter_i[j-1]][0])+np.log(p_antinhb[parameter_i[i-1],parameter_i[j+1]][0]))-alpha_coefficient(parameter_i[i], parameter_i[j], 3)*(np.log(p_anti[parameter_i[i]])+np.log(p_anti[parameter_i[j]]))
-        lambda_3_extra_terms = -alpha_coefficient(parameter_i[i],parameter_i[j], 4)*np.log(p_parhb[parameter_i[i+1],parameter_i[j]][0])-alpha_coefficient(parameter_i[i],parameter_i[j],5)*np.log(p_par[parameter_i[i+1]])+alpha_coefficient(parameter_i[i],parameter_i[j],4)*np.log(p_par[parameter_i[j]])
-        if abs(j-i) >= 4 and abs(j-i) < 18:
-            if lambda_index == 1:
-                return 1.37
-            elif lambda_index == 2:
-                return 3.89+lambda_2_extra_terms
-            elif lambda_index == 3:
-                return 0.0+lambda_3_extra_terms
-        elif abs(j-i) >= 18 and abs(j-i) < 45:
-            if lambda_index == 1:
-                return 1.36
-            elif lambda_index == 2:
-                return 3.50+lambda_2_extra_terms
-            elif lambda_index == 3:
-                return 3.47+lambda_3_extra_terms
-        elif abs(j-i) >= 45:
-            if lambda_index == 1:
-                return 1.17
-            elif lambda_index == 2:
-                return 3.52+lambda_2_extra_terms
-            elif lambda_index == 3:
-                return 3.62+lambda_3_extra_terms
-        return 0.0
-    def alpha_coefficient(i,j, alpha_index):
-        if abs(j-i) >= 4 and abs(j-i) < 18:
-            if alpha_index == 1:
-                return 1.3
-            if alpha_index == 2:
-                return 1.32
-            if alpha_index == 3:
-                return 1.22
-            if alpha_index == 4:
-                return 0.0
-            if alpha_index == 5:
-                return 0.0
-        elif abs(j-i) >= 18 and abs(j-i) < 45:
-            if alpha_index == 1:
-                return 1.3
-            if alpha_index == 2:
-                return 1.32
-            if alpha_index == 3:
-                return 1.22
-            if alpha_index == 4:
-                return 0.33
-            if alpha_index == 5:
-                return 1.01
-        elif abs(j-i) >= 45:
-            if alpha_index == 1:
-                return 1.3
-            if alpha_index == 2:
-                return 1.32
-            if alpha_index == 3:
-                return 1.22
-            if alpha_index == 4:
-                return 0.33
-            if alpha_index == 5:
-                return 1.01
-        return 0.0
-
-    # add beta potential
-    # setup parameters
-    k_beta = 1.0
-    lambda_1 = [0]*nres*nres
-    lambda_2 = [0]*nres*nres
-    lambda_3 = [0]*nres*nres
-    for i in range(1,nres-1):
-        for j in range(1,nres-1):
-            lambda_1[i+j*nres] = 1 #lambda_coefficient(i,j,1)
-            lambda_2[i+j*nres] = 1 #lambda_coefficient(i,j,2)
-            lambda_3[i+j*nres] = 1 #lambda_coefficient(i,j,3)
-
-    r_ON = .298
-    sigma_NO = .068
-    r_OH = .206
-    sigma_HO = .076
-    eta_beta_1 = 10.0
-    eta_beta_2 = 5.0
-    r_HB_c = 1.2
-
-    theta_ij =   "exp(-(r_Oi_Nj-r_ON)^2/(2*sigma_NO^2)-(r_Oi_Hj-r_OH)^2/(2*sigma_HO^2))"
-    theta_ji =   "exp(-(r_Oj_Ni-r_ON)^2/(2*sigma_NO^2)-(r_Oj_Hi-r_OH)^2/(2*sigma_HO^2))"
-    theta_jip2 = "exp(-(r_Oj_Nip2-r_ON)^2/(2*sigma_NO^2)-(r_Oj_Hip2-r_OH)^2/(2*sigma_HO^2))"
-    nu_i = "0.5*(1+tanh(eta_beta_1*(r_CAim2_CAip2-r_HB_c)))"
-    nu_j = "0.5*(1+tanh(eta_beta_2*(r_CAjm2_CAjp2-r_HB_c)))"
-
-    # Oi Nj Hj CAi-2 CAi+2 CAj-2 CAj+2
-    # 1  2  3  4     5     6     7
-    beta_string_1 = "-k_beta*lambda_1(index_i,index_j)*theta_ij*nu_i*nu_j;theta_ij=%s;r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
-                    nu_i=%s;nu_j=%s;r_CAim2_CAip2=distance(p4,p5);r_CAjm2_CAjp2=distance(p6,p7)" % (theta_ij, nu_i, nu_j)
-
-    # Oi Nj Hj Oj Ni Hi CAi-2 CAi+2 CAj-2 CAj+2
-    # 1  2  3  4  5  6  7     8     9     10
-    beta_string_2 = "-k_beta*lambda_2(index_i,index_j)*theta_ij*theta_ji*nu_i*nu_j;\
-                    theta_ij=%s;r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
-                    theta_ji=%s;r_Oj_Ni=distance(p4,p5);r_Oj_Hi=distance(p4,p6);\
-                    nu_i=%s;nu_j=%s;r_CAim2_CAip2=distance(p7,p8);r_CAjm2_CAjp2=distance(p9,p10)" % (theta_ij, theta_ji, nu_i, nu_j)
-
-    # Oi Nj Hj Oj Ni+2 Hi+2 CAi-2 CAi+2 CAj-2 CAj+2
-    # 1  2  3  4  5    6    7     8     9     10
-    beta_string_3 = "-k_beta*lambda_3(index_i,index_j)*theta_ij*theta_jip2*nu_i*nu_j;\
-                    theta_ij=%s;r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
-                    theta_ji=%s;r_Oj_Ni=distance(p4,p5);r_Oj_Hi=distance(p4,p6);\
-                    theta_jip2=%s;r_Oj_Nip2=distance(p4,p5);r_Oj_Hip2=distance(p4,p6);\
-                    nu_i=%s;nu_j=%s;r_CAim2_CAip2=distance(p7,p8);r_CAjm2_CAjp2=distance(p9,p10)" % (theta_ij, theta_ji, theta_jip2, nu_i, nu_j)
-
-    beta_1 = CustomCompoundBondForce(7, beta_string_1)
-    beta_2 = CustomCompoundBondForce(10, beta_string_2)
-    beta_3 = CustomCompoundBondForce(10, beta_string_3)
-    # add parameters to force
-    for i in range(1,4):
-        locals()["beta_%d" % i].addGlobalParameter("k_beta", k_beta)
-        locals()["beta_%d" % i].addGlobalParameter("r_ON", r_ON)
-        locals()["beta_%d" % i].addGlobalParameter("sigma_NO", sigma_NO)
-        locals()["beta_%d" % i].addGlobalParameter("r_OH", r_OH)
-        locals()["beta_%d" % i].addGlobalParameter("sigma_HO", sigma_HO)
-        locals()["beta_%d" % i].addGlobalParameter("eta_beta_1", eta_beta_1)
-        locals()["beta_%d" % i].addGlobalParameter("eta_beta_2", eta_beta_2)
-        locals()["beta_%d" % i].addGlobalParameter("r_HB_c", r_HB_c)
-        locals()["beta_%d" % i].addPerBondParameter("index_i")
-        locals()["beta_%d" % i].addPerBondParameter("index_j")
-    beta_1.addTabulatedFunction("lambda_1", Discrete2DFunction(nres, nres, lambda_1))
-    beta_2.addTabulatedFunction("lambda_2", Discrete2DFunction(nres, nres, lambda_2))
-    beta_3.addTabulatedFunction("lambda_3", Discrete2DFunction(nres, nres, lambda_3))
-
-    for i in range(nres):
-        for j in range(i, nres):
-            if i-2 < 0 or i+2 >= nres or \
-               j-2 < 0 or j+2 >= nres:
-               continue
-            if not res_type[j] == "IPR":
-                beta_1.addBond([o[i], n[j], h[j], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
-            if not res_type[i] == "IPR" and not res_type[j] == "IPR":
-                beta_2.addBond([o[i], n[j], h[j], o[j], n[i], h[i], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
-            if not res_type[i+2] == "IPR" and not res_type[j] == "IPR":
-                beta_3.addBond([o[i], n[j], h[j], o[j], n[i+2], h[i+2], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
-
-    system.addForce(beta_1)
-    system.addForce(beta_2)
-    system.addForce(beta_3)
-
-def read_beta_parameters(parameter_directory='.'):
-    os.chdir(parameter_directory)
-    in_anti_HB = open("anti_HB", 'r').readlines()
-    in_anti_NHB = open("anti_NHB", 'r').readlines()
-    in_para_HB = open("para_HB", 'r').readlines()
-    in_para_one = open("para_one", 'r').readlines()
-    in_anti_one = open("anti_one", 'r').readlines()
-
-    p_par = np.zeros((20))
-    p_anti = np.zeros((20))
-    p_antihb = np.zeros((20,20,2))
-    p_antinhb = np.zeros((20,20,2))
-    p_parhb = np.zeros((20,20,2))
-
-    for i in range(20):
-        p_par[i] = float(in_para_one[i].strip())
-        p_anti[i] = float(in_anti_one[i].strip())
-        for j in range(20):
-            p_antihb[i][j][0] = float(in_anti_HB[i].strip().split()[j])
-            p_antinhb[i][j][0] = float(in_anti_NHB[i].strip().split()[j])
-            p_parhb[i][j][0] = float(in_para_HB[i].strip().split()[j])
-
-    for i in range(20):
-        for j in range(20):
-            p_antihb[i][j][1] = float(in_anti_HB[i+21].strip().split()[j])
-            p_antinhb[i][j][1] = float(in_anti_NHB[i+21].strip().split()[j])
-            p_parhb[i][j][1] = float(in_para_HB[i+21].strip().split()[j])
-
-    return p_par, p_anti, p_antihb, p_antinhb, p_parhb
-
-def apply_pap_term(oa):
-    system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi, res_names = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi, oa.res_names
-
-    pap_function = "-k_pap*gamma*0.5*(1+tanh(eta_pap*(r0-distance(p1,p2))))*0.5*(1+tanh(eta_pap*(r0-distance(p3,p4))))"
-    # setup parameters
-    k_pap = 10.0
-    r0 = 0.8 # nm
-    eta_pap = 70 # nm^-1
-    gamma_aph = 1.0
-    gamma_ap = 0.4
-    gamma_p = 0.4
-
-    pap = CustomCompoundBondForce(4, pap_function)
-    pap.addGlobalParameter("k_pap", k_pap)
-    pap.addGlobalParameter("r0", r0)
-    pap.addGlobalParameter("eta_pap", eta_pap)
-    pap.addPerBondParameter("gamma")
-
-    for i in range(nres):
-        for j in range(nres):
-            # anti-parallel hairpin for i from 1 to N-13 and j from i+13 to min(i+16,N)
-            # CAi CAj CAi+4 CAj-4
-            # 1   2   3     4
-            if i <= nres-13 and j >= i+13 and j <= min(i+16,nres):
-                pap.addBond([ca[i], ca[j], ca[i+4], ca[j-4]], [gamma_aph])
-            # anti-parallel for i from 1 to N-17 and j from i+17 to N
-            # CAi CAj CAi+4 CAj-4
-            # 1   2   3     4
-            if i <= nres-17 and j >= i+17 and j <= nres:
-                pap.addBond([ca[i], ca[j], ca[i+4], ca[j-4]], [gamma_ap])
-            # parallel for i from 1 to N-13 and j from i+9 to N-4
-            # CAi CAj CAi+4 CAj+4
-            # 1   2   3     4
-            if i <= nres-13 and j >= i+9 and j <= nres-4:
-                pap.addBond([ca[i], ca[j], ca[i+4], ca[j-4]], [gamma_p])
-
-    system.addForce(pap)
-
-def apply_dsb_term(oa):
-    system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi, res_names = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi, oa.res_names
-
-    k_dsb = 1.0
-    dsb_cutoff = .15
-    eta_dsb = 100
-    r_min_dsb = 0.6
-    r_max_dsb = 0.7
-    shift = {'ALA': 0.00*10, 'ARG': 2.04*10, 'ASN': 0.57*10, 'ASP': 0.57*10, 'CYS': 0.36*10, 'GLN': 1.11*10, 'GLU': 1.17*10, 'GLY': -1.52*10,   'HIS': 0.87*10, 'ILE': 0.67*10, 'LEU': 0.79*10, 'LYS': 1.47*10, 'MET': 1.03*10, 'PHE': 1.00*10, 'PRO': 0.10*10, 'SER': 0.26*10,  'THR': 0.37*10, 'TRP': 1.21*10, 'TYR': 1.15*10, 'VAL': 0.39*10}
-
-    dsb = CustomNonbondedForce("k_dsb*0.5*(tanh(eta_dsb*(r-(r_min+shift1+shift2)))+tanh(eta_dsb*((r_max+shift1+shift2)-r)))")
-    dsb.addGlobalParameter("k_dsb", k_dsb)
-    dsb.addGlobalParameter("eta_dsb", eta_dsb)
-    dsb.addGlobalParameter("r_min", r_min_dsb)
-    dsb.addGlobalParameter("r_max", r_max_dsb)
-    dsb.addPerParticleParameter("shift")
-    for i in range(natoms):
-        dsb.addParticle([shift[res_names[resi[i]]]])
-    cb_with_gly_ca = [x if x >= 0 else y for x,y in zip(cb,ca)]
-    dsb.addInteractionGroup(cb_with_gly_ca, cb_with_gly_ca)
-    dsb.setCutoffDistance(dsb_cutoff)
-
-    # find all pairs to include in the force
-    interactions = []
-    for cbi, cbj in combinations(cb_with_gly_ca, 2):
-        if abs(resi[cbi]-resi[cbj]) >= 10:
-            interactions.append((cbi, cbj))
-
-    # get list of exclusions
-    exclusions = get_exclusions(oa, interactions)
-
-    # apply exclusions
-    dsb.createExclusionsFromBonds(exclusions, 1)
-
-    system.addForce(dsb)
-
-def apply_helix_term(oa):
-    system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi, res_names = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi, oa.res_names
-    helix_frequencies = {
-    'ALA': 0.77,
-    'ARG': 0.68,
-    'ASN': 0.07,
-    'ASP': 0.15,
-    'CYS': 0.23,
-    'GLN': 0.33,
-    'GLU': 0.27,
-    'GLY': 0.0,
-    'HIS': 0.06,
-    'ILE': 0.23,
-    'LEU': 0.62,
-    'LYS': 0.65,
-    'MET': 0.50,
-    'PHE': 0.41,
-    'PRO': 0.4,
-    'SER': 0.35,
-    'THR': 0.11,
-    'TRP': 0.45,
-    'TYR': 0.17,
-    'VAL': 0.14
-    }
-
-    k_helix = 0
-    gamma_prot = 2.0
-    gamma_wat = -1.0
-    eta_sigma = 70
-    r_ON = .298
-    r_OH = .206
-    sigma_ON = .068
-    sigma_OH = .076
-    eta_direct = 50
-    r_density_min = 0.45
-    r_density_max = 0.65
-    rho0 = 2.6
-
-    rhoi = ""
-    rhoip4 = ""
-    for j in range(1,nres+1-3):
-        rhoi += "0.25*(1+tanh(eta_direct*(distance(p4,p%d)-r_density_min)))*(1+tanh(eta_direct*(r_density_max-distance(p4,p%d))))+" % (j+5, j+5)
-        rhoip4 += "0.25*(1+tanh(eta_direct*(distance(p5,p%d)-r_density_min)))*(1+tanh(eta_direct*(r_density_max-distance(p5,p%d))))+" % (j+5, j+5)
-    rhoi = rhoi[:-1]
-    rhoip4 = rhoip4[:-1]
-
-    helix_function = "-k_helix*(fai+faip4)*(gamma_prot*(1-sigma_wat)+gamma_wat*sigma_wat)*exp(-(distance(p1,p2)-r_ON)^2/2*sigma_ON^2-(distance(p1,p3)-r_OH)^2/2*sigma_OH^2);sigma_wat=0.25*(1-tanh(eta_sigma*(rhoi-rho0))*(1-tanh(eta_sigma*(rhoip4-rho0))));rhoi=%s;rhoip4=%s" % (rhoi, rhoip4)
-
-    helix = CustomCompoundBondForce(5+nres-3, helix_function)
-    helix.addGlobalParameter("k_helix", k_helix)
-    helix.addGlobalParameter("gamma_prot", gamma_prot)
-    helix.addGlobalParameter("gamma_wat", gamma_wat)
-    helix.addGlobalParameter("eta_sigma", eta_sigma)
-    helix.addGlobalParameter("eta_direct", eta_direct)
-    helix.addGlobalParameter("sigma_ON", sigma_ON)
-    helix.addGlobalParameter("sigma_OH", sigma_OH)
-    helix.addGlobalParameter("r_density_min", r_density_min)
-    helix.addGlobalParameter("r_density_max", r_density_max)
-    helix.addGlobalParameter("rho0", rho0)
-    helix.addGlobalParameter("r_ON", r_ON)
-    helix.addGlobalParameter("r_OH", r_OH)
-    helix.addPerBondParameter("i")
-    helix.addPerBondParameter("ip4")
-    helix.addPerBondParameter("fai")
-    helix.addPerBondParameter("faip4")
-
-    cb_with_gly_ca = [x if x >= 0 else y for x,y in zip(cb,ca)]
-    #for i in range(nres-4):
-    for i in range(2,3):
-        print(i)
-        other_cb_with_gly_ca = list(cb_with_gly_ca)
-        print(other_cb_with_gly_ca)
-        del other_cb_with_gly_ca[i-1]
-        print(other_cb_with_gly_ca)
-        del other_cb_with_gly_ca[i-1]
-        print(other_cb_with_gly_ca)
-        del other_cb_with_gly_ca[i-1]
-        print(other_cb_with_gly_ca)
-        if res_names[i+4] == "PRO":
-            continue
-        fai = helix_frequencies[res_names[i]]
-        faip4 = helix_frequencies[res_names[i+4]]
-        helix.addBond([o[i], n[i+4], h[i+4], cb_with_gly_ca[i], cb_with_gly_ca[i+4], *other_cb_with_gly_ca], [i+1, i+5, fai, faip4])
-
-    system.addForce(helix)
-
-def read_memory(pdb_file, chain_name, target_start, fragment_start, length, weight, min_seq_sep, max_seq_sep, ca, cb):
-    memory_interactions = []
-
-    if not os.path.isfile(pdb_file):
-        pdbl = PDBList()
-        pdbl.retrieve_pdb_file(pdb_file.split('.')[0].lower(), pdir='.')
-        os.rename("pdb%s.ent" % pdb_id, "%s.pdb" % pdb_id)
-
-    p = PDBParser()
-    structure = p.get_structure('X', pdb_file)
-    chain = structure[0][chain_name]
-    residues = [x for x in chain if x.get_full_id()[3][1] in range(fragment_start,fragment_start+length-1)]
-    for i, residue_i in enumerate(residues):
-        for j, residue_j in enumerate(residues):
-            if abs(i-j) > max_seq_sep:
-                continue
-            target_index_i = target_start + i - 1
-            target_index_j = target_start + j - 1
-            atom_list = []
-            target_atom_list = []
-            if abs(i-j) >= min_seq_sep:
-                ca_i = residue_i['CA']
-                atom_list.append(ca_i)
-                target_atom_list.append(ca[target_index_i])
-                ca_j = residue_j['CA']
-                atom_list.append(ca_j)
-                target_atom_list.append(ca[target_index_j])
-                if not residue_i.get_resname() == "GLY" and cb[target_index_i] >= 0:
-                    cb_i = residue_i['CB']
-                    atom_list.append(cb_i)
-                    target_atom_list.append(cb[target_index_i])
-                if not residue_j.get_resname() == "GLY" and cb[target_index_j] >= 0:
-                    cb_j = residue_j['CB']
-                    atom_list.append(cb_j)
-                    target_atom_list.append(cb[target_index_j])
-            for atom_i, atom_j in combinations(atom_list, 2):
-                particle_1 = target_atom_list[atom_list.index(atom_i)]
-                particle_2 = target_atom_list[atom_list.index(atom_j)]
-                r_ijm = (atom_i - atom_j)/10.0 # convert to nm
-                sigma_ij = 0.1*abs(i-j)**0.15 # 0.1 nm = 1 A
-                gamma_ij = 1.0
-                w_m = weight
-                memory_interaction = [particle_1, particle_2, [w_m, gamma_ij, r_ijm, sigma_ij]]
-                memory_interactions.append(memory_interaction)
-    return memory_interactions
-
-def apply_associative_memory_term(oa):
-    system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi, res_names = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds, oa.resi, oa.res_names
-
-    k_am = 1.0
-    min_seq_sep = 3
-    max_seq_sep = 9
-         #pdbid #chain #target #fragment #length #weight
-    memories = [['9-peptide.pdb', 'C', 1, 1, 63, 1]]
-
-    am_function = '-k_am*w_m*gamma_ij*exp(-(r-r_ijm)^2/(2*sigma_ij^2))'
-    am = CustomBondForce(am_function)
-
-    am.addGlobalParameter('k_am', k_am)
-    am.addPerBondParameter('w_m')
-    am.addPerBondParameter('gamma_ij')
-    am.addPerBondParameter('r_ijm')
-    am.addPerBondParameter('sigma_ij')
-
-    for memory in memories:
-        memory_interactions = read_memory(*memory, min_seq_sep, max_seq_sep, ca, cb)
-        for memory_interaction in memory_interactions:
-            am.addBond(*memory_interaction)
-
-    system.addForce(am)
-
+        # set overall scaling
+        self.k_awsem = k_awsem
+        # keep track of force names for output purposes
+        self.force_names = []
+    
+    def addForces(self, forces):
+        for i, (force) in enumerate(forces):
+            self.addForce(force)
+            force.setForceGroup(i+1)
+    
+    def read_reference_structure_for_q_calculation(self, pdb_file, chain_name, min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.8*nanometers):
+        structure_interactions = []
+        p = PDBParser()
+        structure = p.get_structure('X', pdb_file)
+        chain = structure[0][chain_name]
+        residues = [x for x in chain]
+        for i, residue_i in enumerate(residues):
+            for j, residue_j in enumerate(residues):
+                ca_list = []
+                cb_list = []
+                atom_list_i = []
+                atom_list_j = []
+                if i-j >= min_seq_sep and i-j <= max_seq_sep:  # taking the signed value to avoid double counting
+                    ca_i = residue_i['CA']
+                    ca_list.append(ca_i)
+                    atom_list_i.append(ca_i)
+                    ca_j = residue_j['CA']
+                    ca_list.append(ca_j)
+                    atom_list_j.append(ca_j)
+                    if not residue_i.get_resname() == "GLY":
+                        cb_i = residue_i['CB']
+                        cb_list.append(cb_i)
+                        atom_list_i.append(cb_i)
+                    if not residue_j.get_resname() == "GLY":
+                        cb_j = residue_j['CB']
+                        cb_list.append(cb_j)
+                        atom_list_j.append(cb_j)
+                    for atom_i, atom_j in product(atom_list_i, atom_list_j):
+                        r_ijN = abs(atom_i - atom_j)/10.0*nanometers # convert to nm
+                        if r_ijN <= contact_threshold:
+                            sigma_ij = 0.1*abs(i-j)**0.15 # 0.1 nm = 1 A
+                            gamma_ij = 1.0
+                            if atom_i in ca_list:
+                                i_index = self.ca[i]
+                            if atom_i in cb_list:
+                                i_index = self.cb[i]
+                            if atom_j in ca_list:
+                                j_index = self.ca[j]
+                            if atom_j in cb_list:
+                                j_index = self.cb[j]                 
+                            structure_interaction = [i_index, j_index, [gamma_ij, r_ijN, sigma_ij]]
+                            structure_interactions.append(structure_interaction)
+
+        return structure_interactions
+
+    def q_value(self, reference_pdb_file, reference_chain_name, min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.8*nanometers):
+        # create bond force for q calculation
+        qvalue = CustomBondForce("(1/normalization)*gamma_ij*exp(-(r-r_ijN)^2/(2*sigma_ij^2))")
+        qvalue.addPerBondParameter("gamma_ij")
+        qvalue.addPerBondParameter("r_ijN")
+        qvalue.addPerBondParameter("sigma_ij")
+        # create bonds
+        structure_interactions = self.read_reference_structure_for_q_calculation(reference_pdb_file, reference_chain_name, min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep, contact_threshold=contact_threshold)
+        qvalue.addGlobalParameter("normalization", len(structure_interactions))
+        for structure_interaction in structure_interactions:
+            qvalue.addBond(*structure_interaction)
+        return qvalue
+    
+    def addForce(self, force):
+        self.system.addForce(force)
+
+    def con_term(self, k_con=50208, bond_lengths=[.3816, .240, .276, .153]):
+        # add con forces
+        # 50208 = 60 * 2 * 4.184 * 100. kJ/nm^2, converted from default value in LAMMPS AWSEM
+        # multiply interaction strength by overall scaling
+        k_con *= self.k_awsem
+        con = HarmonicBondForce()
+        for i in range(self.nres):
+            con.addBond(self.ca[i], self.o[i], bond_lengths[1], k_con)
+            if not self.res_type[i] == "IGL":
+                con.addBond(self.ca[i], self.cb[i], bond_lengths[3], k_con)
+            if  i+1 < self.nres:
+                con.addBond(self.ca[i], self.ca[i+1], bond_lengths[0], k_con)
+                con.addBond(self.o[i], self.ca[i+1], bond_lengths[2], k_con)
+        return con
+
+    def chain_term(self, k_chain=50208, bond_lengths=[0.2459108, 0.2519591, 0.2466597]):
+        # add chain forces
+        # 50208 = 60 * 2 * 4.184 * 100. kJ/nm^2, converted from default value in LAMMPS AWSEM
+        # multiply interaction strength by overall scaling
+        k_chain *= self.k_awsem
+        chain = HarmonicBondForce()
+        for i in range(self.nres):
+            if not i == 0 and not self.res_type[i] == "IGL":
+                chain.addBond(self.n[i], self.cb[i], bond_lengths[0], k_chain)
+            if not i+1 == self.nres and not self.res_type[i] == "IGL":
+                chain.addBond(self.c[i], self.cb[i], bond_lengths[1], k_chain)
+            if not i == 0 and not i+1 == self.nres:
+                chain.addBond(self.n[i], self.c[i],  bond_lengths[2], k_chain)
+        return chain
+
+    def chi_term(self, k_chi=251.04, chi0=-0.71):
+        # add chi forces
+        # The sign of the equilibrium value is opposite and magnitude differs slightly
+        # 251.04 = 60 * 4.184 kJ, converted from default value in LAMMPS AWSEM
+        # multiply interaction strength by overall scaling
+        k_chi *= self.k_awsem
+        chi = CustomCompoundBondForce(4, "k_chi*(chi*norm-chi0)^2;\
+                                    chi=crossproduct_x*r_cacb_x+crossproduct_y*r_cacb_y+crossproduct_z*r_cacb_z;\
+                                    crossproduct_x=(u_y*v_z-u_z*v_y);\
+                                    crossproduct_y=(u_z*v_x-u_x*v_z);\
+                                    crossproduct_z=(u_x*v_y-u_y*v_x);\
+                                    norm=1/((u_x*u_x+u_y*u_y+u_z*u_z)*(v_x*v_x+v_y*v_y+v_z*v_z)*(r_cacb_x*r_cacb_x+r_cacb_y*r_cacb_y+r_cacb_z*r_cacb_z))^0.5;\
+                                    r_cacb_x=x1-x4;\
+                                    r_cacb_y=y1-y4;\
+                                    r_cacb_z=z1-z4;\
+                                    u_x=x1-x2; u_y=y1-y2; u_z=z1-z2;\
+                                    v_x=x3-x1; v_y=y3-y1; v_z=z3-z1;")
+        chi.addGlobalParameter("k_chi", k_chi)
+        chi.addGlobalParameter("chi0", chi0)
+        for i in range(self.nres):
+            if not i == 0 and not i+1 == self.nres and not self.res_type[i] == "IGL":
+                chi.addBond([self.ca[i], self.c[i], self.n[i], self.cb[i]])
+        return chi
+
+    def excl_term(self, k_excl=8368, r_excl=0.35):
+        # add excluded volume
+        # Still need to add element specific parameters
+        # 8368 = 20 * 4.184 * 100 kJ/nm^2, converted from default value in LAMMPS AWSEM
+        # multiply interaction strength by overall scaling
+        k_excl *= self.k_awsem
+        excl = CustomNonbondedForce("k_excl*step(r0-r)*(r-r0)^2")
+        excl.addGlobalParameter("k_excl", k_excl)
+        excl.addGlobalParameter("r0", r_excl)
+        for i in range(self.natoms):
+            excl.addParticle()
+        excl.addInteractionGroup(self.ca, self.ca)
+        excl.addInteractionGroup([x for x in self.cb if x > 0], [x for x in self.cb if x > 0])
+        excl.addInteractionGroup(self.ca, [x for x in self.cb if x > 0])
+        excl.addInteractionGroup(self.o, self.o)
+
+        excl.setCutoffDistance(r_excl)
+
+        excl.createExclusionsFromBonds(self.bonds, 1)
+        return excl
+
+    def rama_term(self, k_rama=8.368, num_rama_wells=3, w=[1.3149, 1.32016, 1.0264], sigma=[15.398, 49.0521, 49.0954], omega_phi=[0.15, 0.25, 0.65], phi_i=[-1.74, -1.265, 1.041], omega_psi=[0.65, 0.45, 0.25], psi_i=[2.138, -0.318, 0.78]):
+        # add Rama potential
+        # 8.368 = 2 * 4.184 kJ/mol, converted from default value in LAMMPS AWSEM
+        # multiply interaction strength by overall scaling
+        k_rama *= self.k_awsem
+        rama_function = ''.join(["w%d*exp(-sigma%d*(omega_phi%d*phi_term%d^2+omega_psi%d*psi_term%d^2))+" \
+                                % (i, i, i, i, i, i) for i in range(num_rama_wells)])[:-1]
+        rama_function = '-k_rama*(' + rama_function + ");"
+        rama_parameters = ''.join([f"phi_term{i}=cos(phi_{i}-phi0{i})-1; phi_{i}=dihedral(p1, p2, p3, p4);\
+                                psi_term{i}=cos(psi_{i}-psi0{i})-1; psi_{i}=dihedral(p2, p3, p4, p5);"\
+                                for i in range(num_rama_wells)])
+        rama_string = rama_function+rama_parameters
+        rama = CustomCompoundBondForce(5, rama_string)
+        for i in range(num_rama_wells):
+            rama.addGlobalParameter(f"k_rama", k_rama)
+            rama.addGlobalParameter(f"w{i}", w[i])
+            rama.addGlobalParameter(f"sigma{i}", sigma[i])
+            rama.addGlobalParameter(f"omega_phi{i}", omega_phi[i])
+            rama.addGlobalParameter(f"omega_psi{i}", omega_psi[i])
+            rama.addGlobalParameter(f"phi0{i}", phi_i[i])
+            rama.addGlobalParameter(f"psi0{i}", psi_i[i])
+        for i in range(self.nres):
+            if not i == 0 and not i+1 == self.nres and not self.res_type[i] == "IGL" and not self.res_type == "IPR":
+                rama.addBond([self.c[i-1], self.n[i], self.ca[i], self.c[i], self.n[i+1]])
+        return rama
+
+    def rama_proline_term(self, k_rama_proline=8.368, num_rama_proline_wells=2, w=[2.17, 2.15], sigma=[105.52, 109.09], omega_phi=[1.0, 1.0], phi_i=[-1.153, -0.95], omega_psi=[0.15, 0.15], psi_i=[2.4, -0.218]):
+        # add Rama potential for prolines
+        # 8.368 = 2 * 4.184 kJ/mol, converted from default value in LAMMPS AWSEM
+        # multiply interaction strength by overall scaling
+        k_rama_proline *= self.k_awsem
+        rama_function = ''.join(["w%d*exp(-sigma%d*(omega_phi%d*phi_term%d^2+omega_psi%d*psi_term%d^2))+" \
+                                % (i, i, i, i, i, i) for i in range(num_rama_proline_wells)])[:-1]
+        rama_function = '-k_rama_proline*(' + rama_function + ");"
+        rama_parameters = ''.join([f"phi_term{i}=cos(phi_{i}-phi0{i})-1; phi_{i}=dihedral(p1, p2, p3, p4);\
+                                psi_term{i}=cos(psi_{i}-psi0{i})-1; psi_{i}=dihedral(p2, p3, p4, p5);"\
+                                for i in range(num_rama_proline_wells)])
+        rama_string = rama_function+rama_parameters
+        rama = CustomCompoundBondForce(5, rama_string)
+        for i in range(num_rama_proline_wells):
+            rama.addGlobalParameter(f"k_rama_proline", k_rama_proline)
+            rama.addGlobalParameter(f"w{i}", w[i])
+            rama.addGlobalParameter(f"sigma{i}", sigma[i])
+            rama.addGlobalParameter(f"omega_phi{i}", omega_phi[i])
+            rama.addGlobalParameter(f"omega_psi{i}", omega_psi[i])
+            rama.addGlobalParameter(f"phi0{i}", phi_i[i])
+            rama.addGlobalParameter(f"psi0{i}", psi_i[i])
+        for i in range(self.nres):
+            if not i == 0 and self.res_type[i] == "IPR":
+                rama.addBond([self.c[i-1], self.n[i], self.ca[i], self.c[i], self.n[i+1]])
+        return rama
+
+    def read_memory(self, pdb_file, chain_name, target_start, fragment_start, length, weight, min_seq_sep, max_seq_sep, am_well_width=0.1):
+        memory_interactions = []
+
+        if not os.path.isfile(pdb_file):
+            pdbl = PDBList()
+            pdbl.retrieve_pdb_file(pdb_file.split('.')[0].lower(), pdir='.')
+            os.rename("pdb%s.ent" % pdb_id, "%s.pdb" % pdb_id)
+
+        p = PDBParser()
+        structure = p.get_structure('X', pdb_file)
+        chain = structure[0][chain_name]
+        residues = [x for x in chain if x.get_full_id()[3][1] in range(fragment_start,fragment_start+length-1)]
+        for i, residue_i in enumerate(residues):
+            for j, residue_j in enumerate(residues):
+                if abs(i-j) > max_seq_sep:
+                    continue
+                target_index_i = target_start + i - 1
+                target_index_j = target_start + j - 1
+                atom_list_i = []
+                target_atom_list_i = []
+                atom_list_j = []
+                target_atom_list_j = []
+                if i-j >= min_seq_sep: # taking the signed value to avoid double counting
+                    ca_i = residue_i['CA']
+                    atom_list_i.append(ca_i)
+                    target_atom_list_i.append(self.ca[target_index_i])
+                    ca_j = residue_j['CA']
+                    atom_list_j.append(ca_j)
+                    target_atom_list_j.append(self.ca[target_index_j])
+                    if not residue_i.get_resname() == "GLY" and self.cb[target_index_i] >= 0:
+                        cb_i = residue_i['CB']
+                        atom_list_i.append(cb_i)
+                        target_atom_list_i.append(self.cb[target_index_i])
+                    if not residue_j.get_resname() == "GLY" and self.cb[target_index_j] >= 0:
+                        cb_j = residue_j['CB']
+                        atom_list_j.append(cb_j)
+                        target_atom_list_j.append(self.cb[target_index_j])
+                for atom_i, atom_j in product(atom_list_i, atom_list_j):
+                    particle_1 = target_atom_list_i[atom_list_i.index(atom_i)]
+                    particle_2 = target_atom_list_j[atom_list_j.index(atom_j)]
+                    r_ijm = abs(atom_i - atom_j)/10.0 # convert to nm
+                    sigma_ij = am_well_width*abs(i-j)**0.15 # 0.1 nm = 1 A
+                    gamma_ij = 1.0
+                    w_m = weight
+                    memory_interaction = [particle_1, particle_2, [w_m, gamma_ij, r_ijm, sigma_ij]]
+                    memory_interactions.append(memory_interaction)
+        return memory_interactions
+
+    def associative_memory_term(self, memories, k_am=0.8368, min_seq_sep=3, max_seq_sep=9, am_well_width=0.1):
+        # 0.8368 = 0.2 * 4.184 # in kJ/mol, converted from default value in LAMMPS AWSEM
+        #pdbid #chain #target #fragment #length #weight
+        # multiply interaction strength by overall scaling
+        k_am *= self.k_awsem
+        am_function = '-k_am*w_m*gamma_ij*exp(-(r-r_ijm)^2/(2*sigma_ij^2))'
+        am = CustomBondForce(am_function)
+        am.addGlobalParameter('k_am', k_am)
+        am.addPerBondParameter('w_m')
+        am.addPerBondParameter('gamma_ij')
+        am.addPerBondParameter('r_ijm')
+        am.addPerBondParameter('sigma_ij')
+        for memory in memories:
+            memory_interactions = self.read_memory(*memory, min_seq_sep, max_seq_sep, am_well_width=am_well_width)
+            for memory_interaction in memory_interactions:
+                am.addBond(*memory_interaction)
+        return am
+
+    def get_exclusions(self, interactions):
+        natoms = self.natoms
+        all_interactions = combinations(range(self.natoms), 2)
+        exclusions = [x for x in all_interactions if x not in interactions]
+        return exclusions
+
+    def density_dependent_associative_memory_term(self, memories, k_am_dd=1.0, am_dd_min_seq_sep=3, am_dd_max_seq_sep=9, eta_density=50, r_density_min=.45, r_density_max=.65, density_alpha=1.0, density_normalization=2.0, rho0=2.6, am_well_width=0.1, density_min_seq_sep=10, density_only_from_native_contacts=False, density_pdb_file=None, density_chain_name=None, density_native_contact_min_seq_sep=4, density_native_contact_threshold=0.8*nanometers):
+
+        k_am_dd *= self.k_awsem
+
+        am_dd = CustomGBForce()
+
+        # add all particles to force
+        for i in range(self.natoms):
+            am_dd.addParticle([i])
+
+        # add per-particle parameters
+        am_dd.addPerParticleParameter("index")
+
+        # add global parameters
+        am_dd.addGlobalParameter("k_am_dd", k_am_dd)
+        am_dd.addGlobalParameter("eta_density", eta_density)
+        am_dd.addGlobalParameter("r_density_min", r_density_min)
+        am_dd.addGlobalParameter("r_density_max", r_density_max)
+        am_dd.addGlobalParameter("density_alpha", density_alpha)
+        am_dd.addGlobalParameter("density_normalization", density_normalization)
+        am_dd.addGlobalParameter("rho0", rho0)
+
+        # if density_only_from_native_contacts, read structure to get native contacts
+        if density_only_from_native_contacts:
+            structure_interactions = self.read_amhgo_structure(pdb_file=density_pdb_file, chain_name=density_chain_name, amhgo_min_seq_sep=density_native_contact_min_seq_sep, amhgo_contact_threshold=density_native_contact_threshold, amhgo_well_width=0.1) # the well width is not used, so the value doesn't matter
+
+            native_contacts = []
+            for interaction in structure_interactions:
+                i_index, j_index, [gamma_ij, r_ijN, sigma_ij] = interaction
+                native_contacts.append((i_index, j_index))
+                native_contacts.append((j_index, i_index))
+
+        # setup tabulated functions and interactions
+        density_gamma_ij = [0.0]*self.natoms*self.natoms
+        for i in range(self.natoms):
+            for j in range(self.natoms):
+                if (i in self.cb or (self.res_type[self.resi[i]] == "IGL" and i in self.ca)) and (j in self.cb or (self.res_type[self.resi[j]] == "IGL" and i in self.ca)) and abs(self.resi[i]-self.resi[j])>=density_min_seq_sep:
+                    if not density_only_from_native_contacts or (i, j) in native_contacts or (j, i) in native_contacts:
+                        density_gamma_ij[i+j*self.natoms] = 1.0
+                        density_gamma_ij[j+i*self.natoms] = 1.0
+        am_dd.addTabulatedFunction("density_gamma_ij", Discrete2DFunction(self.natoms, self.natoms, density_gamma_ij))
+        
+        gamma_ij = [0.0]*self.natoms*self.natoms*len(memories)
+        sigma_ij = [0.1]*self.natoms*self.natoms*len(memories)
+        r_ijm = [0.0]*self.natoms*self.natoms*len(memories)
+        for k, memory in enumerate(memories):
+            memory_interactions = self.read_memory(*memory, am_dd_min_seq_sep, am_dd_max_seq_sep, am_well_width=am_well_width)
+            for memory_interaction in memory_interactions:
+                i, j, (w_m, gamma, r, sigma) = memory_interaction
+                gamma_ij[i+j*self.natoms+k*self.natoms*self.natoms] = gamma
+                gamma_ij[j+i*self.natoms+k*self.natoms*self.natoms] = gamma
+                sigma_ij[i+j*self.natoms+k*self.natoms*self.natoms] = sigma
+                sigma_ij[j+i*self.natoms+k*self.natoms*self.natoms] = sigma
+                r_ijm[i+j*self.natoms+k*self.natoms*self.natoms] = r         
+                r_ijm[j+i*self.natoms+k*self.natoms*self.natoms] = r         
+        am_dd.addTabulatedFunction("gamma_ij", Discrete3DFunction(self.natoms, self.natoms, len(memories), gamma_ij))
+        am_dd.addTabulatedFunction("sigma_ij", Discrete3DFunction(self.natoms, self.natoms, len(memories), sigma_ij))
+        am_dd.addTabulatedFunction("r_ijm", Discrete3DFunction(self.natoms, self.natoms, len(memories), r_ijm))
+
+        # add computed values
+        # compute the density
+        am_dd.addComputedValue("rho", "0.25*density_gamma_ij(index1, index2)*(1+tanh(eta_density*(r-r_density_min)))*(1+tanh(eta_density*(r_density_max-r)))", CustomGBForce.ParticlePair)
+
+        # function that determines how the AM term depends on density
+        #f_string = "0.25*(1-tanh(eta_density*(rho0-rho1)))*(1-tanh(eta_density*(rho0-rho2)))" # both residues must be buried for the interaction to be active
+        f_string = "1-(0.25*(1-tanh(eta_density*(rho1-rho0)))*(1-tanh(eta_density*(rho2-rho0))))" # one residue being buried is enough for the interaction to be active
+
+        # add energy term for each memory
+        for k, memory in enumerate(memories):
+            memory_interactions = self.read_memory(*memory, am_dd_min_seq_sep, am_dd_max_seq_sep, am_well_width=am_well_width)
+            for memory_interaction in memory_interactions:
+                i, j, (w_m, gamma, r, sigma) = memory_interaction
+            am_dd.addEnergyTerm("-k_am_dd*(density_alpha*f*density_normalization*beta_ij+(1-density_alpha)*beta_ij);beta_ij=%f*gamma_ij(index1,index2,%d)*exp(-(r-r_ijm(index1,index2,%d))^2/(2*sigma_ij(index1,index2,%d)^2));f=%s" % (w_m, k, k, k, f_string), CustomGBForce.ParticlePair)
+
+        return am_dd
+
+    def read_amhgo_structure(self, pdb_file, chain_name, amhgo_min_seq_sep=4, amhgo_contact_threshold=0.8*nanometers, amhgo_well_width=0.1):
+        structure_interactions = []
+        p = PDBParser()
+        structure = p.get_structure('X', pdb_file)
+        chain = structure[0][chain_name]
+        residues = [x for x in chain]
+        for i, residue_i in enumerate(residues):
+            for j, residue_j in enumerate(residues):
+                ca_list = []
+                cb_list = []
+                atom_list_i = []
+                atom_list_j = []
+                if i-j >= amhgo_min_seq_sep:  # taking the signed value to avoid double counting
+                    ca_i = residue_i['CA']
+                    ca_list.append(ca_i)
+                    atom_list_i.append(ca_i)
+                    ca_j = residue_j['CA']
+                    ca_list.append(ca_j)
+                    atom_list_j.append(ca_j)
+                    if not residue_i.get_resname() == "GLY":
+                        cb_i = residue_i['CB']
+                        cb_list.append(cb_i)
+                        atom_list_i.append(cb_i)
+                    if not residue_j.get_resname() == "GLY":
+                        cb_j = residue_j['CB']
+                        cb_list.append(cb_j)
+                        atom_list_j.append(cb_j)
+                    for atom_i, atom_j in product(atom_list_i, atom_list_j):
+                        r_ijN = abs(atom_i - atom_j)/10.0*nanometers # convert to nm
+                        if r_ijN <= amhgo_contact_threshold:
+                            sigma_ij = amhgo_well_width*abs(i-j)**0.15 # 0.1 nm = 1 A
+                            gamma_ij = 1.0
+                            if atom_i in ca_list:
+                                i_index = self.ca[i]
+                            if atom_i in cb_list:
+                                i_index = self.cb[i]
+                            if atom_j in ca_list:
+                                j_index = self.ca[j]
+                            if atom_j in cb_list:
+                                j_index = self.cb[j]                 
+                            structure_interaction = [i_index, j_index, [gamma_ij, r_ijN, sigma_ij]]
+                            structure_interactions.append(structure_interaction)
+        return structure_interactions
+
+    def additive_amhgo_term(self, pdb_file, chain_name, k_amhgo=4.184, amhgo_min_seq_sep=10, amhgo_contact_threshold=0.8*nanometers, amhgo_well_width=0.1):
+        import itertools
+        # multiply interaction strength by overall scaling
+        k_amhgo *= self.k_awsem
+        # create contact force
+        amhgo = CustomBondForce("-k_amhgo*gamma_ij*exp(-(r-r_ijN)^2/(2*sigma_ij^2))")
+        # # add global parameters
+        amhgo.addGlobalParameter("k_amhgo", k_amhgo)
+        amhgo.addPerBondParameter("gamma_ij")
+        amhgo.addPerBondParameter("r_ijN")
+        amhgo.addPerBondParameter("sigma_ij")
+        # create bonds
+        structure_interactions = self.read_amhgo_structure(pdb_file, chain_name, amhgo_min_seq_sep, amhgo_contact_threshold, amhgo_well_width=amhgo_well_width)
+        for structure_interaction in structure_interactions:
+            amhgo.addBond(*structure_interaction)
+        return amhgo
+
+    def qbias_term(self, q0, reference_pdb_file, reference_chain_name, k_qbias=10000, qbias_min_seq_sep=3, qbias_max_seq_sep=np.inf, qbias_contact_threshold=0.8*nanometers):
+        qbias = CustomCVForce("0.5*k_qbias*(q-q0)^2")
+        q = self.q_value(reference_pdb_file, reference_chain_name, min_seq_sep=qbias_min_seq_sep, max_seq_sep=qbias_max_seq_sep, contact_threshold=qbias_contact_threshold)
+        qbias.addCollectiveVariable("q", q)
+        qbias.addGlobalParameter("k_qbias", k_qbias)
+        qbias.addGlobalParameter("q0", q0)
+        return qbias
+
+def read_trajectory_pdb_positions(pdb_trajectory_filename):
+    import uuid, os
+    pdb_trajectory_contents = open(pdb_trajectory_filename).read().split("MODEL")[1:]
+    pdb_trajectory_contents = ['\n'.join(x.split('\n')[1:]) for x in pdb_trajectory_contents]
+    pdb_trajectory = []
+    for i, pdb_contents in enumerate(pdb_trajectory_contents):
+        temporary_file_name = str(uuid.uuid4())
+        temporary_pdb_file = open(temporary_file_name, 'w')
+        temporary_pdb_file.write(pdb_contents)
+        temporary_pdb_file.close()
+        pdb = PDBFile(temporary_file_name)
+        pdb_trajectory.append(pdb)
+        os.remove(temporary_file_name)
+    return pdb_trajectory
+
+def compute_order_parameters(openmm_awsem_pdb_file, pdb_trajectory_filename, order_parameters, platform_name='CPU', k_awsem=1.0, compute_mdtraj=False, rmsd_reference_structure=None, compute_total_energy=True, energy_columns=None): 
+    pdb_trajectory = read_trajectory_pdb_positions(pdb_trajectory_filename)
+    order_parameter_values = []
+    for i, order_parameter in enumerate(order_parameters):
+        order_parameter_values.append([])
+        oa = OpenMMAWSEMSystem(openmm_awsem_pdb_file, k_awsem=k_awsem)
+        platform = Platform.getPlatformByName(platform_name) # OpenCL, CUDA, CPU, or Reference
+        integrator = VerletIntegrator(2*femtoseconds)
+        oa.addForce(order_parameter)
+        simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
+        for pdb in pdb_trajectory:
+            simulation.context.setPositions(pdb.positions)
+            state = simulation.context.getState(getEnergy=True)
+            order_parameter_values[i].append(state.getPotentialEnergy().value_in_unit(kilojoule_per_mole))
+    if compute_mdtraj:
+        md_traj_order_parameters = compute_mdtraj_order_parmeters(pdb_trajectory_filename, rmsd_reference_structure=rmsd_reference_structure)
+        for key, value in md_traj_order_parameters.items():
+            if len(value.flatten()) == len(pdb_trajectory):
+                order_parameter_values.append(value)
+    if compute_total_energy:
+        order_parameter_values.append([])
+        for i in range(len(pdb_trajectory)):
+            order_parameter_values[-1].append(np.sum([order_parameter_values[x-1][i] for x in energy_columns]))
+    if not compute_mdtraj:
+        return np.array(order_parameter_values)
+    else:
+        return np.array(order_parameter_values), md_traj_order_parameters
+
+def compute_mdtraj_order_parmeters(trajectory_file, rmsd_reference_structure=None):
+    # documentation: http://mdtraj.org/1.8.0/analysis.html#
+    trajectory = md.load(trajectory_file)
+
+    return_values = []
+    return_value_names = []
+
+    if not rmsd_reference_structure == None:
+        reference = md.load(rmsd_reference_structure)
+        rmsd = md.rmsd(trajectory, reference)
+        return_values.append(rmsd)
+        return_value_names.append("RMSD")
+
+    hydrogen_bonds = np.array([np.sum(x) for x in md.kabsch_sander(trajectory)])
+    return_values.append(hydrogen_bonds)
+    return_value_names.append("HBondEnergy")
+
+    ss = md.compute_dssp(trajectory)
+    shape = ss.shape
+    transdict = dict(zip(list(set(list(ss.flatten()))),range(len(list(set(list(ss.flatten())))))))
+    ss = np.array([transdict[x] for x in ss.flatten()]).reshape(shape).T
+    return_values.append(ss)
+    return_value_names.append("SecondaryStructure")
+
+    rg = md.compute_rg(trajectory)
+    return_values.append(rg)
+    return_value_names.append("Rg")
+
+    distances, residue_pairs = md.compute_contacts(trajectory, scheme='ca')
+    contacts = md.geometry.squareform(distances, residue_pairs)
+    return_values.append(contacts)
+    return_value_names.append("Contacts")
+
+    return dict(zip(return_value_names, return_values))
+
+def plot_free_energy(order_parameter_file, labels, bins=20, discard=.2, twodlimits=[[0,1],[0,1]]):
+    import matplotlib as mpl
+    import scipy.ndimage
+    mpl.rcParams['font.size'] = 24
+
+    if len(labels) > 2:
+        print("Too many labels to plot.")
+        return
+    order_parameters = np.loadtxt(order_parameter_file).T
+    data_labels = open(order_parameter_file).readlines()[0].split()[1:]
+    data = []
+    for label in labels:
+        raw_data = order_parameters[data_labels.index(label)]
+        data_after_discard = raw_data[int(len(raw_data)*discard):]
+        comparison_data_set_size = (1.0-discard)/2
+        data_set_1 = raw_data[int(len(raw_data)*discard):int(len(raw_data)*(discard+comparison_data_set_size))]
+        data_set_2 = raw_data[int(len(raw_data)*(discard+comparison_data_set_size)):]
+        data.append(data_after_discard)
+    if len(labels) == 1:
+        hist, bins = np.histogram(data[0], density=True, bins=bins)
+        hist /= np.sum(hist)
+        f = -np.log(hist)
+        bin_centers = (bins[:-1]+bins[1:])/2
+        hist, bins = np.histogram(data_set_1, density=True, bins=bins)
+        hist /= np.sum(hist)
+        f_1 = -np.log(hist)
+        bin_centers_1 = (bins[:-1]+bins[1:])/2
+        hist, bins = np.histogram(data_set_2, density=True, bins=bins)
+        hist /= np.sum(hist)
+        f_2 = -np.log(hist)
+        bin_centers_2 = (bins[:-1]+bins[1:])/2
+        plt.figure(figsize=(12,8))
+        plt.plot(bin_centers, f, label="All data")
+        plt.plot(bin_centers_1, f_1, label="Split data 1")
+        plt.plot(bin_centers_2, f_2, label="Split data 2")
+        plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        plt.title(labels[0])
+        plt.xlabel(labels[0])
+        plt.ylabel("Free Energy (kT)")
+    if len(labels) == 2:
+        H, xedges, yedges = np.histogram2d(data[0], data[1], bins=bins)
+        xcenters = (xedges[:-1] + xedges[1:])/2.0
+        ycenters = (yedges[:-1] + yedges[1:])/2.0
+        H /= np.sum(H)
+        H = -np.log(H)
+        H -= np.min(H)
+        
+        fig = plt.figure(figsize=(12, 10))
+        ax = fig.add_subplot(111)
+        ax.set_title("%s vs. %s" % (labels[0], labels[1]))
+        ax.set_xlim(twodlimits[0])
+        ax.set_ylim(twodlimits[1])
+        ax.set_xlabel(labels[0])
+        ax.set_ylabel(labels[1])
+        X, Y = np.meshgrid(xcenters, ycenters)
+        plt.contourf(X, Y, H, cmap=plt.cm.get_cmap('jet'))
+
+        plt.colorbar()
+        plt.tight_layout()
+        plt.show()
+    
+def compute_perturbed_energies(openmm_awsem_pdb_file, pdb_trajectory_filename, perturbations, order_parameter_values, platform_name='CPU', k_awsem=1.0, total_energy_column=15):
+    pdb_trajectory = read_trajectory_pdb_positions(pdb_trajectory_filename)
+    all_perturbed_energies = []
+    for i, perturbation in enumerate(perturbations):
+        # compute new energies
+        perturbed_energies = []
+        for j, energy_term in enumerate(perturbation):
+            perturbed_energies.append([])
+            oa = OpenMMAWSEMSystem(openmm_awsem_pdb_file, k_awsem=k_awsem)
+            platform = Platform.getPlatformByName(platform_name) # OpenCL, CUDA, CPU, or Reference
+            integrator = VerletIntegrator(2*femtoseconds)
+            oa.addForce(energy_term[1])
+            simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
+            for pdb in pdb_trajectory:
+                simulation.context.setPositions(pdb.positions)
+                state = simulation.context.getState(getEnergy=True)
+                perturbed_energies[j].append(state.getPotentialEnergy().value_in_unit(kilojoule_per_mole))
+        perturbed_energies = np.array(perturbed_energies)
+        total_perturbed_energies = np.sum(perturbed_energies, axis=0)
+        # compute new total energy by subtracting original value and adding new value
+        new_total_energy = np.array(order_parameter_values[:, total_energy_column-1])
+        for j, energy_term in enumerate(perturbation):
+            new_total_energy -= order_parameter_values[:, energy_term[0]-1]
+        new_total_energy += total_perturbed_energies
+        all_perturbed_energies.append(new_total_energy)
+    all_perturbed_energies = np.array(all_perturbed_energies)
+    return all_perturbed_energies.T
+
+def pick_structures(label, conditions_string, metadata_file, reference_structure, num_snapshots=6000, order_parameter_file_name="order_parameters.txt", pdb_trajectory_filename="output.pdb"):
+	# parse restrictions (including which file to pull columns from)
+	# read in data (including extra files if necessary)
+	# go through the data and filter out snapshots that do not satisfy the criteria
+	# select a subset of the structures that satisfy the constraints
+
+	def parse_conditions_string(conditions_string):
+		conditions = []
+		condition_signs = []
+		conditions_string = conditions_string.split()
+		for condition in conditions_string:
+			if "gt" in condition:
+				condition_signs.append("+")
+				condition = condition.split("gt")
+			if "lt" in condition:
+				condition_signs.append("-")
+				condition = condition.split("lt")
+			conditions.append(condition)
+		return conditions, condition_signs
+
+	def load_all_data(metadata_file, conditions):
+		data_files = list(np.loadtxt(metadata_file, dtype=str)[:,0])
+		num_files = len(data_files)
+		num_conditions = len(conditions)
+		# Load all data into array
+		data_array = np.zeros((num_files, num_conditions, num_snapshots))
+		for i, data_file in enumerate(data_files):
+			all_order_parameters = np.loadtxt(data_file)
+			for j, condition in enumerate(conditions):
+				data_array[i][j] = all_order_parameters[0:num_snapshots,int(condition[0])-1]
+
+		data_array = np.swapaxes(data_array,1,2)
+		return data_array
+
+	def write_selected_pdbs(pdb_files, snapshots_in_pdb_files):
+		structure_index = 1
+		selected_pdbs = open("%s.pdb" % label, 'w')
+		for pdb_file in pdb_files:
+			pdb_trajectory_contents = open(pdb_file).read().split("MODEL")[1:]
+			pdb_trajectory_contents = ['\n'.join(x.split('\n')[1:]) for x in pdb_trajectory_contents]
+			for snapshot in snapshots_in_pdb_files[pdb_files.index(pdb_file)]:
+				selected_pdbs.write("MODEL        %d\n" % structure_index)
+				selected_pdbs.write(pdb_trajectory_contents[snapshot])
+				structure_index += 1
+		selected_pdbs.close()
+
+	# Lists
+	files_array = list(np.loadtxt(metadata_file, dtype=str)[:,0])
+	conditions, condition_signs = parse_conditions_string(conditions_string)
+	data_array = load_all_data(metadata_file, conditions)
+
+	# File names and parameters
+	output_file_name = label + ".dat"
+
+	structure_index = 1
+
+	# loop over data and output those points that satisfy all conditions
+	output_file = open(output_file_name, "w")
+	pdb_files = []
+	snapshots_in_pdb_files = []
+
+	# loop over files
+	for i, data_file in enumerate(files_array):
+		# loop over snapshots
+		for j, snapshot in enumerate(data_array[i]):
+			bad_condition = False
+			# loop over conditions
+			for k, condition in enumerate(conditions):
+				condition_boundary = float(condition[1])
+				# If all conditions are satisfied, print out the data
+				if condition_signs[k] == "+":
+					if not data_array[i][j][k] > condition_boundary: bad_condition = True
+				elif condition_signs[k] == "-":
+					if not data_array[i][j][k] < condition_boundary: bad_condition = True
+				else:
+					print("Bad condition argument.")
+					sys.exit()
+			if not bad_condition:
+				output_file.write("%d %s %s\n" % (structure_index, data_file, j+1))
+				pdb_file = data_file.replace(order_parameter_file_name, pdb_trajectory_filename)
+				if not pdb_file in pdb_files:
+					pdb_files.append(pdb_file)
+					snapshots_in_pdb_files.append([])
+				snapshots_in_pdb_files[pdb_files.index(pdb_file)].append(j)
+				structure_index += 1
+	output_file.close()
+	write_selected_pdbs(pdb_files, snapshots_in_pdb_files)
+
+	pymol_script = open("%s.pml" % label, 'w')
+	pymol_script.write("load %s\n" % reference_structure)
+	pymol_script.write("load_traj %s.pdb\n" % label)
+	object_name = os.path.basename(reference_structure)[:-4]
+	pymol_script.write("intra_fit %s\n" % object_name)
+	pymol_script.write("smooth\n")
+	pymol_script.close()

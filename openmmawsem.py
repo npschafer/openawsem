@@ -24,8 +24,8 @@ se_map_1_letter = {'A': 0,  'P': 1,  'K': 2,  'N': 3,  'R': 4,
 
 def identify_terminal_residues(pdb_filename):
     # identify terminal residues
-    p = PDBParser()
-    structure = p.get_structure('X', pdb_filename)
+    parser = PDBParser()
+    structure = parser.get_structure('X', pdb_filename)
     terminal_residues = {}
     for model in structure:
         for chain in model:
@@ -123,8 +123,8 @@ def prepare_pdb(pdb_filename, chains_to_simulate):
     return input_pdb_filename, cleaned_pdb_filename
 
 def prepare_virtual_sites(pdb_file):
-    p = PDBParser(QUIET=True)
-    structure=p.get_structure('X',pdb_file,)
+    parser = PDBParser(QUIET=True)
+    structure=parser.get_structure('X',pdb_file,)
     for model in structure:
         for chain in model:
             r_im={}
@@ -248,8 +248,8 @@ class OpenMMAWSEMSystem:
     
     def read_reference_structure_for_q_calculation(self, pdb_file, chain_name, min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.8*nanometers):
         structure_interactions = []
-        p = PDBParser()
-        structure = p.get_structure('X', pdb_file)
+        parser = PDBParser()
+        structure = parser.get_structure('X', pdb_file)
         chain = structure[0][chain_name]
         residues = [x for x in chain]
         for i, residue_i in enumerate(residues):
@@ -442,8 +442,8 @@ class OpenMMAWSEMSystem:
             pdbl.retrieve_pdb_file(pdb_file.split('.')[0].lower(), pdir='.')
             os.rename("pdb%s.ent" % pdb_id, "%s.pdb" % pdb_id)
 
-        p = PDBParser()
-        structure = p.get_structure('X', pdb_file)
+        parser = PDBParser()
+        structure = parser.get_structure('X', pdb_file)
         chain = structure[0][chain_name]
         residues = [x for x in chain if x.get_full_id()[3][1] in range(fragment_start,fragment_start+length-1)]
         for i, residue_i in enumerate(residues):
@@ -584,8 +584,8 @@ class OpenMMAWSEMSystem:
 
     def read_amhgo_structure(self, pdb_file, chain_name, amhgo_min_seq_sep=4, amhgo_contact_threshold=0.8*nanometers, amhgo_well_width=0.1):
         structure_interactions = []
-        p = PDBParser()
-        structure = p.get_structure('X', pdb_file)
+        parser = PDBParser()
+        structure = parser.get_structure('X', pdb_file)
         chain = structure[0][chain_name]
         residues = [x for x in chain]
         for i, residue_i in enumerate(residues):

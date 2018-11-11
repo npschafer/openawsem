@@ -22,6 +22,12 @@ se_map_1_letter = {'A': 0,  'P': 1,  'K': 2,  'N': 3,  'R': 4,
                    'I': 10, 'H': 11, 'L': 12, 'C': 13, 'M': 14,
                    'S': 15, 'T': 16, 'Y': 17, 'V': 18, 'W': 19}
 
+
+gamma_se_map_1_letter = {   'A': 0,  'R': 1,  'N': 2,  'D': 3,  'C': 4,
+                            'Q': 5,  'E': 6,  'G': 7,  'H': 8,  'I': 9,
+                            'L': 10, 'K': 11, 'M': 12, 'F': 13, 'P': 14,
+                            'S': 15, 'T': 16, 'W': 17, 'Y': 18, 'V': 19}
+
 def identify_terminal_residues(pdb_filename):
     # identify terminal residues
     parser = PDBParser()
@@ -210,6 +216,24 @@ def setup_bonds(nres, n, h, ca, c, o, cb, res_type):
             bonds.append((n[i], c[i]))
     return bonds
 
+def read_fasta(fastaFile):
+    with open(fastaFile) as input_data:
+        data = ""
+        for line in input_data:
+            if(line[0] == ">"):
+                print(line)
+            elif(line == "\n"):
+                pass
+            else:
+                data += line.strip("\n")
+    return data
+
+def read_gamma(gammaFile):
+    data = np.loadtxt(gammaFile)
+    gamma_direct = data[:210]
+    gamma_mediated = data[210:]
+    return gamma_direct, gamma_mediated
+
 class OpenMMAWSEMSystem:
     def __init__(self, pdb_filename, xml_filename='awsem.xml', k_awsem=1.0):
         # read PDB
@@ -240,12 +264,12 @@ class OpenMMAWSEMSystem:
         self.k_awsem = k_awsem
         # keep track of force names for output purposes
         self.force_names = []
-    
+
     def addForces(self, forces):
         for i, (force) in enumerate(forces):
             self.addForce(force)
             force.setForceGroup(i+1)
-    
+
     def read_reference_structure_for_q_calculation(self, pdb_file, chain_name, min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.8*nanometers):
         structure_interactions = []
         parser = PDBParser()
@@ -285,7 +309,7 @@ class OpenMMAWSEMSystem:
                             if atom_j in ca_list:
                                 j_index = self.ca[j]
                             if atom_j in cb_list:
-                                j_index = self.cb[j]                 
+                                j_index = self.cb[j]
                             structure_interaction = [i_index, j_index, [gamma_ij, r_ijN, sigma_ij]]
                             structure_interactions.append(structure_interaction)
 
@@ -303,7 +327,7 @@ class OpenMMAWSEMSystem:
         for structure_interaction in structure_interactions:
             qvalue.addBond(*structure_interaction)
         return qvalue
-    
+
     def addForce(self, force):
         self.system.addForce(force)
 
@@ -372,6 +396,9 @@ class OpenMMAWSEMSystem:
         excl.addGlobalParameter("r0", r_excl)
         for i in range(self.natoms):
             excl.addParticle()
+        # print(self.ca)
+        # print(self.bonds)
+        # print(self.cb)
         excl.addInteractionGroup(self.ca, self.ca)
         excl.addInteractionGroup([x for x in self.cb if x > 0], [x for x in self.cb if x > 0])
         excl.addInteractionGroup(self.ca, [x for x in self.cb if x > 0])
@@ -434,13 +461,80 @@ class OpenMMAWSEMSystem:
                 rama.addBond([self.c[i-1], self.n[i], self.ca[i], self.c[i], self.n[i+1]])
         return rama
 
+    def direct_term(self, k_direct=4.184):
+        # system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds
+        # add direct contact
+        # Still need to add residue specific parameters
+        # print("hi")
+        # print(self.ca, self.cb)
+        # print(self.bonds)
+        # print(self.nres)  # print 181 for 2xov
+        # print(self.resi)  # print the rsidues index for each atom
+        cb = self.cb
+        # gamma = 1
+        r_min = .45
+        r_max = .65
+        eta = 50  # eta actually has unit of nm^-1.
+        eta_sigma = 7.0
+        rho0 = 2.6
+        contact_cutoff = 10  # means j-i > 9
+        nwell = 1
+        gamma_ijm = np.zeros((nwell, 20, 20))
+        # read in seq data.
+        seq = read_fasta("2xov.fasta")
+        # read in gamma info
+        gamma_direct, gamma_mediated = read_gamma("gamma.dat")
+
+        direct = CustomNonbondedForce(f"-k_direct*gamma_ijm(0, resName1, resName2)*theta; \
+        theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r))); \
+        eta={eta}")
+        # direct = CustomNonbondedForce(f"-k_direct*gamma_ijm(0, resName1, resName2);")
+        # direct = CustomNonbondedForce(f"-k_direct*gamma_ijm(0, resName1, resName2)*r;")
+        direct.addGlobalParameter("k_direct", k_direct)
+        direct.addGlobalParameter("rmin", r_min)
+        direct.addGlobalParameter("rmax", r_max)
+
+
+
+        # add per-particle parameters
+        direct.addPerParticleParameter("resName")
+
+        for i in range(self.natoms):
+            direct.addParticle([gamma_se_map_1_letter[seq[self.resi[i]]]])
+
+
+        for m in range(nwell):
+            count = 0
+            for i in range(20):
+                for j in range(i, 20):
+                    gamma_ijm[m][i][j] = gamma_direct[count][0]
+                    gamma_ijm[m][j][i] = gamma_direct[count][0]
+                    count += 1
+
+        direct.addTabulatedFunction("gamma_ijm", Discrete3DFunction(nwell, 20, 20, gamma_ijm.flatten()))
+
+
+        # direct.addInteractionGroup([x for x in cb if x > 0], [x for x in cb if x > 0])
+        # direct.addInteractionGroup([x if x > 0 else y for x,y in zip(cb,self.ca)], [x if x > 0 else y for x,y in zip(cb,self.ca)])
+        # direct.createExclusionsFromBonds(self.bonds, contact_cutoff)
+        # replace cb with ca for GLY
+        cb_fixed = [x if x > 0 else y for x,y in zip(cb,self.ca)]
+        # add interaction that are cutoff away
+        for i, x in enumerate(cb_fixed):
+            # print(i, x)
+            direct.addInteractionGroup([x], cb_fixed[i+contact_cutoff:])
+        # print(cb)
+
+        # system.addForce(direct)
+        return direct
+
     def read_memory(self, pdb_file, chain_name, target_start, fragment_start, length, weight, min_seq_sep, max_seq_sep, am_well_width=0.1):
         memory_interactions = []
 
-        if not os.path.isfile(pdb_file):
-            pdbl = PDBList()
-            pdbl.retrieve_pdb_file(pdb_file.split('.')[0].lower(), pdir='.')
-            os.rename("pdb%s.ent" % pdb_id, "%s.pdb" % pdb_id)
+        # if not os.path.isfile(pdb_file):
+        #     pdbl = PDBList()
+        #     pdbl.retrieve_pdb_file(pdb_file.split('.')[0].lower(), pdir='.')
+        #     os.rename("pdb%s.ent" % pdb_id, "%s.pdb" % pdb_id)
 
         parser = PDBParser()
         structure = parser.get_structure('X', pdb_file)
@@ -547,7 +641,7 @@ class OpenMMAWSEMSystem:
                         density_gamma_ij[i+j*self.natoms] = 1.0
                         density_gamma_ij[j+i*self.natoms] = 1.0
         am_dd.addTabulatedFunction("density_gamma_ij", Discrete2DFunction(self.natoms, self.natoms, density_gamma_ij))
-        
+
         gamma_ij = [0.0]*self.natoms*self.natoms*len(memories)
         sigma_ij = [0.1]*self.natoms*self.natoms*len(memories)
         r_ijm = [0.0]*self.natoms*self.natoms*len(memories)
@@ -559,8 +653,8 @@ class OpenMMAWSEMSystem:
                 gamma_ij[j+i*self.natoms+k*self.natoms*self.natoms] = gamma
                 sigma_ij[i+j*self.natoms+k*self.natoms*self.natoms] = sigma
                 sigma_ij[j+i*self.natoms+k*self.natoms*self.natoms] = sigma
-                r_ijm[i+j*self.natoms+k*self.natoms*self.natoms] = r         
-                r_ijm[j+i*self.natoms+k*self.natoms*self.natoms] = r         
+                r_ijm[i+j*self.natoms+k*self.natoms*self.natoms] = r
+                r_ijm[j+i*self.natoms+k*self.natoms*self.natoms] = r
         am_dd.addTabulatedFunction("gamma_ij", Discrete3DFunction(self.natoms, self.natoms, len(memories), gamma_ij))
         am_dd.addTabulatedFunction("sigma_ij", Discrete3DFunction(self.natoms, self.natoms, len(memories), sigma_ij))
         am_dd.addTabulatedFunction("r_ijm", Discrete3DFunction(self.natoms, self.natoms, len(memories), r_ijm))
@@ -578,7 +672,9 @@ class OpenMMAWSEMSystem:
             memory_interactions = self.read_memory(*memory, am_dd_min_seq_sep, am_dd_max_seq_sep, am_well_width=am_well_width)
             for memory_interaction in memory_interactions:
                 i, j, (w_m, gamma, r, sigma) = memory_interaction
-            am_dd.addEnergyTerm("-k_am_dd*(density_alpha*f*density_normalization*beta_ij+(1-density_alpha)*beta_ij);beta_ij=%f*gamma_ij(index1,index2,%d)*exp(-(r-r_ijm(index1,index2,%d))^2/(2*sigma_ij(index1,index2,%d)^2));f=%s" % (w_m, k, k, k, f_string), CustomGBForce.ParticlePair)
+            am_dd.addEnergyTerm("-k_am_dd*(density_alpha*f*density_normalization*beta_ij+(1-density_alpha)*beta_ij);\
+            beta_ij=%f*gamma_ij(index1,index2,%d)*exp(-(r-r_ijm(index1,index2,%d))^2/(2*sigma_ij(index1,index2,%d)^2));\
+            f=%s" % (w_m, k, k, k, f_string), CustomGBForce.ParticlePair)
 
         return am_dd
 
@@ -621,7 +717,7 @@ class OpenMMAWSEMSystem:
                             if atom_j in ca_list:
                                 j_index = self.ca[j]
                             if atom_j in cb_list:
-                                j_index = self.cb[j]                 
+                                j_index = self.cb[j]
                             structure_interaction = [i_index, j_index, [gamma_ij, r_ijN, sigma_ij]]
                             structure_interactions.append(structure_interaction)
         return structure_interactions
@@ -666,7 +762,7 @@ def read_trajectory_pdb_positions(pdb_trajectory_filename):
         os.remove(temporary_file_name)
     return pdb_trajectory
 
-def compute_order_parameters(openmm_awsem_pdb_file, pdb_trajectory_filename, order_parameters, platform_name='CPU', k_awsem=1.0, compute_mdtraj=False, rmsd_reference_structure=None, compute_total_energy=True, energy_columns=None): 
+def compute_order_parameters(openmm_awsem_pdb_file, pdb_trajectory_filename, order_parameters, platform_name='CPU', k_awsem=1.0, compute_mdtraj=False, rmsd_reference_structure=None, compute_total_energy=True, energy_columns=None):
     pdb_trajectory = read_trajectory_pdb_positions(pdb_trajectory_filename)
     order_parameter_values = []
     for i, order_parameter in enumerate(order_parameters):
@@ -775,7 +871,7 @@ def plot_free_energy(order_parameter_file, labels, bins=20, discard=.2, twodlimi
         H /= np.sum(H)
         H = -np.log(H)
         H -= np.min(H)
-        
+
         fig = plt.figure(figsize=(12, 10))
         ax = fig.add_subplot(111)
         ax.set_title("%s vs. %s" % (labels[0], labels[1]))
@@ -789,7 +885,7 @@ def plot_free_energy(order_parameter_file, labels, bins=20, discard=.2, twodlimi
         plt.colorbar()
         plt.tight_layout()
         plt.show()
-    
+
 def compute_perturbed_energies(openmm_awsem_pdb_file, pdb_trajectory_filename, perturbations, order_parameter_values, platform_name='CPU', k_awsem=1.0, total_energy_column=15):
     pdb_trajectory = read_trajectory_pdb_positions(pdb_trajectory_filename)
     all_perturbed_energies = []

@@ -477,7 +477,7 @@ class OpenMMAWSEMSystem:
         eta = 50  # eta actually has unit of nm^-1.
         eta_sigma = 7.0
         rho0 = 2.6
-        contact_cutoff = 10  # means j-i > 9
+        min_sequence_separation = 10  # means j-i > 9
         nwell = 1
         gamma_ijm = np.zeros((nwell, 20, 20))
         # read in seq data.
@@ -523,7 +523,7 @@ class OpenMMAWSEMSystem:
         # add interaction that are cutoff away
         for i, x in enumerate(cb_fixed):
             # print(i, x)
-            direct.addInteractionGroup([x], cb_fixed[i+contact_cutoff:])
+            direct.addInteractionGroup([x], cb_fixed[i+min_sequence_separation:])
         # print(cb)
 
         # system.addForce(direct)
@@ -538,7 +538,6 @@ class OpenMMAWSEMSystem:
         eta = 50  # eta actually has unit of nm^-1.
         r_min = .45
         r_max = .65
-        contact_cutoff = 1
         burial_gamma = np.loadtxt("burial_gamma.dat")
 
 
@@ -558,7 +557,7 @@ class OpenMMAWSEMSystem:
         burial.addGlobalParameter("rmin", r_min)
         burial.addGlobalParameter("rmax", r_max)
         index = burial.addComputedValue("rho", "step(abs(resId1-resId2)-2)*0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))", CustomGBForce.ParticlePair)
-        print(burial.getComputedValueParameters(index))
+        # print(burial.getComputedValueParameters(index))
 
         # replace cb with ca for GLY
         cb_fixed = [x if x > 0 else y for x,y in zip(self.cb,self.ca)]
@@ -590,7 +589,7 @@ class OpenMMAWSEMSystem:
         return burial
 
 
-    def mediated_term(self, k_direct=4.184):
+    def mediated_term(self, k_mediated=4.184):
         # system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds
         # add direct contact
         # Still need to add residue specific parameters
@@ -599,14 +598,15 @@ class OpenMMAWSEMSystem:
         # print(self.bonds)
         # print(self.nres)  # print 181 for 2xov
         # print(self.resi)  # print the rsidues index for each atom
-        cb = self.cb
         # gamma = 1
         r_min = .45
         r_max = .65
+        r_minII = .65
+        r_maxII = .95
         eta = 50  # eta actually has unit of nm^-1.
         eta_sigma = 7.0
-        rho0 = 2.6
-        contact_cutoff = 10  # means j-i > 9
+        rho_0 = 2.6
+        min_sequence_separation = 10  # means j-i > 9
         nwell = 1
         water_gamma_ijm = np.zeros((nwell, 20, 20))
         protein_gamma_ijm = np.zeros((nwell, 20, 20))
@@ -619,28 +619,16 @@ class OpenMMAWSEMSystem:
         # densityGamma=sigmawater_gamma_ijm(0, resName1, resName2); \
         # theta2=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r))); \
         # eta={eta}")
-        mediated = CustomNonbondedForce(f"rho;")
+        # mediated = CustomNonbondedForce(f"rho;")
 
-        mediated.addGlobalParameter("k_direct", k_direct)
-        mediated.addGlobalParameter("rmin", r_min)
-        mediated.addGlobalParameter("rmax", r_max)
-
-
-
-        # add per-particle parameters
-        mediated.addPerParticleParameter("resName")
-        mediated.addComputedValue("rho", "0.25*(1+tanh(eta_direct*(r-r_density_min)))*(1+tanh(eta_direct*(r_density_max-r)))", CustomGBForce.ParticlePair)
-
-        for i in range(self.natoms):
-            mediated.addParticle([gamma_se_map_1_letter[seq[self.resi[i]]]])
-
+        mediated = CustomGBForce()
 
         for m in range(nwell):
             count = 0
             for i in range(20):
                 for j in range(i, 20):
-                    water_gamma_ijm[m][i][j] = gamma_mediated[count][0]
-                    water_gamma_ijm[m][j][i] = gamma_mediated[count][0]
+                    water_gamma_ijm[m][i][j] = gamma_mediated[count][1]
+                    water_gamma_ijm[m][j][i] = gamma_mediated[count][1]
                     count += 1
 
         for m in range(nwell):
@@ -651,21 +639,51 @@ class OpenMMAWSEMSystem:
                     protein_gamma_ijm[m][j][i] = gamma_mediated[count][0]
                     count += 1
         mediated.addTabulatedFunction("water_gamma_ijm", Discrete3DFunction(nwell, 20, 20, water_gamma_ijm.flatten()))
+        mediated.addTabulatedFunction("protein_gamma_ijm", Discrete3DFunction(nwell, 20, 20, protein_gamma_ijm.flatten()))
 
 
-        # direct.addInteractionGroup([x for x in cb if x > 0], [x for x in cb if x > 0])
-        # direct.addInteractionGroup([x if x > 0 else y for x,y in zip(cb,self.ca)], [x if x > 0 else y for x,y in zip(cb,self.ca)])
-        # direct.createExclusionsFromBonds(self.bonds, 11)
+        mediated.addPerParticleParameter("resName")
+        mediated.addPerParticleParameter("resId")
+        mediated.addPerParticleParameter("isCb")
+        mediated.addGlobalParameter("k_mediated", k_mediated)
+        mediated.addGlobalParameter("eta", eta)
+        mediated.addGlobalParameter("eta_sigma", eta_sigma)
+        mediated.addGlobalParameter("rho_0", rho_0)
+        mediated.addGlobalParameter("min_sequence_separation", min_sequence_separation)
+        mediated.addGlobalParameter("rmin", r_min)
+        mediated.addGlobalParameter("rmax", r_max)
+        mediated.addGlobalParameter("rminII", r_minII)
+        mediated.addGlobalParameter("rmaxII", r_maxII)
+
+        mediated.addComputedValue("rho", "step(abs(resId1-resId2)-2)*0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))", CustomGBForce.ParticlePair)
+        # print(burial.getComputedValueParameters(index))
+
         # replace cb with ca for GLY
-        cb_fixed = [x if x > 0 else y for x,y in zip(cb,self.ca)]
-        # add interaction that are cutoff away
-        for i, x in enumerate(cb_fixed):
-            # print(i, x)
-            mediated.addInteractionGroup([x], cb_fixed[i+contact_cutoff:])
-        # print(cb)
+        cb_fixed = [x if x > 0 else y for x,y in zip(self.cb,self.ca)]
+        none_cb_fixed = [i for i in range(self.natoms) if i not in cb_fixed]
+        for i in range(self.natoms):
+            mediated.addParticle([gamma_se_map_1_letter[seq[self.resi[i]]], self.resi[i], int(i in cb_fixed)])
 
-        # system.addForce(direct)
+        mediated.addEnergyTerm("-step(abs(resId1-resId2)-min_sequence_separation)*k_mediated*thetaII*\
+                                (sigma_water*water_gamma_ijm(0, resName1, resName2)+\
+                                sigma_protein*protein_gamma_ijm(0, resName1, resName2));\
+                                sigma_protein=1-sigma_water;\
+                                thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
+                                sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
+                                CustomGBForce.ParticlePair)
+
+        # print(len(none_cb_fixed), len(cb_fixed))
+        for e1 in none_cb_fixed:
+            for e2 in none_cb_fixed:
+                if e1 > e2:
+                    continue
+                mediated.addExclusion(e1, e2)
+        for e1 in none_cb_fixed:
+            for e2 in cb_fixed:
+                mediated.addExclusion(e1, e2)
+
         return mediated
+
 
     def read_memory(self, pdb_file, chain_name, target_start, fragment_start, length, weight, min_seq_sep, max_seq_sep, am_well_width=0.1):
         memory_interactions = []

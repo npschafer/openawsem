@@ -11,7 +11,7 @@ from Bio.PDB import PDBIO
 from itertools import product, combinations
 import numpy as np
 import matplotlib.pyplot as plt
-
+import pandas as pd
 se_map_3_letter = {'ALA': 0,  'PRO': 1,  'LYS': 2,  'ASN': 3,  'ARG': 4,
                    'PHE': 5,  'ASP': 6,  'GLN': 7,  'GLU': 8,  'GLY': 9,
                    'ILE': 10, 'HIS': 11, 'LEU': 12, 'CYS': 13, 'MET': 14,
@@ -684,6 +684,134 @@ class OpenMMAWSEMSystem:
 
         return mediated
 
+
+
+    def fragment_memory_term(self, k_fm=0.04184, frag_location_pre="../_local/quick_run_nov06/",
+                        min_seq_sep=3, max_seq_sep=9, fm_well_width=0.1):
+        # 0.8368 = 0.01 * 4.184 # in kJ/mol, converted from default value in LAMMPS AWSEM
+        k_fm *= self.k_awsem
+        frag_table_rmin = 0
+        frag_table_rmax = 5 # in nm
+        frag_table_dr = 0.01
+        r_array = np.arange(frag_table_rmin, frag_table_rmax, frag_table_dr)
+        number_of_atoms = self.natoms
+        r_table_size = int((frag_table_rmax - frag_table_rmin)/frag_table_dr)  # 500 here.
+        frag_table = np.zeros((number_of_atoms, 6*max_seq_sep, r_table_size))
+        data_dic = {}
+        for i in range(self.natoms):
+            if i in self.ca:
+                res_id = self.resi[i]    # self.resi start with 0, but pdb residue id start with 1
+                data_dic[("CA", 1+int(res_id))] = i
+            if i in self.cb:
+                res_id = self.resi[i]
+                data_dic[("CB", 1+int(res_id))] = i
+        # print(self.res_type)
+        # print(self.resi)
+        # print(data_dic)
+        frag_file_list_file = frag_location_pre + "frags.mem"
+        frag_table_file = frag_location_pre + "frag_table.npy"
+
+        if os.path.isfile(frag_table_file):
+            print(f"Reading Fragment table. from {frag_table_file}.")
+            frag_table, interaction_list = np.load(frag_table_file)
+            frag_file_list = []
+        else:
+            frag_file_list = pd.read_table(frag_file_list_file, skiprows=4, sep="\s+", names=["location", "target_start", "fragment_start", "frag_len", "weight"])
+            interaction_list = set()
+        for frag_index in range(len(frag_file_list)):
+            location = frag_file_list["location"].iloc[frag_index]
+            frag_name = frag_location_pre + location
+            frag_len = frag_file_list["frag_len"].iloc[frag_index]
+            weight = frag_file_list["weight"].iloc[frag_index]
+            target_start = frag_file_list["target_start"].iloc[frag_index] # residue id
+            fragment_start = frag_file_list["fragment_start"].iloc[frag_index] # residue id
+            frag = pd.read_table(frag_name, skiprows=2, sep="\s+", header=None, names=["Res_id", "Res", "Type", "i", "x", "y", "z"])
+            frag = frag.query(f"Res_id >= {fragment_start} and Res_id < {fragment_start+frag_len} and (Type == 'CA' or Type == 'CB')")
+            w_m = weight
+            gamma_ij = 1
+            f = frag.values
+            for i in range(len(frag)):
+                for j in range(i, len(frag)):
+                    res_id_i = frag["Res_id"].iloc[i]
+                    res_id_j = frag["Res_id"].iloc[j]
+                    target_res_id_i = frag["Res_id"].iloc[i] - fragment_start + target_start
+                    target_res_id_j = frag["Res_id"].iloc[j] - fragment_start + target_start
+                    seq_sep = res_id_j - res_id_i
+                    if seq_sep >= max_seq_sep:
+                        continue
+                    if seq_sep < min_seq_sep:
+                        continue
+                    try:
+                        i_type = frag["Type"].iloc[i]
+                        j_type = frag["Type"].iloc[j]
+                        correspond_target_i = data_dic[(i_type, int(target_res_id_i))]
+                        correspond_target_j = data_dic[(j_type, int(target_res_id_j))]
+                        correspond_target_i = int(correspond_target_i)
+                        correspond_target_j = int(correspond_target_j)
+                    except Exception as e:
+                        continue
+
+                    fi_x = f[i][4]
+                    fi_y = f[i][5]
+                    fi_z = f[i][6]
+
+                    fj_x = f[j][4]
+                    fj_y = f[j][5]
+                    fj_z = f[j][6]
+                    # print("----", fi_x, fi_y, fi_z, fj_x, fj_y, fj_z)
+                    sigma_ij = fm_well_width*seq_sep**0.15
+                    rm = ((fi_x-fj_x)**2 + (fi_y-fj_y)**2 + (fi_z-fj_z)**2)**0.5
+
+                    i_j_sep = int(correspond_target_j - correspond_target_i)
+
+                    frag_table[correspond_target_i][i_j_sep] += w_m*gamma_ij*np.exp((r_array-rm)**2/(-2.0*sigma_ij**2))
+                    interaction_list.add((correspond_target_i, correspond_target_j))
+        if not os.path.isfile(frag_table_file):
+            print("Saving fragment table as npy file to speed up future calculation.")
+            np.save(frag_table_file, (frag_table, interaction_list))
+
+        # fm = CustomNonbondedForce(f"-k_fm*((v2-v1)*r+v1*r_2-v2*r_1)/(r_2-r_1); \
+        #                             v1=frag_table(index_smaller, sep, r_index_1);\
+        #                             v2=frag_table(index_smaller, sep, r_index_2);\
+        #                             index_smaller=min(index1,index2);\
+        #                             sep=abs(index1-index2);\
+        #                             r_1=frag_table_rmin+frag_table_dr*r_index_1;\
+        #                             r_2=frag_table_rmin+frag_table_dr*r_index_2;\
+        #                             r_index_2=r_index_1+1;\
+        #                             r_index_1=floor(r/frag_table_dr);")
+        # for i in range(self.natoms):
+        #     fm.addParticle([i])
+
+        # # add interaction that are cutoff away
+        # # print(sorted(interaction_list))
+        # for (i, j) in interaction_list:
+        #     fm.addInteractionGroup([i], [j])
+        # # add per-particle parameters
+        # fm.addPerParticleParameter("index")
+
+        fm = CustomCompoundBondForce(2, "-k_fm*((v2-v1)*r+v1*r_2-v2*r_1)/(r_2-r_1); \
+                                    v1=frag_table(index_smaller, sep, r_index_1);\
+                                    v2=frag_table(index_smaller, sep, r_index_2);\
+                                    index_smaller=min(index1,index2);\
+                                    sep=abs(index1-index2);\
+                                    r_1=frag_table_rmin+frag_table_dr*r_index_1;\
+                                    r_2=frag_table_rmin+frag_table_dr*r_index_2;\
+                                    r_index_2=r_index_1+1;\
+                                    r_index_1=floor(r/frag_table_dr);\
+                                    r=distance(p1, p2);")
+        for (i, j) in interaction_list:
+            fm.addBond([i, j], [i, j])
+
+        fm.addPerBondParameter("index1")
+        fm.addPerBondParameter("index2")
+
+        fm.addTabulatedFunction("frag_table",
+                Discrete3DFunction(number_of_atoms, 6*max_seq_sep, r_table_size, frag_table.T.flatten()))
+        fm.addGlobalParameter("k_fm", k_fm)
+        fm.addGlobalParameter("frag_table_dr", frag_table_dr)
+        fm.addGlobalParameter("frag_table_rmin", frag_table_rmin)
+
+        return fm
 
     def read_memory(self, pdb_file, chain_name, target_start, fragment_start, length, weight, min_seq_sep, max_seq_sep, am_well_width=0.1):
         memory_interactions = []

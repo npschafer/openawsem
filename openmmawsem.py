@@ -181,6 +181,59 @@ def build_lists_of_atoms(nres, residues):
 
     return atom_lists, res_types
 
+def build_lists_of_atoms_2(nres, residues, atoms):
+    res_id = 0
+    n = h = ca = c = o = cb = -1
+    atom_types=['n', 'h', 'ca', 'c', 'o', 'cb']
+    atom_types_table = {'N':'n', 'H':'h', 'CA':'ca', 'C':'c', 'O':'o', 'CB':'cb'}
+    res_types=[]
+    for residue in residues:
+        res_types.append(residue.name)
+
+    atom_lists=dict(zip(atom_types,[[-1]*nres for i in range(len(atom_types))]))
+    for atom in atoms:
+        atom_lists[atom_types_table[atom.name]][atom.residue.index] = atom.index
+
+    return atom_lists, res_types
+
+
+def ensure_atom_order(input_pdb_filename):
+    # ensure order of ['n', 'h', 'ca', 'c', 'o', 'cb']
+    # to be more specific, this ensure 'ca' always show up before 'c'.
+    def first(t):
+        return t[0]
+    order_table = {'N':0, 'H':1, 'CA':2, 'C':3, 'O':4, 'CB':5}
+    one_residue = []
+    with open("tmp.pdb", "w") as out:
+        with open(input_pdb_filename, "r") as f:
+            all_lines = f.readlines()
+            pre_res_id = all_lines[0].split()[5]
+            for line in all_lines:
+                info = line.split()
+                if info[0]!="ATOM":
+                    sorted_residue = sorted(one_residue, key=first)
+                    for a in sorted_residue:
+                        out.write(a[1])
+                    one_residue = []
+                    out.write(line)
+                    continue
+                res_id = info[5]
+                if res_id != pre_res_id:
+                    pre_res_id = res_id
+                    # sort them in order
+                    sorted_residue = sorted(one_residue, key=first)
+                    for a in sorted_residue:
+                        out.write(a[1])
+                    if sorted_residue != one_residue:
+                        print("Reorder atom position")
+                        print("Original, Changed to")
+                        for i, t in zip(one_residue, sorted_residue):
+                            print(i[2], i[3], ", ", t[2], t[3])
+                    one_residue = []
+                atomType = info[2]
+                one_residue.append((order_table[atomType], line, info[1], atomType))
+    os.system(f"mv tmp.pdb {input_pdb_filename}")
+
 def setup_virtual_sites(nres, system, n, h, ca, c, o, cb, res_type):
     # set virtual sites
     for i in range(nres):
@@ -195,6 +248,7 @@ def setup_virtual_sites(nres, system, n, h, ca, c, o, cb, res_type):
         if  i+1 < nres:
             c_virtual_site = ThreeParticleAverageSite(ca[i], ca[i+1], o[i],
                                                       0.44365, 0.23520, 0.32115)
+            # print("Virtual", c[i])
             system.setVirtualSite(c[i], c_virtual_site)
 
 def setup_bonds(nres, n, h, ca, c, o, cb, res_type):
@@ -234,6 +288,28 @@ def read_gamma(gammaFile):
     gamma_mediated = data[210:]
     return gamma_direct, gamma_mediated
 
+
+def getSeqFromCleanPdb(input_pdb_filename, chains='A'):
+    cleaned_pdb_filename = input_pdb_filename.replace("openmmawsem", "cleaned")
+    pdb = input_pdb_filename.replace("-openmmawsem.pdb", "")
+    fastaFile = pdb + ".fasta"
+    ThreeToOne = {'ALA':'A','ARG':'R','ASN':'N','ASP':'D','CYS':'C','GLU':'E','GLN':'Q','GLY':'G','HIS':'H',
+           'ILE':'I','LEU':'L','LYS':'K','MET':'M','PHE':'F','PRO':'P','SER':'S','THR':'T','TRP':'W',
+           'TYR':'Y','VAL':'V'}
+    a = pd.read_table(cleaned_pdb_filename, skiprows=2, sep="\s+", names=["ATOM", "i", "Type", "Res", "Chain", "ResId", "x", "y", "z", "_", "_1", "_2"]).dropna()
+
+    # save chain seq to pdb.fasta
+    import textwrap
+    with open(fastaFile, "w") as out:
+        for chain in chains:
+            out.write(f">{pdb.upper()}:{chain.upper()}|PDBID|CHAIN|SEQUENCE\n")
+            threeLetterSeq = a.query(f"Chain == '{chain}' and Type == 'CA'")["Res"]
+            chain_seq = "".join([ThreeToOne[i] for i in threeLetterSeq])
+            out.write("\n".join(textwrap.wrap(chain_seq, width=80))+"\n")
+    threeLetterSeq = a.query("Type == 'CA'")["Res"]
+    seq = "".join([ThreeToOne[i] for i in threeLetterSeq])
+    return seq
+
 class OpenMMAWSEMSystem:
     def __init__(self, pdb_filename, xml_filename='awsem.xml', k_awsem=1.0):
         # read PDB
@@ -246,8 +322,9 @@ class OpenMMAWSEMSystem:
         self.residues = list(self.pdb.topology.residues())
         self.resi = [x.residue.index for x in list(self.pdb.topology.atoms())]
         # build lists of atoms and residue types
-        self.atom_lists,self.res_type=build_lists_of_atoms(self.nres, self.residues)
-        #print(str(self.atom_lists))
+        # self.atom_lists,self.res_type=build_lists_of_atoms(self.nres, self.residues)
+        self.atom_lists,self.res_type=build_lists_of_atoms_2(self.nres, self.residues, self.pdb.topology.atoms())
+        # print(self.atom_lists,self.res_type)
         self.n =self.atom_lists['n']
         self.h =self.atom_lists['h']
         self.ca=self.atom_lists['ca']
@@ -264,6 +341,8 @@ class OpenMMAWSEMSystem:
         self.k_awsem = k_awsem
         # keep track of force names for output purposes
         self.force_names = []
+        # save seq info
+        self.seq = getSeqFromCleanPdb(pdb_filename)
 
     def addForces(self, forces):
         for i, (force) in enumerate(forces):
@@ -341,7 +420,7 @@ class OpenMMAWSEMSystem:
             con.addBond(self.ca[i], self.o[i], bond_lengths[1], k_con)
             if not self.res_type[i] == "IGL":
                 con.addBond(self.ca[i], self.cb[i], bond_lengths[3], k_con)
-            if  i+1 < self.nres:
+            if i+1 < self.nres:
                 con.addBond(self.ca[i], self.ca[i+1], bond_lengths[0], k_con)
                 con.addBond(self.o[i], self.ca[i+1], bond_lengths[2], k_con)
         return con
@@ -462,10 +541,7 @@ class OpenMMAWSEMSystem:
         return rama
 
     def direct_term(self, k_direct=4.184):
-        # system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds
-        # add direct contact
-        # Still need to add residue specific parameters
-        # print("hi")
+        k_direct *= self.k_awsem
         # print(self.ca, self.cb)
         # print(self.bonds)
         # print(self.nres)  # print 181 for 2xov
@@ -481,7 +557,7 @@ class OpenMMAWSEMSystem:
         nwell = 1
         gamma_ijm = np.zeros((nwell, 20, 20))
         # read in seq data.
-        seq = read_fasta("2xov.fasta")
+        seq = self.seq
         # read in gamma info
         gamma_direct, gamma_mediated = read_gamma("gamma.dat")
 
@@ -530,16 +606,16 @@ class OpenMMAWSEMSystem:
         return direct
 
 
-    def burial_term(self, k_burial=4.184):
+    def burial_term(self, k_burial=4.184, fastaFile="FastaFileMissing"):
+        k_burial *= self.k_awsem
         burial_kappa = 4.0
         burial_ro_min = [0.0, 3.0, 6.0]
         burial_ro_max = [3.0, 6.0, 9.0]
-        seq = read_fasta("2xov.fasta")
+        seq = self.seq
         eta = 50  # eta actually has unit of nm^-1.
         r_min = .45
         r_max = .65
         burial_gamma = np.loadtxt("burial_gamma.dat")
-
 
         # return burial
         # if ( lc->chain_no[i]!=lc->chain_no[j] || abs(lc->res_no[j] - lc->res_no[i])>1 )
@@ -590,6 +666,7 @@ class OpenMMAWSEMSystem:
 
 
     def mediated_term(self, k_mediated=4.184):
+        k_mediated *= self.k_awsem
         # system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds
         # add direct contact
         # Still need to add residue specific parameters
@@ -611,7 +688,7 @@ class OpenMMAWSEMSystem:
         water_gamma_ijm = np.zeros((nwell, 20, 20))
         protein_gamma_ijm = np.zeros((nwell, 20, 20))
         # read in seq data.
-        seq = read_fasta("2xov.fasta")
+        seq = self.seq
         # read in gamma info
         gamma_direct, gamma_mediated = read_gamma("gamma.dat")
 

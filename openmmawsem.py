@@ -537,7 +537,7 @@ class OpenMMAWSEMSystem:
             rama.addGlobalParameter(f"phi0{i}", phi_i[i])
             rama.addGlobalParameter(f"psi0{i}", psi_i[i])
         for i in range(self.nres):
-            if not i == 0 and not i+1 == self.nres and not self.res_type[i] == "IGL" and not self.res_type == "IPR":
+            if not i == 0 and not i+1 == self.nres and not self.res_type[i] == "IGL" and not self.res_type[i] == "IPR":
                 rama.addBond([self.c[i-1], self.n[i], self.ca[i], self.c[i], self.n[i+1]])
         rama.setForceGroup(15)
         return rama
@@ -547,24 +547,24 @@ class OpenMMAWSEMSystem:
         # 8.368 = 2 * 4.184 kJ/mol, converted from default value in LAMMPS AWSEM
         # multiply interaction strength by overall scaling
         k_rama_proline *= self.k_awsem
-        rama_function = ''.join(["w%d*exp(-sigma%d*(omega_phi%d*phi_term%d^2+omega_psi%d*psi_term%d^2))+" \
+        rama_function = ''.join(["w_P%d*exp(-sigma_P%d*(omega_phi_P%d*phi_term%d^2+omega_psi_P%d*psi_term%d^2))+" \
                                 % (i, i, i, i, i, i) for i in range(num_rama_proline_wells)])[:-1]
         rama_function = '-k_rama_proline*(' + rama_function + ");"
-        rama_parameters = ''.join([f"phi_term{i}=cos(phi_{i}-phi0{i})-1; phi_{i}=dihedral(p1, p2, p3, p4);\
-                                psi_term{i}=cos(psi_{i}-psi0{i})-1; psi_{i}=dihedral(p2, p3, p4, p5);"\
+        rama_parameters = ''.join([f"phi_term{i}=cos(phi_{i}-phi0_P{i})-1; phi_{i}=dihedral(p1, p2, p3, p4);\
+                                psi_term{i}=cos(psi_{i}-psi0_P{i})-1; psi_{i}=dihedral(p2, p3, p4, p5);"\
                                 for i in range(num_rama_proline_wells)])
         rama_string = rama_function+rama_parameters
         rama = CustomCompoundBondForce(5, rama_string)
         for i in range(num_rama_proline_wells):
             rama.addGlobalParameter(f"k_rama_proline", k_rama_proline)
-            rama.addGlobalParameter(f"w{i}", w[i])
-            rama.addGlobalParameter(f"sigma{i}", sigma[i])
-            rama.addGlobalParameter(f"omega_phi{i}", omega_phi[i])
-            rama.addGlobalParameter(f"omega_psi{i}", omega_psi[i])
-            rama.addGlobalParameter(f"phi0{i}", phi_i[i])
-            rama.addGlobalParameter(f"psi0{i}", psi_i[i])
+            rama.addGlobalParameter(f"w_P{i}", w[i])
+            rama.addGlobalParameter(f"sigma_P{i}", sigma[i])
+            rama.addGlobalParameter(f"omega_phi_P{i}", omega_phi[i])
+            rama.addGlobalParameter(f"omega_psi_P{i}", omega_psi[i])
+            rama.addGlobalParameter(f"phi0_P{i}", phi_i[i])
+            rama.addGlobalParameter(f"psi0_P{i}", psi_i[i])
         for i in range(self.nres):
-            if not i == 0 and self.res_type[i] == "IPR":
+            if not i == 0 and not i+1 == self.nres and self.res_type[i] == "IPR":
                 rama.addBond([self.c[i-1], self.n[i], self.ca[i], self.c[i], self.n[i+1]])
         rama.setForceGroup(15)
         return rama

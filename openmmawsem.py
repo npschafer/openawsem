@@ -612,8 +612,6 @@ class OpenMMAWSEMSystem:
         r_min = .45
         r_max = .65
         eta = 50  # eta actually has unit of nm^-1.
-        eta_sigma = 7.0
-        rho0 = 2.6
         min_sequence_separation = 10  # means j-i > 9
         nwell = 1
         gamma_ijm = np.zeros((nwell, 20, 20))
@@ -824,6 +822,121 @@ class OpenMMAWSEMSystem:
         mediated.setForceGroup(18)
         return mediated
 
+
+    def contact_term(self, k_contact=4.184):
+        k_contact *= self.k_awsem
+        # combine direct, burial, mediated.
+
+        r_min = .45
+        r_max = .65
+        r_minII = .65
+        r_maxII = .95
+        eta = 50  # eta actually has unit of nm^-1.
+        eta_sigma = 7.0
+        rho_0 = 2.6
+        min_sequence_separation = 10  # means j-i > 9
+        nwell = 1
+        gamma_ijm = np.zeros((nwell, 20, 20))
+        water_gamma_ijm = np.zeros((nwell, 20, 20))
+        protein_gamma_ijm = np.zeros((nwell, 20, 20))
+        # read in seq data.
+        seq = self.seq
+        # read in gamma info
+        gamma_direct, gamma_mediated = read_gamma("gamma.dat")
+
+        burial_kappa = 4.0
+        burial_ro_min = [0.0, 3.0, 6.0]
+        burial_ro_max = [3.0, 6.0, 9.0]
+        burial_gamma = np.loadtxt("burial_gamma.dat")
+
+
+        contact = CustomGBForce()
+
+        for m in range(nwell):
+            count = 0
+            for i in range(20):
+                for j in range(i, 20):
+                    gamma_ijm[m][i][j] = gamma_direct[count][0]
+                    gamma_ijm[m][j][i] = gamma_direct[count][0]
+                    count += 1
+
+        for m in range(nwell):
+            count = 0
+            for i in range(20):
+                for j in range(i, 20):
+                    water_gamma_ijm[m][i][j] = gamma_mediated[count][1]
+                    water_gamma_ijm[m][j][i] = gamma_mediated[count][1]
+                    count += 1
+
+        for m in range(nwell):
+            count = 0
+            for i in range(20):
+                for j in range(i, 20):
+                    protein_gamma_ijm[m][i][j] = gamma_mediated[count][0]
+                    protein_gamma_ijm[m][j][i] = gamma_mediated[count][0]
+                    count += 1
+        contact.addTabulatedFunction("gamma_ijm", Discrete3DFunction(nwell, 20, 20, gamma_ijm.flatten()))
+        contact.addTabulatedFunction("water_gamma_ijm", Discrete3DFunction(nwell, 20, 20, water_gamma_ijm.flatten()))
+        contact.addTabulatedFunction("protein_gamma_ijm", Discrete3DFunction(nwell, 20, 20, protein_gamma_ijm.flatten()))
+
+        contact.addTabulatedFunction("burial_gamma_ij", Discrete2DFunction(20, 3, burial_gamma.T.flatten()))
+
+        contact.addPerParticleParameter("resName")
+        contact.addPerParticleParameter("resId")
+        contact.addPerParticleParameter("isCb")
+        contact.addGlobalParameter("k_contact", k_contact)
+        contact.addGlobalParameter("eta", eta)
+        contact.addGlobalParameter("eta_sigma", eta_sigma)
+        contact.addGlobalParameter("rho_0", rho_0)
+        contact.addGlobalParameter("min_sequence_separation", min_sequence_separation)
+        contact.addGlobalParameter("rmin", r_min)
+        contact.addGlobalParameter("rmax", r_max)
+        contact.addGlobalParameter("rminII", r_minII)
+        contact.addGlobalParameter("rmaxII", r_maxII)
+        contact.addGlobalParameter("burial_kappa", burial_kappa)
+
+        contact.addComputedValue("rho", "step(abs(resId1-resId2)-2)*0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))", CustomGBForce.ParticlePair)
+        # print(burial.getComputedValueParameters(index))
+
+        # replace cb with ca for GLY
+        cb_fixed = [x if x > 0 else y for x,y in zip(self.cb,self.ca)]
+        none_cb_fixed = [i for i in range(self.natoms) if i not in cb_fixed]
+        for i in range(self.natoms):
+            contact.addParticle([gamma_se_map_1_letter[seq[self.resi[i]]], self.resi[i], int(i in cb_fixed)])
+        # mediated term
+        contact.addEnergyTerm("-step(abs(resId1-resId2)-min_sequence_separation)*k_contact*thetaII*\
+                                (sigma_water*water_gamma_ijm(0, resName1, resName2)+\
+                                sigma_protein*protein_gamma_ijm(0, resName1, resName2));\
+                                sigma_protein=1-sigma_water;\
+                                thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
+                                sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
+                                CustomGBForce.ParticlePair)
+        # direct term
+        contact.addEnergyTerm("-step(abs(resId1-resId2)-min_sequence_separation)*k_contact*\
+                                gamma_ijm(0, resName1, resName2)*theta;\
+                                theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))",
+                                CustomGBForce.ParticlePair)
+        # burial term
+        for i in range(3):
+            contact.addGlobalParameter(f"rho_min_{i}", burial_ro_min[i])
+            contact.addGlobalParameter(f"rho_max_{i}", burial_ro_max[i])
+        for i in range(3):
+            contact.addEnergyTerm(f"-0.5*isCb*k_contact*burial_gamma_ij(resName, {i})*\
+                                        (tanh(burial_kappa*(rho-rho_min_{i}))+\
+                                        tanh(burial_kappa*(rho_max_{i}-rho)))", CustomGBForce.SingleParticle)
+
+        # print(len(none_cb_fixed), len(cb_fixed))
+        for e1 in none_cb_fixed:
+            for e2 in none_cb_fixed:
+                if e1 > e2:
+                    continue
+                contact.addExclusion(e1, e2)
+        for e1 in none_cb_fixed:
+            for e2 in cb_fixed:
+                contact.addExclusion(e1, e2)
+
+        contact.setForceGroup(18)
+        return contact
 
 
     def fragment_memory_term(self, k_fm=0.04184, frag_location_pre="./",

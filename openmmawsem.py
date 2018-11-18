@@ -12,6 +12,7 @@ from itertools import product, combinations
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import os
 se_map_3_letter = {'ALA': 0,  'PRO': 1,  'LYS': 2,  'ASN': 3,  'ARG': 4,
                    'PHE': 5,  'ASP': 6,  'GLN': 7,  'GLU': 8,  'GLY': 9,
                    'ILE': 10, 'HIS': 11, 'LEU': 12, 'CYS': 13, 'MET': 14,
@@ -296,7 +297,19 @@ def getSeqFromCleanPdb(input_pdb_filename, chains='A'):
     ThreeToOne = {'ALA':'A','ARG':'R','ASN':'N','ASP':'D','CYS':'C','GLU':'E','GLN':'Q','GLY':'G','HIS':'H',
            'ILE':'I','LEU':'L','LYS':'K','MET':'M','PHE':'F','PRO':'P','SER':'S','THR':'T','TRP':'W',
            'TYR':'Y','VAL':'V'}
-    a = pd.read_table(cleaned_pdb_filename, skiprows=2, sep="\s+", names=["ATOM", "i", "Type", "Res", "Chain", "ResId", "x", "y", "z", "_", "_1", "_2"]).dropna()
+    # determine number of rows to skip
+    skipRows = 0
+    found = False
+    with open(cleaned_pdb_filename) as f:
+        for line in f:
+            if len(line) > 5:
+                if line[:4] == "ATOM":
+                    found = True
+                    break
+            skipRows += 1
+    if not found:
+        print("No ATOM found")
+    a = pd.read_table(cleaned_pdb_filename, skiprows=skipRows, sep="\s+", names=["ATOM", "i", "Type", "Res", "Chain", "ResId", "x", "y", "z", "_", "_1", "_2"]).dropna()
 
     # save chain seq to pdb.fasta
     import textwrap
@@ -309,6 +322,12 @@ def getSeqFromCleanPdb(input_pdb_filename, chains='A'):
     threeLetterSeq = a.query("Type == 'CA'")["Res"]
     seq = "".join([ThreeToOne[i] for i in threeLetterSeq])
     return seq
+
+
+def download(pdb_id):
+    if not os.path.isfile(f"{pdb_id}.pdb"):
+        PDBList().retrieve_pdb_file(pdb_id.lower(), pdir='.', file_format='pdb')
+        os.rename("pdb%s.ent" % pdb_id, f"{pdb_id}.pdb")
 
 class OpenMMAWSEMSystem:
     def __init__(self, pdb_filename, xml_filename='awsem.xml', k_awsem=1.0):
@@ -348,6 +367,10 @@ class OpenMMAWSEMSystem:
         for i, (force) in enumerate(forces):
             self.addForce(force)
             force.setForceGroup(i+1)
+
+    def addForcesWithDefaultForceGroup(self, forces):
+        for i, (force) in enumerate(forces):
+            self.addForce(force)
 
     def read_reference_structure_for_q_calculation(self, pdb_file, chain_name, min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.8*nanometers):
         structure_interactions = []
@@ -423,6 +446,7 @@ class OpenMMAWSEMSystem:
             if i+1 < self.nres:
                 con.addBond(self.ca[i], self.ca[i+1], bond_lengths[0], k_con)
                 con.addBond(self.o[i], self.ca[i+1], bond_lengths[2], k_con)
+        con.setForceGroup(11)   # start with 11, so that first 10 leave for user defined force.
         return con
 
     def chain_term(self, k_chain=50208, bond_lengths=[0.2459108, 0.2519591, 0.2466597]):
@@ -438,6 +462,7 @@ class OpenMMAWSEMSystem:
                 chain.addBond(self.c[i], self.cb[i], bond_lengths[1], k_chain)
             if not i == 0 and not i+1 == self.nres:
                 chain.addBond(self.n[i], self.c[i],  bond_lengths[2], k_chain)
+        chain.setForceGroup(12)
         return chain
 
     def chi_term(self, k_chi=251.04, chi0=-0.71):
@@ -462,6 +487,7 @@ class OpenMMAWSEMSystem:
         for i in range(self.nres):
             if not i == 0 and not i+1 == self.nres and not self.res_type[i] == "IGL":
                 chi.addBond([self.ca[i], self.c[i], self.n[i], self.cb[i]])
+        chi.setForceGroup(13)
         return chi
 
     def excl_term(self, k_excl=8368, r_excl=0.35):
@@ -486,6 +512,7 @@ class OpenMMAWSEMSystem:
         excl.setCutoffDistance(r_excl)
 
         excl.createExclusionsFromBonds(self.bonds, 1)
+        excl.setForceGroup(14)
         return excl
 
     def rama_term(self, k_rama=8.368, num_rama_wells=3, w=[1.3149, 1.32016, 1.0264], sigma=[15.398, 49.0521, 49.0954], omega_phi=[0.15, 0.25, 0.65], phi_i=[-1.74, -1.265, 1.041], omega_psi=[0.65, 0.45, 0.25], psi_i=[2.138, -0.318, 0.78]):
@@ -512,6 +539,7 @@ class OpenMMAWSEMSystem:
         for i in range(self.nres):
             if not i == 0 and not i+1 == self.nres and not self.res_type[i] == "IGL" and not self.res_type == "IPR":
                 rama.addBond([self.c[i-1], self.n[i], self.ca[i], self.c[i], self.n[i+1]])
+        rama.setForceGroup(15)
         return rama
 
     def rama_proline_term(self, k_rama_proline=8.368, num_rama_proline_wells=2, w=[2.17, 2.15], sigma=[105.52, 109.09], omega_phi=[1.0, 1.0], phi_i=[-1.153, -0.95], omega_psi=[0.15, 0.15], psi_i=[2.4, -0.218]):
@@ -538,6 +566,7 @@ class OpenMMAWSEMSystem:
         for i in range(self.nres):
             if not i == 0 and self.res_type[i] == "IPR":
                 rama.addBond([self.c[i-1], self.n[i], self.ca[i], self.c[i], self.n[i+1]])
+        rama.setForceGroup(15)
         return rama
 
     def direct_term(self, k_direct=4.184):
@@ -602,7 +631,7 @@ class OpenMMAWSEMSystem:
             direct.addInteractionGroup([x], cb_fixed[i+min_sequence_separation:])
         # print(cb)
 
-        # system.addForce(direct)
+        direct.setForceGroup(16)
         return direct
 
 
@@ -662,6 +691,7 @@ class OpenMMAWSEMSystem:
             for e2 in cb_fixed:
                 burial.addExclusion(e1, e2)
 
+        burial.setForceGroup(17)
         return burial
 
 
@@ -759,6 +789,7 @@ class OpenMMAWSEMSystem:
             for e2 in cb_fixed:
                 mediated.addExclusion(e1, e2)
 
+        mediated.setForceGroup(18)
         return mediated
 
 
@@ -888,6 +919,7 @@ class OpenMMAWSEMSystem:
         fm.addGlobalParameter("frag_table_dr", frag_table_dr)
         fm.addGlobalParameter("frag_table_rmin", frag_table_rmin)
 
+        fm.setForceGroup(19)
         return fm
 
     def read_memory(self, pdb_file, chain_name, target_start, fragment_start, length, weight, min_seq_sep, max_seq_sep, am_well_width=0.1):
@@ -1120,12 +1152,14 @@ def read_trajectory_pdb_positions(pdb_trajectory_filename):
         os.remove(temporary_file_name)
     return pdb_trajectory
 
-def compute_order_parameters(openmm_awsem_pdb_file, pdb_trajectory_filename, order_parameters, platform_name='CPU', k_awsem=1.0, compute_mdtraj=False, rmsd_reference_structure=None, compute_total_energy=True, energy_columns=None):
+def compute_order_parameters(openmm_awsem_pdb_file, pdb_trajectory_filename, order_parameters,
+            platform_name='CPU', k_awsem=1.0, compute_mdtraj=False, rmsd_reference_structure=None,
+            compute_total_energy=True, energy_columns=None, xml_filename="awsem.xml"):
     pdb_trajectory = read_trajectory_pdb_positions(pdb_trajectory_filename)
     order_parameter_values = []
     for i, order_parameter in enumerate(order_parameters):
         order_parameter_values.append([])
-        oa = OpenMMAWSEMSystem(openmm_awsem_pdb_file, k_awsem=k_awsem)
+        oa = OpenMMAWSEMSystem(openmm_awsem_pdb_file, k_awsem=k_awsem, xml_filename=xml_filename)
         platform = Platform.getPlatformByName(platform_name) # OpenCL, CUDA, CPU, or Reference
         integrator = VerletIntegrator(2*femtoseconds)
         oa.addForce(order_parameter)

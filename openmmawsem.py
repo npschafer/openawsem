@@ -826,7 +826,7 @@ class OpenMMAWSEMSystem:
 
 
 
-    def fragment_memory_term(self, k_fm=0.04184, frag_location_pre="../_local/quick_run_nov06/",
+    def fragment_memory_term(self, k_fm=0.04184, frag_location_pre="./",
                         min_seq_sep=3, max_seq_sep=9, fm_well_width=0.1):
         # 0.8368 = 0.01 * 4.184 # in kJ/mol, converted from default value in LAMMPS AWSEM
         k_fm *= self.k_awsem
@@ -836,7 +836,7 @@ class OpenMMAWSEMSystem:
         r_array = np.arange(frag_table_rmin, frag_table_rmax, frag_table_dr)
         number_of_atoms = self.natoms
         r_table_size = int((frag_table_rmax - frag_table_rmin)/frag_table_dr)  # 500 here.
-        frag_table = np.zeros((number_of_atoms, 6*max_seq_sep, r_table_size))
+        raw_frag_table = np.zeros((number_of_atoms, 6*max_seq_sep, r_table_size))
         data_dic = {}
         for i in range(self.natoms):
             if i in self.ca:
@@ -853,9 +853,11 @@ class OpenMMAWSEMSystem:
 
         if os.path.isfile(frag_table_file):
             print(f"Reading Fragment table. from {frag_table_file}.")
-            frag_table, interaction_list = np.load(frag_table_file)
+            frag_table, interaction_list, interaction_pair_to_bond_index = np.load(frag_table_file)
+            print(f"Fragment table loaded, number of bonds: {len(interaction_list)}")
             frag_file_list = []
         else:
+            print(f"Fragment table file is not found. Reading fragments files.")
             frag_file_list = pd.read_table(frag_file_list_file, skiprows=4, sep="\s+", names=["location", "target_start", "fragment_start", "frag_len", "weight"])
             interaction_list = set()
         for frag_index in range(len(frag_file_list)):
@@ -904,11 +906,20 @@ class OpenMMAWSEMSystem:
 
                     i_j_sep = int(correspond_target_j - correspond_target_i)
 
-                    frag_table[correspond_target_i][i_j_sep] += w_m*gamma_ij*np.exp((r_array-rm)**2/(-2.0*sigma_ij**2))
+                    raw_frag_table[correspond_target_i][i_j_sep] += w_m*gamma_ij*np.exp((r_array-rm)**2/(-2.0*sigma_ij**2))
                     interaction_list.add((correspond_target_i, correspond_target_j))
         if not os.path.isfile(frag_table_file):
+            # Reduce memory usage.
             print("Saving fragment table as npy file to speed up future calculation.")
-            np.save(frag_table_file, (frag_table, interaction_list))
+            number_of_bonds = len(interaction_list)
+            frag_table = np.zeros((number_of_bonds, r_table_size))
+            interaction_pair_to_bond_index = {}
+            for index, (i, j) in enumerate(interaction_list):
+                ij_sep = j - i
+                assert(ij_sep > 0)
+                frag_table[index] = raw_frag_table[i][ij_sep]
+                interaction_pair_to_bond_index[(i,j)] = index
+            np.save(frag_table_file, (frag_table, interaction_list, interaction_pair_to_bond_index))
 
         # fm = CustomNonbondedForce(f"-k_fm*((v2-v1)*r+v1*r_2-v2*r_1)/(r_2-r_1); \
         #                             v1=frag_table(index_smaller, sep, r_index_1);\
@@ -930,29 +941,27 @@ class OpenMMAWSEMSystem:
         # fm.addPerParticleParameter("index")
 
         fm = CustomCompoundBondForce(2, "-k_fm*((v2-v1)*r+v1*r_2-v2*r_1)/(r_2-r_1); \
-                                    v1=frag_table(index_smaller, sep, r_index_1);\
-                                    v2=frag_table(index_smaller, sep, r_index_2);\
-                                    index_smaller=min(index1,index2);\
-                                    sep=abs(index1-index2);\
+                                    v1=frag_table(index, r_index_1);\
+                                    v2=frag_table(index, r_index_2);\
                                     r_1=frag_table_rmin+frag_table_dr*r_index_1;\
                                     r_2=frag_table_rmin+frag_table_dr*r_index_2;\
                                     r_index_2=r_index_1+1;\
                                     r_index_1=floor(r/frag_table_dr);\
                                     r=distance(p1, p2);")
         for (i, j) in interaction_list:
-            fm.addBond([i, j], [i, j])
+            fm.addBond([i, j], [interaction_pair_to_bond_index[(i,j)]])
 
-        fm.addPerBondParameter("index1")
-        fm.addPerBondParameter("index2")
+        fm.addPerBondParameter("index")
 
         fm.addTabulatedFunction("frag_table",
-                Discrete3DFunction(number_of_atoms, 6*max_seq_sep, r_table_size, frag_table.T.flatten()))
+                Discrete2DFunction(len(interaction_list), r_table_size, frag_table.T.flatten()))
         fm.addGlobalParameter("k_fm", k_fm)
         fm.addGlobalParameter("frag_table_dr", frag_table_dr)
         fm.addGlobalParameter("frag_table_rmin", frag_table_rmin)
 
         fm.setForceGroup(19)
         return fm
+
 
     def read_memory(self, pdb_file, chain_name, target_start, fragment_start, length, weight, min_seq_sep, max_seq_sep, am_well_width=0.1):
         memory_interactions = []

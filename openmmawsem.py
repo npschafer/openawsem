@@ -569,6 +569,38 @@ class OpenMMAWSEMSystem:
         rama.setForceGroup(15)
         return rama
 
+    def rama_ssweight_term(self, k_rama_ssweight=8.368, num_rama_wells=2, w=[2.0, 2.0],
+                        sigma=[419.0, 15.398], omega_phi=[1.0, 1.0], phi_i=[-0.995, -2.25],
+                        omega_psi=[1.0, 1.0], psi_i=[-0.82, 2.16], location_pre="./"):
+        # add RamaSS potential
+        # 8.368 = 2 * 4.184 kJ/mol, converted from default value in LAMMPS AWSEM
+        # multiply interaction strength by overall scaling
+        k_rama_ssweight *= self.k_awsem
+        rama_function = ''.join(["wSS%d*ssweight(%d,resId)*exp(-sigmaSS%d*(omega_phiSS%d*phi_term%d^2+omega_psiSS%d*psi_term%d^2))+" \
+                                % (i, i, i, i, i, i, i) for i in range(num_rama_wells)])[:-1]
+        rama_function = '-k_rama_ssweight*(' + rama_function + ");"
+        rama_parameters = ''.join([f"phi_term{i}=cos(phi_{i}-phi0SS{i})-1; phi_{i}=dihedral(p1, p2, p3, p4);\
+                                psi_term{i}=cos(psi_{i}-psi0SS{i})-1; psi_{i}=dihedral(p2, p3, p4, p5);"\
+                                for i in range(num_rama_wells)])
+        rama_string = rama_function+rama_parameters
+        ramaSS = CustomCompoundBondForce(5, rama_string)
+        ramaSS.addPerBondParameter("resId")
+        for i in range(num_rama_wells):
+            ramaSS.addGlobalParameter(f"k_rama_ssweight", k_rama_ssweight)
+            ramaSS.addGlobalParameter(f"wSS{i}", w[i])
+            ramaSS.addGlobalParameter(f"sigmaSS{i}", sigma[i])
+            ramaSS.addGlobalParameter(f"omega_phiSS{i}", omega_phi[i])
+            ramaSS.addGlobalParameter(f"omega_psiSS{i}", omega_psi[i])
+            ramaSS.addGlobalParameter(f"phi0SS{i}", phi_i[i])
+            ramaSS.addGlobalParameter(f"psi0SS{i}", psi_i[i])
+        for i in range(self.nres):
+            if not i == 0 and not i+1 == self.nres and not self.res_type[i] == "IGL" and not self.res_type == "IPR":
+                ramaSS.addBond([self.c[i-1], self.n[i], self.ca[i], self.c[i], self.n[i+1]], [i])
+        ssweight = np.loadtxt(location_pre+"ssweight")
+        ramaSS.addTabulatedFunction("ssweight", Discrete2DFunction(2, self.nres, ssweight.flatten()))
+        ramaSS.setForceGroup(16)
+        return ramaSS
+
     def direct_term(self, k_direct=4.184):
         k_direct *= self.k_awsem
         # print(self.ca, self.cb)

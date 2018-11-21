@@ -13,6 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
+import textwrap
 se_map_3_letter = {'ALA': 0,  'PRO': 1,  'LYS': 2,  'ASN': 3,  'ARG': 4,
                    'PHE': 5,  'ASP': 6,  'GLN': 7,  'GLU': 8,  'GLY': 9,
                    'ILE': 10, 'HIS': 11, 'LEU': 12, 'CYS': 13, 'MET': 14,
@@ -198,7 +199,7 @@ def build_lists_of_atoms_2(nres, residues, atoms):
     return atom_lists, res_types
 
 
-def ensure_atom_order(input_pdb_filename):
+def ensure_atom_order(input_pdb_filename, queit=1):
     # ensure order of ['n', 'h', 'ca', 'c', 'o', 'cb']
     # to be more specific, this ensure 'ca' always show up before 'c'.
     def first(t):
@@ -226,10 +227,12 @@ def ensure_atom_order(input_pdb_filename):
                     for a in sorted_residue:
                         out.write(a[1])
                     if sorted_residue != one_residue:
-                        print("Reorder atom position")
-                        print("Original, Changed to")
+                        if not queit:
+                            print("Reorder atom position")
+                            print("Original, Changed to")
                         for i, t in zip(one_residue, sorted_residue):
-                            print(i[2], i[3], ", ", t[2], t[3])
+                            if not queit:
+                                print(i[2], i[3], ", ", t[2], t[3])
                     one_residue = []
                 atomType = info[2]
                 one_residue.append((order_table[atomType], line, info[1], atomType))
@@ -291,38 +294,39 @@ def read_gamma(gammaFile):
 
 
 def getSeqFromCleanPdb(input_pdb_filename, chains='A'):
-    cleaned_pdb_filename = input_pdb_filename.replace("openmmawsem", "cleaned")
+    chains = "A"
+    cleaned_pdb_filename = input_pdb_filename.replace("openmmawsem.pdb", "cleaned.pdb")
     pdb = input_pdb_filename.replace("-openmmawsem.pdb", "")
     fastaFile = pdb + ".fasta"
     ThreeToOne = {'ALA':'A','ARG':'R','ASN':'N','ASP':'D','CYS':'C','GLU':'E','GLN':'Q','GLY':'G','HIS':'H',
-           'ILE':'I','LEU':'L','LYS':'K','MET':'M','PHE':'F','PRO':'P','SER':'S','THR':'T','TRP':'W',
-           'TYR':'Y','VAL':'V'}
-    # determine number of rows to skip
-    skipRows = 0
-    found = False
-    with open(cleaned_pdb_filename) as f:
-        for line in f:
-            if len(line) > 5:
-                if line[:4] == "ATOM":
-                    found = True
-                    break
-            skipRows += 1
-    if not found:
-        print("No ATOM found")
-    a = pd.read_table(cleaned_pdb_filename, skiprows=skipRows, sep="\s+", names=["ATOM", "i", "Type", "Res", "Chain", "ResId", "x", "y", "z", "_", "_1", "_2"]).dropna()
+        'ILE':'I','LEU':'L','LYS':'K','MET':'M','PHE':'F','PRO':'P','SER':'S','THR':'T','TRP':'W',
+        'TYR':'Y','VAL':'V'}
 
-    # save chain seq to pdb.fasta
-    import textwrap
+    s = PDBParser().get_structure("X", cleaned_pdb_filename)
+    m = s[0] # model 0
+    seq = ""
     with open(fastaFile, "w") as out:
         for chain in chains:
             out.write(f">{pdb.upper()}:{chain.upper()}|PDBID|CHAIN|SEQUENCE\n")
-            threeLetterSeq = a.query(f"Chain == '{chain}' and Type == 'CA'")["Res"]
-            chain_seq = "".join([ThreeToOne[i] for i in threeLetterSeq])
+            c = m[chain]
+            chain_seq = ""
+            for residue in c:
+                residue_name = residue.get_resname()
+                chain_seq += ThreeToOne[residue_name]
             out.write("\n".join(textwrap.wrap(chain_seq, width=80))+"\n")
-    threeLetterSeq = a.query("Type == 'CA'")["Res"]
-    seq = "".join([ThreeToOne[i] for i in threeLetterSeq])
+            seq += chain_seq
     return seq
 
+def fixPymolPdb(location):
+    # location = "1r69.pdb"
+    with open("tmp", "w") as out:
+        with open(location, "r") as f:
+            for line in f:
+                info = list(line)
+                if len(info) > 21:
+                    info[21] = "A"
+                out.write("".join(info))
+    os.system(f"mv tmp {location}")
 
 def download(pdb_id):
     if not os.path.isfile(f"{pdb_id}.pdb"):
@@ -428,6 +432,7 @@ class OpenMMAWSEMSystem:
         qvalue.addGlobalParameter("normalization", len(structure_interactions))
         for structure_interaction in structure_interactions:
             qvalue.addBond(*structure_interaction)
+        qvalue.setForceGroup(1)
         return qvalue
 
     def addForce(self, force):
@@ -510,7 +515,7 @@ class OpenMMAWSEMSystem:
         excl.addInteractionGroup(self.o, self.o)
 
         excl.setCutoffDistance(r_excl)
-
+        excl.setNonbondedMethod(excl.CutoffNonPeriodic)
         excl.createExclusionsFromBonds(self.bonds, 1)
         excl.setForceGroup(14)
         return excl
@@ -875,10 +880,10 @@ class OpenMMAWSEMSystem:
                     protein_gamma_ijm[m][i][j] = gamma_mediated[count][0]
                     protein_gamma_ijm[m][j][i] = gamma_mediated[count][0]
                     count += 1
+
         contact.addTabulatedFunction("gamma_ijm", Discrete3DFunction(nwell, 20, 20, gamma_ijm.flatten()))
         contact.addTabulatedFunction("water_gamma_ijm", Discrete3DFunction(nwell, 20, 20, water_gamma_ijm.flatten()))
         contact.addTabulatedFunction("protein_gamma_ijm", Discrete3DFunction(nwell, 20, 20, protein_gamma_ijm.flatten()))
-
         contact.addTabulatedFunction("burial_gamma_ij", Discrete2DFunction(20, 3, burial_gamma.T.flatten()))
 
         contact.addPerParticleParameter("resName")
@@ -896,11 +901,11 @@ class OpenMMAWSEMSystem:
         contact.addGlobalParameter("burial_kappa", burial_kappa)
 
         contact.addComputedValue("rho", "step(abs(resId1-resId2)-2)*0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))", CustomGBForce.ParticlePair)
-        # print(burial.getComputedValueParameters(index))
 
         # replace cb with ca for GLY
         cb_fixed = [x if x > 0 else y for x,y in zip(self.cb,self.ca)]
         none_cb_fixed = [i for i in range(self.natoms) if i not in cb_fixed]
+        # print(self.natoms, len(self.resi), self.resi, seq)
         for i in range(self.natoms):
             contact.addParticle([gamma_se_map_1_letter[seq[self.resi[i]]], self.resi[i], int(i in cb_fixed)])
         # mediated term
@@ -925,7 +930,7 @@ class OpenMMAWSEMSystem:
                                         (tanh(burial_kappa*(rho-rho_min_{i}))+\
                                         tanh(burial_kappa*(rho_max_{i}-rho)))", CustomGBForce.SingleParticle)
 
-        # print(len(none_cb_fixed), len(cb_fixed))
+        print(len(none_cb_fixed), len(cb_fixed))
         for e1 in none_cb_fixed:
             for e2 in none_cb_fixed:
                 if e1 > e2:
@@ -935,6 +940,10 @@ class OpenMMAWSEMSystem:
             for e2 in cb_fixed:
                 contact.addExclusion(e1, e2)
 
+        # contact.setCutoffDistance(1.1)
+        contact.setNonbondedMethod(CustomGBForce.CutoffNonPeriodic)
+        print("Contact cutoff ", contact.getCutoffDistance())
+        print("NonbondedMethod: ", contact.getNonbondedMethod())
         contact.setForceGroup(18)
         return contact
 

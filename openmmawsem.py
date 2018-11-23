@@ -199,7 +199,7 @@ def build_lists_of_atoms_2(nres, residues, atoms):
     return atom_lists, res_types
 
 
-def ensure_atom_order(input_pdb_filename, queit=1):
+def ensure_atom_order(input_pdb_filename, quiet=1):
     # ensure order of ['n', 'h', 'ca', 'c', 'o', 'cb']
     # to be more specific, this ensure 'ca' always show up before 'c'.
     def first(t):
@@ -227,21 +227,34 @@ def ensure_atom_order(input_pdb_filename, queit=1):
                     for a in sorted_residue:
                         out.write(a[1])
                     if sorted_residue != one_residue:
-                        if not queit:
+                        if not quiet:
                             print("Reorder atom position")
                             print("Original, Changed to")
                         for i, t in zip(one_residue, sorted_residue):
-                            if not queit:
+                            if not quiet:
                                 print(i[2], i[3], ", ", t[2], t[3])
                     one_residue = []
                 atomType = info[2]
                 one_residue.append((order_table[atomType], line, info[1], atomType))
     os.system(f"mv tmp.pdb {input_pdb_filename}")
 
-def setup_virtual_sites(nres, system, n, h, ca, c, o, cb, res_type):
+def get_chain_starts_and_ends(all_res):
+    chain_starts = []
+    chain_ends = []
+    pos = -1
+    for i, res in enumerate(all_res):
+        if res.chain.index != pos:
+            chain_starts.append(i)
+            pos = res.chain.index
+            if i > 0:
+                chain_ends.append(i-1)
+    chain_ends.append(len(all_res)-1)
+    return chain_starts, chain_ends
+
+def setup_virtual_sites(nres, system, n, h, ca, c, o, cb, res_type, chain_starts, chain_ends):
     # set virtual sites
     for i in range(nres):
-        if i > 0:
+        if i not in chain_starts:
             n_virtual_site = ThreeParticleAverageSite(ca[i-1], ca[i], o[i-1],
                                                       0.48318, 0.70328, -0.18643)
             system.setVirtualSite(n[i], n_virtual_site)
@@ -249,28 +262,28 @@ def setup_virtual_sites(nres, system, n, h, ca, c, o, cb, res_type):
                 h_virtual_site = ThreeParticleAverageSite(ca[i-1], ca[i], o[i-1],
                                                           0.84100, 0.89296, -0.73389)
                 system.setVirtualSite(h[i], h_virtual_site)
-        if  i+1 < nres:
+        if  i not in chain_ends:
             c_virtual_site = ThreeParticleAverageSite(ca[i], ca[i+1], o[i],
                                                       0.44365, 0.23520, 0.32115)
             # print("Virtual", c[i])
             system.setVirtualSite(c[i], c_virtual_site)
 
-def setup_bonds(nres, n, h, ca, c, o, cb, res_type):
+def setup_bonds(nres, n, h, ca, c, o, cb, res_type, chain_starts, chain_ends):
     bonds = []
     for i in range(nres):
         bonds.append((ca[i], o[i]))
         if not res_type[i] == "IGL":
             bonds.append((ca[i], cb[i]))
-        if  i+1 < nres:
+        if  i not in chain_ends:
             bonds.append((ca[i], ca[i+1]))
             bonds.append((o[i], ca[i+1]))
 
     for i in range(nres):
-        if not i == 0 and not res_type[i] == "IGL":
+        if i not in chain_starts and not res_type[i] == "IGL":
             bonds.append((n[i], cb[i]))
-        if not i+1 == nres and not res_type[i] == "IGL":
+        if i not in chain_ends and not res_type[i] == "IGL":
             bonds.append((c[i], cb[i]))
-        if not i == 0 and not i+1 == nres:
+        if i not in chain_starts and i not in chain_ends:
             bonds.append((n[i], c[i]))
     return bonds
 
@@ -294,7 +307,6 @@ def read_gamma(gammaFile):
 
 
 def getSeqFromCleanPdb(input_pdb_filename, chains='A'):
-    chains = "A"
     cleaned_pdb_filename = input_pdb_filename.replace("openmmawsem.pdb", "cleaned.pdb")
     pdb = input_pdb_filename.replace("-openmmawsem.pdb", "")
     fastaFile = pdb + ".fasta"
@@ -334,7 +346,7 @@ def download(pdb_id):
         os.rename("pdb%s.ent" % pdb_id, f"{pdb_id}.pdb")
 
 class OpenMMAWSEMSystem:
-    def __init__(self, pdb_filename, xml_filename='awsem.xml', k_awsem=1.0):
+    def __init__(self, pdb_filename, chains='A', xml_filename='awsem.xml', k_awsem=1.0):
         # read PDB
         self.pdb = PDBFile(pdb_filename)
         self.forcefield = ForceField(xml_filename)
@@ -354,18 +366,24 @@ class OpenMMAWSEMSystem:
         self.c =self.atom_lists['c']
         self.o =self.atom_lists['o']
         self.cb=self.atom_lists['cb']
+
+        self.chain_starts, self.chain_ends = get_chain_starts_and_ends(self.residues)
         # setup virtual sites
-        setup_virtual_sites(self.nres, self.system, self.n, self.h, self.ca, self.c, self.o, self.cb, self.res_type)
+        # if Segmentation fault in setup_virtual_sites, use ensure_atom_order
+        setup_virtual_sites(self.nres, self.system, self.n, self.h, self.ca, self.c, self.o,
+                            self.cb, self.res_type, self.chain_starts, self.chain_ends)
         # setup bonds
-        self.bonds = setup_bonds(self.nres, self.n, self.h, self.ca, self.c, self.o, self.cb, self.res_type)
+        self.bonds = setup_bonds(self.nres, self.n, self.h, self.ca, self.c, self.o,
+                            self.cb, self.res_type, self.chain_starts, self.chain_ends)
         # identify terminal_residues
-        self.terminal_residues = identify_terminal_residues(pdb_filename)
+        # self.terminal_residues = identify_terminal_residues(pdb_filename)
         # set overall scaling
         self.k_awsem = k_awsem
         # keep track of force names for output purposes
         self.force_names = []
         # save seq info
-        self.seq = getSeqFromCleanPdb(pdb_filename)
+        self.seq = getSeqFromCleanPdb(pdb_filename, chains=chains)
+
 
     def addForces(self, forces):
         for i, (force) in enumerate(forces):
@@ -448,7 +466,7 @@ class OpenMMAWSEMSystem:
             con.addBond(self.ca[i], self.o[i], bond_lengths[1], k_con)
             if not self.res_type[i] == "IGL":
                 con.addBond(self.ca[i], self.cb[i], bond_lengths[3], k_con)
-            if i+1 < self.nres:
+            if i not in self.chain_ends:
                 con.addBond(self.ca[i], self.ca[i+1], bond_lengths[0], k_con)
                 con.addBond(self.o[i], self.ca[i+1], bond_lengths[2], k_con)
         con.setForceGroup(11)   # start with 11, so that first 10 leave for user defined force.
@@ -461,11 +479,11 @@ class OpenMMAWSEMSystem:
         k_chain *= self.k_awsem
         chain = HarmonicBondForce()
         for i in range(self.nres):
-            if not i == 0 and not self.res_type[i] == "IGL":
+            if i not in self.chain_starts and not self.res_type[i] == "IGL":
                 chain.addBond(self.n[i], self.cb[i], bond_lengths[0], k_chain)
-            if not i+1 == self.nres and not self.res_type[i] == "IGL":
+            if i not in self.chain_ends and not self.res_type[i] == "IGL":
                 chain.addBond(self.c[i], self.cb[i], bond_lengths[1], k_chain)
-            if not i == 0 and not i+1 == self.nres:
+            if i not in self.chain_starts and i not in self.chain_ends:
                 chain.addBond(self.n[i], self.c[i],  bond_lengths[2], k_chain)
         chain.setForceGroup(12)
         return chain
@@ -490,7 +508,7 @@ class OpenMMAWSEMSystem:
         chi.addGlobalParameter("k_chi", k_chi)
         chi.addGlobalParameter("chi0", chi0)
         for i in range(self.nres):
-            if not i == 0 and not i+1 == self.nres and not self.res_type[i] == "IGL":
+            if i not in self.chain_starts and i not in self.chain_ends and not self.res_type[i] == "IGL":
                 chi.addBond([self.ca[i], self.c[i], self.n[i], self.cb[i]])
         chi.setForceGroup(13)
         return chi

@@ -560,7 +560,7 @@ class OpenMMAWSEMSystem:
             rama.addGlobalParameter(f"phi0{i}", phi_i[i])
             rama.addGlobalParameter(f"psi0{i}", psi_i[i])
         for i in range(self.nres):
-            if not i == 0 and not i+1 == self.nres and not self.res_type[i] == "IGL" and not self.res_type[i] == "IPR":
+            if i not in self.chain_starts and i not in self.chain_ends and not self.res_type[i] == "IGL" and not self.res_type[i] == "IPR":
                 rama.addBond([self.c[i-1], self.n[i], self.ca[i], self.c[i], self.n[i+1]])
         rama.setForceGroup(15)
         return rama
@@ -587,7 +587,7 @@ class OpenMMAWSEMSystem:
             rama.addGlobalParameter(f"phi0_P{i}", phi_i[i])
             rama.addGlobalParameter(f"psi0_P{i}", psi_i[i])
         for i in range(self.nres):
-            if not i == 0 and not i+1 == self.nres and self.res_type[i] == "IPR":
+            if i not in self.chain_starts and i not in self.chain_ends and self.res_type[i] == "IPR":
                 rama.addBond([self.c[i-1], self.n[i], self.ca[i], self.c[i], self.n[i+1]])
         rama.setForceGroup(15)
         return rama
@@ -617,11 +617,11 @@ class OpenMMAWSEMSystem:
             ramaSS.addGlobalParameter(f"phi0SS{i}", phi_i[i])
             ramaSS.addGlobalParameter(f"psi0SS{i}", psi_i[i])
         for i in range(self.nres):
-            if not i == 0 and not i+1 == self.nres and not self.res_type[i] == "IGL" and not self.res_type == "IPR":
+            if i not in self.chain_starts and i not in self.chain_ends and not self.res_type[i] == "IGL" and not self.res_type == "IPR":
                 ramaSS.addBond([self.c[i-1], self.n[i], self.ca[i], self.c[i], self.n[i+1]], [i])
         ssweight = np.loadtxt(location_pre+"ssweight")
         ramaSS.addTabulatedFunction("ssweight", Discrete2DFunction(2, self.nres, ssweight.flatten()))
-        ramaSS.setForceGroup(16)
+        ramaSS.setForceGroup(15)
         return ramaSS
 
     def direct_term(self, k_direct=4.184):

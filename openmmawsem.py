@@ -927,6 +927,7 @@ class OpenMMAWSEMSystem:
         for i in range(self.natoms):
             contact.addParticle([gamma_se_map_1_letter[seq[self.resi[i]]], self.resi[i], int(i in cb_fixed)])
         # mediated term
+        # multi chain support probably needs a table.
         contact.addEnergyTerm("-step(abs(resId1-resId2)-min_sequence_separation)*k_contact*thetaII*\
                                 (sigma_water*water_gamma_ijm(0, resName1, resName2)+\
                                 sigma_protein*protein_gamma_ijm(0, resName1, resName2));\

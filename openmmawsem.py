@@ -750,12 +750,6 @@ class OpenMMAWSEMSystem:
 
     def mediated_term(self, k_mediated=4.184):
         k_mediated *= self.k_awsem
-        # system, nres, n, h, ca, c, o, cb, res_type, natoms, bonds = oa.system, oa.nres, oa.n, oa.h, oa.ca, oa.c, oa.o, oa.cb, oa.res_type, oa.natoms, oa.bonds
-        # add direct contact
-        # Still need to add residue specific parameters
-        # print("hi")
-        # print(self.ca, self.cb)
-        # print(self.bonds)
         # print(self.nres)  # print 181 for 2xov
         # print(self.resi)  # print the rsidues index for each atom
         # gamma = 1

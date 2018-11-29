@@ -12,6 +12,7 @@ from itertools import product, combinations
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 import os
 import textwrap
 se_map_3_letter = {'ALA': 0,  'PRO': 1,  'LYS': 2,  'ASN': 3,  'ARG': 4,
@@ -238,6 +239,14 @@ def ensure_atom_order(input_pdb_filename, quiet=1):
                 one_residue.append((order_table[atomType], line, info[1], atomType))
     os.system(f"mv tmp.pdb {input_pdb_filename}")
 
+def inWhichChain(residueId, chain_ends):
+    chain_table = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    for i, end_of_chain_resId in enumerate(chain_ends):
+        if end_of_chain_resId < residueId:
+            pass
+        else:
+            return chain_table[i]
+
 def get_chain_starts_and_ends(all_res):
     chain_starts = []
     chain_ends = []
@@ -439,19 +448,78 @@ class OpenMMAWSEMSystem:
 
         return structure_interactions
 
-    def q_value(self, reference_pdb_file, reference_chain_name, min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.8*nanometers):
+    def read_reference_structure_for_q_calculation_2(self, pdb_file, min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.8*nanometers):
+        # default use all chains in pdb file.
+        structure_interactions = []
+        parser = PDBParser()
+        structure = parser.get_structure('X', pdb_file)
+        model = structure[0]
+        chain_start = 0
+        count = 0
+        for chain in model.get_chains():
+            chain_start += count
+            count = 0
+            for i, residue_i in enumerate(chain.get_residues()):
+                count += 1
+                #  print(i, residue_i)
+                for j, residue_j in enumerate(chain.get_residues()):
+                    ca_list = []
+                    cb_list = []
+                    atom_list_i = []
+                    atom_list_j = []
+                    if i-j >= min_seq_sep and i-j <= max_seq_sep:  # taking the signed value to avoid double counting
+                        ca_i = residue_i['CA']
+                        ca_list.append(ca_i)
+                        atom_list_i.append(ca_i)
+                        ca_j = residue_j['CA']
+                        ca_list.append(ca_j)
+                        atom_list_j.append(ca_j)
+                        if not residue_i.get_resname() == "GLY":
+                            cb_i = residue_i['CB']
+                            cb_list.append(cb_i)
+                            atom_list_i.append(cb_i)
+                        if not residue_j.get_resname() == "GLY":
+                            cb_j = residue_j['CB']
+                            cb_list.append(cb_j)
+                            atom_list_j.append(cb_j)
+                        for atom_i, atom_j in product(atom_list_i, atom_list_j):
+                            r_ijN = abs(atom_i - atom_j)/10.0*nanometers # convert to nm
+                            if r_ijN <= contact_threshold:
+                                sigma_ij = 0.1*abs(i-j)**0.15 # 0.1 nm = 1 A
+                                gamma_ij = 1.0
+                                if atom_i in ca_list:
+                                    i_index = self.ca[i+chain_start]
+                                if atom_i in cb_list:
+                                    i_index = self.cb[i+chain_start]
+                                if atom_j in ca_list:
+                                    j_index = self.ca[j+chain_start]
+                                if atom_j in cb_list:
+                                    j_index = self.cb[j+chain_start]
+                                structure_interaction = [i_index, j_index, [gamma_ij, r_ijN, sigma_ij]]
+                                structure_interactions.append(structure_interaction)
+
+        return structure_interactions
+
+
+
+
+    def q_value(self, reference_pdb_file, reference_chain_name='A', min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.8*nanometers):
         # create bond force for q calculation
         qvalue = CustomBondForce("(1/normalization)*gamma_ij*exp(-(r-r_ijN)^2/(2*sigma_ij^2))")
         qvalue.addPerBondParameter("gamma_ij")
         qvalue.addPerBondParameter("r_ijN")
         qvalue.addPerBondParameter("sigma_ij")
         # create bonds
-        structure_interactions = self.read_reference_structure_for_q_calculation(reference_pdb_file, reference_chain_name, min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep, contact_threshold=contact_threshold)
+        # structure_interactions = self.read_reference_structure_for_q_calculation(reference_pdb_file, reference_chain_name, min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep, contact_threshold=contact_threshold)
+        structure_interactions = self.read_reference_structure_for_q_calculation_2(reference_pdb_file,
+            min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep, contact_threshold=contact_threshold)
+
         qvalue.addGlobalParameter("normalization", len(structure_interactions))
         for structure_interaction in structure_interactions:
             qvalue.addBond(*structure_interaction)
         qvalue.setForceGroup(1)
         return qvalue
+
 
     def addForce(self, force):
         self.system.addForce(force)
@@ -679,6 +747,7 @@ class OpenMMAWSEMSystem:
         # replace cb with ca for GLY
         cb_fixed = [x if x > 0 else y for x,y in zip(cb,self.ca)]
         # add interaction that are cutoff away
+        # don't use this for multi chain simulation.
         for i, x in enumerate(cb_fixed):
             # print(i, x)
             direct.addInteractionGroup([x], cb_fixed[i+min_sequence_separation:])
@@ -795,7 +864,19 @@ class OpenMMAWSEMSystem:
         mediated.addTabulatedFunction("water_gamma_ijm", Discrete3DFunction(nwell, 20, 20, water_gamma_ijm.flatten()))
         mediated.addTabulatedFunction("protein_gamma_ijm", Discrete3DFunction(nwell, 20, 20, protein_gamma_ijm.flatten()))
 
-
+        # residue interaction table (step(abs(resId1-resId2)-min_sequence_separation))
+        res_table = np.zeros((self.nres, self.nres))
+        for i in range(self.nres):
+            for j in range(self.nres):
+                resId1 = i
+                chain1 = inWhichChain(resId1, self.chain_ends)
+                resId2 = j
+                chain2 = inWhichChain(resId2, self.chain_ends)
+                if abs(resId1-resId2)-min_sequence_separation >= 0 or chain1 != chain2:
+                    res_table[i][j] = 1
+                else:
+                    res_table[i][j] = 0
+        mediated.addTabulatedFunction("res_table", Discrete2DFunction(self.nres, self.nres, res_table.T.flatten()))
         mediated.addPerParticleParameter("resName")
         mediated.addPerParticleParameter("resId")
         mediated.addPerParticleParameter("isCb")
@@ -818,14 +899,13 @@ class OpenMMAWSEMSystem:
         for i in range(self.natoms):
             mediated.addParticle([gamma_se_map_1_letter[seq[self.resi[i]]], self.resi[i], int(i in cb_fixed)])
 
-        mediated.addEnergyTerm("-step(abs(resId1-resId2)-min_sequence_separation)*k_mediated*thetaII*\
+        mediated.addEnergyTerm("-res_table(resId1, resId2)*k_mediated*thetaII*\
                                 (sigma_water*water_gamma_ijm(0, resName1, resName2)+\
                                 sigma_protein*protein_gamma_ijm(0, resName1, resName2));\
                                 sigma_protein=1-sigma_water;\
                                 thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
                                 sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
                                 CustomGBForce.ParticlePair)
-
         # print(len(none_cb_fixed), len(cb_fixed))
         for e1 in none_cb_fixed:
             for e2 in none_cb_fixed:
@@ -856,6 +936,7 @@ class OpenMMAWSEMSystem:
         gamma_ijm = np.zeros((nwell, 20, 20))
         water_gamma_ijm = np.zeros((nwell, 20, 20))
         protein_gamma_ijm = np.zeros((nwell, 20, 20))
+
         # read in seq data.
         seq = self.seq
         # read in gamma info
@@ -898,6 +979,19 @@ class OpenMMAWSEMSystem:
         contact.addTabulatedFunction("protein_gamma_ijm", Discrete3DFunction(nwell, 20, 20, protein_gamma_ijm.flatten()))
         contact.addTabulatedFunction("burial_gamma_ij", Discrete2DFunction(20, 3, burial_gamma.T.flatten()))
 
+        # residue interaction table (step(abs(resId1-resId2)-min_sequence_separation))
+        res_table = np.zeros((self.nres, self.nres))
+        for i in range(self.nres):
+            for j in range(self.nres):
+                resId1 = i
+                chain1 = inWhichChain(resId1, self.chain_ends)
+                resId2 = j
+                chain2 = inWhichChain(resId2, self.chain_ends)
+                if abs(resId1-resId2)-min_sequence_separation >= 0 or chain1 != chain2:
+                    res_table[i][j] = 1
+                else:
+                    res_table[i][j] = 0
+        contact.addTabulatedFunction("res_table", Discrete2DFunction(self.nres, self.nres, res_table.T.flatten()))
         contact.addPerParticleParameter("resName")
         contact.addPerParticleParameter("resId")
         contact.addPerParticleParameter("isCb")
@@ -921,8 +1015,7 @@ class OpenMMAWSEMSystem:
         for i in range(self.natoms):
             contact.addParticle([gamma_se_map_1_letter[seq[self.resi[i]]], self.resi[i], int(i in cb_fixed)])
         # mediated term
-        # multi chain support probably needs a table.
-        contact.addEnergyTerm("-step(abs(resId1-resId2)-min_sequence_separation)*k_contact*thetaII*\
+        contact.addEnergyTerm("-res_table(resId1, resId2)*k_contact*thetaII*\
                                 (sigma_water*water_gamma_ijm(0, resName1, resName2)+\
                                 sigma_protein*protein_gamma_ijm(0, resName1, resName2));\
                                 sigma_protein=1-sigma_water;\
@@ -930,7 +1023,7 @@ class OpenMMAWSEMSystem:
                                 sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
                                 CustomGBForce.ParticlePair)
         # direct term
-        contact.addEnergyTerm("-step(abs(resId1-resId2)-min_sequence_separation)*k_contact*\
+        contact.addEnergyTerm("-res_table(resId1, resId2)*k_contact*\
                                 gamma_ijm(0, resName1, resName2)*theta;\
                                 theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))",
                                 CustomGBForce.ParticlePair)

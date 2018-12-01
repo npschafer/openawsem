@@ -15,6 +15,7 @@ import pandas as pd
 import numpy as np
 import os
 import textwrap
+
 se_map_3_letter = {'ALA': 0,  'PRO': 1,  'LYS': 2,  'ASN': 3,  'ARG': 4,
                    'PHE': 5,  'ASP': 6,  'GLN': 7,  'GLU': 8,  'GLY': 9,
                    'ILE': 10, 'HIS': 11, 'LEU': 12, 'CYS': 13, 'MET': 14,
@@ -920,9 +921,10 @@ class OpenMMAWSEMSystem:
         return mediated
 
 
-    def contact_term(self, k_contact=4.184):
+    def contact_term(self, k_contact=4.184, z_dependent=False, z_m=1.5):
         k_contact *= self.k_awsem
         # combine direct, burial, mediated.
+        # default membrane thickness 1.5 nm
 
         r_min = .45
         r_max = .65
@@ -932,7 +934,8 @@ class OpenMMAWSEMSystem:
         eta_sigma = 7.0
         rho_0 = 2.6
         min_sequence_separation = 10  # means j-i > 9
-        nwell = 1
+        min_sequence_separation_mem = 13
+        nwell = 2
         gamma_ijm = np.zeros((nwell, 20, 20))
         water_gamma_ijm = np.zeros((nwell, 20, 20))
         protein_gamma_ijm = np.zeros((nwell, 20, 20))
@@ -947,40 +950,30 @@ class OpenMMAWSEMSystem:
         burial_ro_max = [3.0, 6.0, 9.0]
         burial_gamma = np.loadtxt("burial_gamma.dat")
 
-
+        k_relative_mem = 200  # adjust the relative strength of gamma
         contact = CustomGBForce()
 
-        for m in range(nwell):
-            count = 0
-            for i in range(20):
-                for j in range(i, 20):
-                    gamma_ijm[m][i][j] = gamma_direct[count][0]
-                    gamma_ijm[m][j][i] = gamma_direct[count][0]
-                    count += 1
-
-        for m in range(nwell):
-            count = 0
-            for i in range(20):
-                for j in range(i, 20):
-                    water_gamma_ijm[m][i][j] = gamma_mediated[count][1]
-                    water_gamma_ijm[m][j][i] = gamma_mediated[count][1]
-                    count += 1
-
-        for m in range(nwell):
-            count = 0
-            for i in range(20):
-                for j in range(i, 20):
-                    protein_gamma_ijm[m][i][j] = gamma_mediated[count][0]
-                    protein_gamma_ijm[m][j][i] = gamma_mediated[count][0]
-                    count += 1
-
-        contact.addTabulatedFunction("gamma_ijm", Discrete3DFunction(nwell, 20, 20, gamma_ijm.flatten()))
-        contact.addTabulatedFunction("water_gamma_ijm", Discrete3DFunction(nwell, 20, 20, water_gamma_ijm.flatten()))
-        contact.addTabulatedFunction("protein_gamma_ijm", Discrete3DFunction(nwell, 20, 20, protein_gamma_ijm.flatten()))
-        contact.addTabulatedFunction("burial_gamma_ij", Discrete2DFunction(20, 3, burial_gamma.T.flatten()))
-
+        m = 0  # water environment
+        count = 0
+        for i in range(20):
+            for j in range(i, 20):
+                gamma_ijm[m][i][j] = gamma_direct[count][0]
+                gamma_ijm[m][j][i] = gamma_direct[count][0]
+                count += 1
+        count = 0
+        for i in range(20):
+            for j in range(i, 20):
+                water_gamma_ijm[m][i][j] = gamma_mediated[count][1]
+                water_gamma_ijm[m][j][i] = gamma_mediated[count][1]
+                count += 1
+        count = 0
+        for i in range(20):
+            for j in range(i, 20):
+                protein_gamma_ijm[m][i][j] = gamma_mediated[count][0]
+                protein_gamma_ijm[m][j][i] = gamma_mediated[count][0]
+                count += 1
         # residue interaction table (step(abs(resId1-resId2)-min_sequence_separation))
-        res_table = np.zeros((self.nres, self.nres))
+        res_table = np.zeros((nwell, self.nres, self.nres))
         for i in range(self.nres):
             for j in range(self.nres):
                 resId1 = i
@@ -988,10 +981,49 @@ class OpenMMAWSEMSystem:
                 resId2 = j
                 chain2 = inWhichChain(resId2, self.chain_ends)
                 if abs(resId1-resId2)-min_sequence_separation >= 0 or chain1 != chain2:
-                    res_table[i][j] = 1
+                    res_table[0][i][j] = 1
                 else:
-                    res_table[i][j] = 0
-        contact.addTabulatedFunction("res_table", Discrete2DFunction(self.nres, self.nres, res_table.T.flatten()))
+                    res_table[0][i][j] = 0
+
+
+        if z_dependent:
+            mem_gamma_direct, mem_gamma_mediated = read_gamma("membrane_gamma.dat")
+            m = 1  # membrane environment
+            count = 0
+            for i in range(20):
+                for j in range(i, 20):
+                    gamma_ijm[m][i][j] = mem_gamma_direct[count][0]*k_relative_mem
+                    gamma_ijm[m][j][i] = mem_gamma_direct[count][0]*k_relative_mem
+                    count += 1
+            count = 0
+            for i in range(20):
+                for j in range(i, 20):
+                    water_gamma_ijm[m][i][j] = mem_gamma_mediated[count][1]*k_relative_mem
+                    water_gamma_ijm[m][j][i] = mem_gamma_mediated[count][1]*k_relative_mem
+                    count += 1
+            count = 0
+            for i in range(20):
+                for j in range(i, 20):
+                    protein_gamma_ijm[m][i][j] = mem_gamma_mediated[count][0]*k_relative_mem
+                    protein_gamma_ijm[m][j][i] = mem_gamma_mediated[count][0]*k_relative_mem
+                    count += 1
+            for i in range(self.nres):
+                for j in range(self.nres):
+                    resId1 = i
+                    chain1 = inWhichChain(resId1, self.chain_ends)
+                    resId2 = j
+                    chain2 = inWhichChain(resId2, self.chain_ends)
+                    if abs(resId1-resId2)-min_sequence_separation_mem >= 0 or chain1 != chain2:
+                        res_table[m][i][j] = 1
+                    else:
+                        res_table[m][i][j] = 0
+
+        contact.addTabulatedFunction("gamma_ijm", Discrete3DFunction(nwell, 20, 20, gamma_ijm.T.flatten()))
+        contact.addTabulatedFunction("water_gamma_ijm", Discrete3DFunction(nwell, 20, 20, water_gamma_ijm.T.flatten()))
+        contact.addTabulatedFunction("protein_gamma_ijm", Discrete3DFunction(nwell, 20, 20, protein_gamma_ijm.T.flatten()))
+        contact.addTabulatedFunction("burial_gamma_ij", Discrete2DFunction(20, 3, burial_gamma.T.flatten()))
+        contact.addTabulatedFunction("res_table", Discrete3DFunction(nwell, self.nres, self.nres, res_table.T.flatten()))
+
         contact.addPerParticleParameter("resName")
         contact.addPerParticleParameter("resId")
         contact.addPerParticleParameter("isCb")
@@ -1007,7 +1039,11 @@ class OpenMMAWSEMSystem:
         contact.addGlobalParameter("burial_kappa", burial_kappa)
 
         contact.addComputedValue("rho", "step(abs(resId1-resId2)-2)*0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))", CustomGBForce.ParticlePair)
-
+        if z_dependent:
+            contact.addComputedValue("isInMembrane", f"step({z_m}-abs(z))", CustomGBForce.SingleParticle)
+        else:
+            contact.addComputedValue("isInMembrane", "0", CustomGBForce.SingleParticle)
+        # contact.addComputedValue("isInMembrane", "1", CustomGBForce.SingleParticle)
         # replace cb with ca for GLY
         cb_fixed = [x if x > 0 else y for x,y in zip(self.cb,self.ca)]
         none_cb_fixed = [i for i in range(self.natoms) if i not in cb_fixed]
@@ -1015,18 +1051,19 @@ class OpenMMAWSEMSystem:
         for i in range(self.natoms):
             contact.addParticle([gamma_se_map_1_letter[seq[self.resi[i]]], self.resi[i], int(i in cb_fixed)])
         # mediated term
-        contact.addEnergyTerm("-res_table(resId1, resId2)*k_contact*thetaII*\
-                                (sigma_water*water_gamma_ijm(0, resName1, resName2)+\
-                                sigma_protein*protein_gamma_ijm(0, resName1, resName2));\
+        contact.addEnergyTerm("-res_table(isInMembrane1*isInMembrane2, resId1, resId2)*k_contact*thetaII*\
+                                (sigma_water*water_gamma_ijm(isInMembrane1*isInMembrane2, resName1, resName2)+\
+                                sigma_protein*protein_gamma_ijm(isInMembrane1*isInMembrane2, resName1, resName2));\
                                 sigma_protein=1-sigma_water;\
                                 thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
                                 sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
                                 CustomGBForce.ParticlePair)
         # direct term
-        contact.addEnergyTerm("-res_table(resId1, resId2)*k_contact*\
-                                gamma_ijm(0, resName1, resName2)*theta;\
+        contact.addEnergyTerm("-res_table(isInMembrane1*isInMembrane2, resId1, resId2)*k_contact*\
+                                gamma_ijm(isInMembrane1*isInMembrane2, resName1, resName2)*theta;\
                                 theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))",
                                 CustomGBForce.ParticlePair)
+
         # burial term
         for i in range(3):
             contact.addGlobalParameter(f"rho_min_{i}", burial_ro_min[i])
@@ -1036,7 +1073,8 @@ class OpenMMAWSEMSystem:
                                         (tanh(burial_kappa*(rho-rho_min_{i}))+\
                                         tanh(burial_kappa*(rho_max_{i}-rho)))", CustomGBForce.SingleParticle)
 
-        print(len(none_cb_fixed), len(cb_fixed))
+        print("Number of atom: ", self.natoms, "Number of residue: ", len(cb_fixed))
+        # print(len(none_cb_fixed), len(cb_fixed))
         for e1 in none_cb_fixed:
             for e2 in none_cb_fixed:
                 if e1 > e2:
@@ -1189,6 +1227,23 @@ class OpenMMAWSEMSystem:
 
         fm.setForceGroup(19)
         return fm
+
+
+    def membrane_term(self, k_membrane=4.184, k_m=2, z_m=1.5):
+        # k_m in units of nm^-1, z_m in units of nm.
+        # add membrane forces
+        # 1 Kcal = 4.184 kJ strength by overall scaling
+        k_membrane *= self.k_awsem
+        membrane = CustomExternalForce(f"{k_membrane}*\
+                (0.5*tanh({k_m}*(z+{z_m}))+0.5*tanh({k_m}*({z_m}-z)))*hydrophobicityScale")
+        membrane.addPerParticleParameter("hydrophobicityScale")
+        zim = np.loadtxt("zim")
+        cb_fixed = [x if x > 0 else y for x,y in zip(self.cb,self.ca)]
+        for i in cb_fixed:
+            # print(self.resi[i] , self.seq[self.resi[i]])
+            membrane.addParticle(i, [zim[self.resi[i]]])
+        membrane.setForceGroup(20)
+        return membrane
 
 
     def read_memory(self, pdb_file, chain_name, target_start, fragment_start, length, weight, min_seq_sep, max_seq_sep, am_well_width=0.1):

@@ -10,7 +10,7 @@ from datetime import datetime
 import imp
 from time import sleep
 import fileinput
-from small_script.myFunctions import *
+
 
 if(platform.system() == 'Darwin'):  # Mac system (local machine)
     OPENAWSEM_LOCATION = "/Users/weilu/openmmawsem/"
@@ -20,7 +20,7 @@ else:
     print("system unknown")
 sys.path.insert(0, OPENAWSEM_LOCATION)
 from openmmawsem import *
-
+from helperFunctions.myFunctions import *
 
 # from run_parameter import *
 parser = argparse.ArgumentParser(

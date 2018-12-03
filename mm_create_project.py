@@ -4,9 +4,8 @@ import argparse
 import sys
 from time import sleep
 import subprocess
-import myPersonalFunctions
 import fileinput
-from small_script.myFunctions import *
+import platform
 
 if(platform.system() == 'Darwin'):  # Mac system (local machine)
     OPENAWSEM_LOCATION = "/Users/weilu/openmmawsem/"
@@ -16,7 +15,7 @@ else:
     print("system unknown")
 sys.path.insert(0, OPENAWSEM_LOCATION)
 from openmmawsem import *
-
+from helperFunctions.myFunctions import *
 
 parser = argparse.ArgumentParser(
     description="The goal of this python3 code is to automatically create \

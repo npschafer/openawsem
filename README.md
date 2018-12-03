@@ -20,4 +20,4 @@ compute energy and Q:
 python3 mm_analysis.py 1r69 > energy.dat
 ```
 
-Additional function used can be found in https://github.com/luwei0917/awsemmd_script
+

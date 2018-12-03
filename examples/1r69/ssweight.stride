@@ -1,0 +1,109 @@
+REM  --------------------------------------------------------------------  1R69
+REM                                                                        1R69
+REM  STRIDE: Knowledge-based secondary structure assignment                1R69
+REM  Please cite: D.Frishman & P.Argos, Proteins XX, XXX-XXX, 1995         1R69
+REM                                                                        1R69
+REM  Residue accessible surface area calculation                           1R69
+REM  Please cite: F.Eisenhaber & P.Argos, J.Comp.Chem. 14, 1272-1280, 1993 1R69
+REM               F.Eisenhaber et al., J.Comp.Chem., 1994, submitted       1R69
+REM                                                                        1R69
+REM  ------------------------ General information -----------------------  1R69
+REM                                                                        1R69
+HDR  GENE REGULATING PROTEIN                 08-DEC-88   1R69              1R69
+CMP  MOL_ID: 1;                                                            1R69
+CMP   MOLECULE: REPRESSOR PROTEIN CI;                                      1R69
+CMP   CHAIN: A;                                                            1R69
+CMP   ENGINEERED: YES                                                      1R69
+SRC  MOL_ID: 1;                                                            1R69
+SRC   ORGANISM_SCIENTIFIC: PHAGE 434;                                      1R69
+SRC   ORGANISM_TAXID: 10712                                                1R69
+AUT  A.MONDRAGON,S.SUBBIAH,S.C.ALAMO,M.DROTTAR,S.C.HARRISON                1R69
+REM                                                                        1R69
+REM  -------------------- Secondary structure summary -------------------  1R69
+REM                                                                        1R69
+CHN  crystal_structure.pdb A                                               1R69
+REM                                                                        1R69
+REM                .         .         .         .         .               1R69
+SEQ  1    SISSRVKSKRIQLGLNQAELAQKVGTTQQSIEQLENGKTKRPRFLPELAS   50          1R69
+STR        HHHHHHHHHHHH   HHHHHHHH   HHHHHHHHHTTTTTT HHHHHHH               1R69
+REM                                                                        1R69
+REM                .                                                       1R69
+SEQ  51   ALGVSVDWLLNGT                                        63          1R69
+STR       HH   HHHHHH                                                      1R69
+REM                                                                        1R69
+REM                                                                        1R69
+REM                                                                        1R69
+LOC  AlphaHelix   ILE     2 A      LEU     13 A                            1R69
+LOC  AlphaHelix   GLN    17 A      VAL     24 A                            1R69
+LOC  AlphaHelix   GLN    28 A      ASN     36 A                            1R69
+LOC  AlphaHelix   PHE    44 A      LEU     52 A                            1R69
+LOC  AlphaHelix   VAL    56 A      ASN     61 A                            1R69
+LOC  TurnVIII     GLY    37 A      LYS     40 A                            1R69
+LOC  TurnIV       THR    39 A      PRO     42 A                            1R69
+REM                                                                        1R69
+REM  --------------- Detailed secondary structure assignment-------------  1R69
+REM                                                                        1R69
+REM  |---Residue---|    |--Structure--|   |-Phi-|   |-Psi-|  |-Area-|      1R69
+ASG  SER A    1    1    C          Coil    360.00   -178.05      85.7      1R69
+ASG  ILE A    2    2    H    AlphaHelix    -62.07    -34.59      11.2      1R69
+ASG  SER A    3    3    H    AlphaHelix    -65.31    -42.47      19.2      1R69
+ASG  SER A    4    4    H    AlphaHelix    -73.51    -38.87      71.0      1R69
+ASG  ARG A    5    5    H    AlphaHelix    -66.85    -33.97      45.3      1R69
+ASG  VAL A    6    6    H    AlphaHelix    -72.06    -45.28       0.2      1R69
+ASG  LYS A    7    7    H    AlphaHelix    -60.63    -51.09      72.8      1R69
+ASG  SER A    8    8    H    AlphaHelix    -53.16    -46.14      71.9      1R69
+ASG  LYS A    9    9    H    AlphaHelix    -74.27    -41.55      49.5      1R69
+ASG  ARG A   10   10    H    AlphaHelix    -62.51    -36.37      22.4      1R69
+ASG  ILE A   11   11    H    AlphaHelix    -64.64    -42.50     107.9      1R69
+ASG  GLN A   12   12    H    AlphaHelix    -62.61    -28.83     136.6      1R69
+ASG  LEU A   13   13    H    AlphaHelix    -92.18     -8.39      91.8      1R69
+ASG  GLY A   14   14    C          Coil     74.34     39.47      58.0      1R69
+ASG  LEU A   15   15    C          Coil   -111.26    139.69      27.2      1R69
+ASG  ASN A   16   16    C          Coil    -97.43    174.77      89.4      1R69
+ASG  GLN A   17   17    H    AlphaHelix    -61.68    -36.07      39.5      1R69
+ASG  ALA A   18   18    H    AlphaHelix    -66.10    -39.69      46.3      1R69
+ASG  GLU A   19   19    H    AlphaHelix    -67.93    -39.56      81.6      1R69
+ASG  LEU A   20   20    H    AlphaHelix    -68.98    -39.79       0.0      1R69
+ASG  ALA A   21   21    H    AlphaHelix    -59.63    -50.04       4.2      1R69
+ASG  GLN A   22   22    H    AlphaHelix    -63.80    -34.52     155.9      1R69
+ASG  LYS A   23   23    H    AlphaHelix    -70.73    -37.42     147.7      1R69
+ASG  VAL A   24   24    H    AlphaHelix    -80.59    -33.27      10.4      1R69
+ASG  GLY A   25   25    C          Coil     88.48     36.64      52.6      1R69
+ASG  THR A   26   26    C          Coil   -124.20   -173.51      29.8      1R69
+ASG  THR A   27   27    C          Coil    -87.92    157.22      79.6      1R69
+ASG  GLN A   28   28    H    AlphaHelix    -62.35    -42.35      71.3      1R69
+ASG  GLN A   29   29    H    AlphaHelix    -58.57    -36.49     121.7      1R69
+ASG  SER A   30   30    H    AlphaHelix    -65.96    -38.70      27.5      1R69
+ASG  ILE A   31   31    H    AlphaHelix    -67.27    -41.14       0.2      1R69
+ASG  GLU A   32   32    H    AlphaHelix    -62.61    -43.96      71.2      1R69
+ASG  GLN A   33   33    H    AlphaHelix    -66.47    -33.32      54.9      1R69
+ASG  LEU A   34   34    H    AlphaHelix    -74.62    -38.36       0.2      1R69
+ASG  GLU A   35   35    H    AlphaHelix    -74.94    -18.04      10.1      1R69
+ASG  ASN A   36   36    H    AlphaHelix   -102.43     11.27     108.1      1R69
+ASG  GLY A   37   37    T          Turn     64.17     24.16      33.2      1R69
+ASG  LYS A   38   38    T          Turn    -82.91    -26.33     148.2      1R69
+ASG  THR A   39   39    T          Turn   -132.23    127.64      48.8      1R69
+ASG  LYS A   40   40    T          Turn   -109.57    -20.34     123.9      1R69
+ASG  ARG A   41   41    T          Turn   -136.03     67.89     181.8      1R69
+ASG  PRO A   42   42    T          Turn    -62.03    162.51      17.8      1R69
+ASG  ARG A   43   43    C          Coil    -72.86    -27.18     167.2      1R69
+ASG  PHE A   44   44    H    AlphaHelix    -91.29     34.21       7.4      1R69
+ASG  LEU A   45   45    H    AlphaHelix    -61.47    -44.92      15.8      1R69
+ASG  PRO A   46   46    H    AlphaHelix    -62.08    -39.05      80.8      1R69
+ASG  GLU A   47   47    H    AlphaHelix    -72.71    -30.82      71.5      1R69
+ASG  LEU A   48   48    H    AlphaHelix    -70.73    -42.08       0.0      1R69
+ASG  ALA A   49   49    H    AlphaHelix    -62.38    -42.71       4.8      1R69
+ASG  SER A   50   50    H    AlphaHelix    -66.32    -43.85      96.3      1R69
+ASG  ALA A   51   51    H    AlphaHelix    -67.58    -27.77      23.2      1R69
+ASG  LEU A   52   52    H    AlphaHelix    -93.94     -6.56       3.7      1R69
+ASG  GLY A   53   53    C          Coil     63.68     39.67      68.0      1R69
+ASG  VAL A   54   54    C          Coil   -134.04    172.17      31.3      1R69
+ASG  SER A   55   55    C          Coil    -88.85    162.46      62.4      1R69
+ASG  VAL A   56   56    H    AlphaHelix    -73.69    -36.51      47.9      1R69
+ASG  ASP A   57   57    H    AlphaHelix    -56.95    -52.57     105.8      1R69
+ASG  TRP A   58   58    H    AlphaHelix    -54.76    -49.14      70.6      1R69
+ASG  LEU A   59   59    H    AlphaHelix    -53.98    -53.28       0.0      1R69
+ASG  LEU A   60   60    H    AlphaHelix    -72.33    -43.75      34.2      1R69
+ASG  ASN A   61   61    H    AlphaHelix   -106.44    -29.57     111.4      1R69
+ASG  GLY A   62   62    C          Coil     84.65     21.43      27.4      1R69
+ASG  THR A   63   63    C          Coil   -145.74    360.00     149.8      1R69

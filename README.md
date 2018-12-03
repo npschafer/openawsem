@@ -2,8 +2,7 @@
 An implementation of the AWSEM coarse-grained protein folding forcefield in OpenMM
 
 Example:
-1r69.(rename pdb file to crystal_structure.pdb)
-
+1r69.
 
 steup simulation folder:
 ```

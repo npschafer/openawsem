@@ -53,6 +53,7 @@ proteinName = pdb_id = args.protein
 chain=args.chain.upper()
 pdb = f"{pdb_id}.pdb"
 
+
 if chain == "-1":
     chain = getAllChains("crystal_structure.pdb")
     print("Chains to simulate: ", chain)

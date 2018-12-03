@@ -17,6 +17,7 @@ sys.path.insert(0, OPENAWSEM_LOCATION)
 from openmmawsem import *
 from small_script.myFunctions import *
 
+
 parser = argparse.ArgumentParser(
     description="The goal of this python3 code is to automatically create \
     the project template as fast as possible. Written by Wei Lu."

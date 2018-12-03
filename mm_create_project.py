@@ -95,3 +95,6 @@ if args.frag:
     do("python2 ~/opt/script/MultCha_prepFrags_index.py \
     cullpdb_pc80_res3.0_R1.0_d160504_chains29712 %s.fasta 20 1 9 > logfile" % proteinName)
     check_and_correct_fragment_memory("frags.mem")
+
+do(f"cp {OPENAWSEM_LOCATION}mm_run.py .")
+do(f"cp {OPENAWSEM_LOCATION}mm_analysis.py .")

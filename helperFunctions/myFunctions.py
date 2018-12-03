@@ -11,7 +11,7 @@ import imp
 import subprocess
 import glob
 import re
-from small_script.myFunctions_helper import *
+from helperFunctions.myFunctions_helper import *
 import numpy as np
 import pandas as pd
 import fileinput

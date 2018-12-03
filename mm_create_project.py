@@ -78,9 +78,9 @@ input_pdb_filename, cleaned_pdb_filename = prepare_pdb(pdb, chain)
 ensure_atom_order(input_pdb_filename)
 
 
-os.system("cp /Users/weilu/opt/parameters/globular_parameters/burial_gamma.dat .")
-os.system("cp /Users/weilu/opt/parameters/globular_parameters/gamma.dat .")
-os.system("cp /Users/weilu/opt/parameters/globular_parameters/membrane_gamma.dat .")
+os.system(f"cp {OPENAWSEM_LOCATION}parameters/burial_gamma.dat .")
+os.system(f"cp {OPENAWSEM_LOCATION}parameters/gamma.dat .")
+os.system(f"cp {OPENAWSEM_LOCATION}parameters/membrane_gamma.dat .")
 
 do("python2 ~/opt/Pdb2Gro.py crystal_structure.pdb amh-go.gro")
 

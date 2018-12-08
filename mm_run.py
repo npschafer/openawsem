@@ -13,7 +13,7 @@ import fileinput
 
 
 if(platform.system() == 'Darwin'):  # Mac system (local machine)
-    OPENAWSEM_LOCATION = "/Users/weilu/openmmawsem/"
+    OPENAWSEM_LOCATION = "/Users/mingchenchen/Documents/openmmawsem/openmmawsem/"
 elif(platform.system() == 'Linux'):
     OPENAWSEM_LOCATION = '/projects/pw8/wl45/openmmawsem/'
 else:

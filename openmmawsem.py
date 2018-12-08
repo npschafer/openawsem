@@ -1433,6 +1433,7 @@ class OpenMMAWSEMSystem:
                             if atom_j in cb_list:
                                 j_index = self.cb[j]
                             structure_interaction = [i_index, j_index, [gamma_ij, r_ijN, sigma_ij]]
+                            print(i_index, j_index, gamma_ij, r_ijN, sigma_ij)
                             structure_interactions.append(structure_interaction)
         return structure_interactions
 
@@ -1449,9 +1450,51 @@ class OpenMMAWSEMSystem:
         amhgo.addPerBondParameter("sigma_ij")
         # create bonds
         structure_interactions = self.read_amhgo_structure(pdb_file, chain_name, amhgo_min_seq_sep, amhgo_contact_threshold, amhgo_well_width=amhgo_well_width)
+        print(structure_interactions)
         for structure_interaction in structure_interactions:
+            print(structure_interaction)
             amhgo.addBond(*structure_interaction)
         return amhgo
+
+    def er_term(self, k_er=4.184, er_min_seq_sep=2, er_cutoff=99.0, er_well_width=1.0):
+        ### term modified from amh-go term, and the current strength seems to be high, and needs to be lowered somehow.
+        ### amh-go normalization factor will be added soon. Based on Eastwood Wolynes 2000 JCP
+        import itertools
+        k_er *= self.k_awsem
+        # create contact force
+        er = CustomBondForce("-k_er*gamma_ij*exp(-(r-r_ijN)^2/(2*sigma_ij^2))")
+        # # add global parameters
+        er.addGlobalParameter("k_er", k_er)
+        er.addPerBondParameter("gamma_ij")
+        er.addPerBondParameter("r_ijN")
+        er.addPerBondParameter("sigma_ij")
+        structure_interactions_er = []
+        ### read in dat files from contact predictions; 
+        in_rnativeCACA = np.loadtxt('go_rnativeCACA.dat');
+        in_rnativeCACB = np.loadtxt('go_rnativeCACB.dat');
+        in_rnativeCBCB = np.loadtxt('go_rnativeCBCB.dat');
+        for i in range(self.nres):
+            for j in range(self.nres):
+                if abs(i-j) >= er_min_seq_sep and in_rnativeCACA[i][j]<er_cutoff:
+                    sigma_ij = er_well_width*abs(i-j)**0.15 # 0.1 nm = 1 A
+                    gamma_ij = 1.0
+                    r_ijN = in_rnativeCACA[i][j]/10.0*nanometers;
+                    structure_interactions_er.append([self.ca[i], self.ca[j], [gamma_ij, r_ijN, sigma_ij]])
+                if abs(i-j) >= er_min_seq_sep and in_rnativeCACB[i][j]<er_cutoff and self.cb[j]!= -1:
+                    sigma_ij = er_well_width*abs(i-j)**0.15 # 0.1 nm = 1 A
+                    gamma_ij = 1.0
+                    r_ijN = in_rnativeCACB[i][j]/10.0*nanometers;
+                    structure_interactions_er.append([self.ca[i], self.cb[j], [gamma_ij, r_ijN, sigma_ij]])
+                if abs(i-j) >= er_min_seq_sep and in_rnativeCBCB[i][j]<er_cutoff and self.cb[j]!= -1 and self.cb[i]!= -1:#self.res_type[self.resi[i]] != "IGL" and self.res_type[self.resi[j]] != "IGL":
+                    sigma_ij = er_well_width*abs(i-j)**0.15 # 0.1 nm = 1 A
+                    gamma_ij = 1.0
+                    r_ijN = in_rnativeCBCB[i][j]/10.0*nanometers;
+                    structure_interactions_er.append([self.cb[i], self.cb[j], [gamma_ij, r_ijN, sigma_ij]])
+                    #print([i, j, self.res_type[self.resi[i]], self.res_type[self.resi[j]],self.cb[i], self.cb[j], [gamma_ij, r_ijN, sigma_ij]])
+        # create bonds
+        for structure_interaction_er in structure_interactions_er:
+            er.addBond(*structure_interaction_er)
+        return er
 
     def qbias_term(self, q0, reference_pdb_file, reference_chain_name, k_qbias=10000, qbias_min_seq_sep=3, qbias_max_seq_sep=np.inf, qbias_contact_threshold=0.8*nanometers):
         qbias = CustomCVForce("0.5*k_qbias*(q-q0)^2")

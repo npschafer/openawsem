@@ -17,6 +17,4 @@ python3 mm_run.py 1r69
 compute energy and Q:
 ```
 python3 mm_analysis.py 1r69 > energy.dat
-```
-
-
+```  I 

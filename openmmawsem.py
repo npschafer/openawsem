@@ -501,10 +501,76 @@ class OpenMMAWSEMSystem:
 
         return structure_interactions
 
+    def read_reference_structure_for_q_calculation_3(self, pdb_file, min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.95*nanometers, Qflag = 0):
+        # default use all chains in pdb file.
+        # this change use the canonical Qw/Qo calculation for reference Q
+        # for Qw calculation is 0; Qo is 1;
+        structure_interactions = []
+        parser = PDBParser()
+        structure = parser.get_structure('X', pdb_file)
+        model = structure[0]
+        chain_start = 0
+        count = 0;
+        for chain in model.get_chains():
+            chain_start += count
+            count = 0
+            for i, residue_i in enumerate(chain.get_residues()):
+                #  print(i, residue_i)
+                count +=1
+                for j, residue_j in enumerate(chain.get_residues()):
+                        if abs(i-j) >= min_seq_sep and abs(i-j) <= max_seq_sep:  # taking the signed value to avoid double counting
+                            ca_i = residue_i['CA']
 
+                            ca_j = residue_j['CA']
 
+                            r_ijN = abs(ca_i - ca_j)/10.0*nanometers # convert to nm
+                            if Qflag ==1 and r_ijN >= contact_threshold: continue
+                            sigma_ij = 0.1*abs(i-j)**0.15 # 0.1 nm = 1 A
+                            gamma_ij = 1.0
+                            i_index = self.ca[i+chain_start]
+                            j_index = self.ca[j+chain_start]
+                            structure_interaction = [i_index, j_index, [gamma_ij, r_ijN, sigma_ij]]
+                            structure_interactions.append(structure_interaction)
+        return structure_interactions
 
-    def q_value(self, reference_pdb_file, reference_chain_name='A', min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.8*nanometers):
+    def read_reference_structure_for_q_calculation_4(self, contact_threshold,rnative_dat,  min_seq_sep=3, max_seq_sep=np.inf):
+        # use contact matrix for Q calculation
+        # this change use the canonical Qw/Qo calculation for reference Q
+        # for Qw calculation is 0; Qo is 1;
+        in_rnative = np.loadtxt(rnative_dat); ## read in rnative_dat file for Q calculation
+        structure_interactions = []
+        chain_start = 0
+        count = 0;
+        for i in range(self.nres):
+            chain_start += count
+            count = 0
+            for j in range(self.nres):
+                count +=1
+                if abs(i-j) >= min_seq_sep and abs(i-j) <= max_seq_sep:  # taking the signed value to avoid double counting
+                    r_ijN = in_rnative[i][j]/10.0*nanometers # convert to nm
+                    if r_ijN < contact_threshold: continue
+                    sigma_ij = 0.1*abs(i-j)**0.15 # 0.1 nm = 1 A
+                    gamma_ij = 1.0
+                    i_index = self.ca[i]
+                    j_index = self.ca[j]
+                    structure_interaction = [i_index, j_index, [gamma_ij, r_ijN, sigma_ij]]
+                    structure_interactions.append(structure_interaction)
+        return structure_interactions
+
+    def tbm_q_term(self, k_tbm_q, tbm_q_min_seq_sep = 2, tbm_q_cutoff=0.2*nanometers, tbm_q_well_width=0.1, target_q = 1.0):
+        ### Added by Mingchen Chen
+        ### this function is solely used for template based modelling from rnative.dat file
+        ### for details, refer to Chen, Lin & Lu Wolynes JCTC 2018
+        tbm_q = CustomCVForce("0.5*k_tbm_q*(q-q0)^2")
+        q = self.q_value_dat(contact_threshold=tbm_q_cutoff,rnative_dat = "rnative.dat",  min_seq_sep=tbm_q_min_seq_sep, max_seq_sep=np.inf)
+        tbm_q.addCollectiveVariable("q", q)
+        tbm_q.addGlobalParameter("k_tbm_q", k_tbm_q)
+        tbm_q.addGlobalParameter("q0", target_q)
+        tbm_q.setForceGroup(22)
+        return tbm_q
+
+    def q_value(self, reference_pdb_file, reference_chain_name='A', min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.95*nanometers):
+        ### Modified by Mingchen to compute canonical QW/QO
         # create bond force for q calculation
         qvalue = CustomBondForce("(1/normalization)*gamma_ij*exp(-(r-r_ijN)^2/(2*sigma_ij^2))")
         qvalue.addPerBondParameter("gamma_ij")
@@ -512,14 +578,31 @@ class OpenMMAWSEMSystem:
         qvalue.addPerBondParameter("sigma_ij")
         # create bonds
         # structure_interactions = self.read_reference_structure_for_q_calculation(reference_pdb_file, reference_chain_name, min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep, contact_threshold=contact_threshold)
-        structure_interactions = self.read_reference_structure_for_q_calculation_2(reference_pdb_file,
-            min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep, contact_threshold=contact_threshold)
-
+        structure_interactions = self.read_reference_structure_for_q_calculation_3(reference_pdb_file,
+            min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep, contact_threshold=contact_threshold, Qflag=0)
+        #print(len(structure_interactions))
+        #print(structure_interactions)
         qvalue.addGlobalParameter("normalization", len(structure_interactions))
         for structure_interaction in structure_interactions:
             qvalue.addBond(*structure_interaction)
         qvalue.setForceGroup(1)
         return qvalue
+
+
+    def q_value_dat(self,contact_threshold ,rnative_dat="rnative.dat",  min_seq_sep=3, max_seq_sep=np.inf):
+        ### Added by Mingchen
+        ### this function is solely used for template based modelling from rnative.dat file
+        ### for details, refer to Chen, Lin & Lu Wolynes JCTC 2018
+        qvalue_dat = CustomBondForce("(1/normalization)*gamma_ij*exp(-(r-r_ijN)^2/(2*sigma_ij^2))")
+        qvalue_dat.addPerBondParameter("gamma_ij")
+        qvalue_dat.addPerBondParameter("r_ijN")
+        qvalue_dat.addPerBondParameter("sigma_ij")
+        structure_interactions_tbm_q = self.read_reference_structure_for_q_calculation_4(contact_threshold=contact_threshold,rnative_dat="rnative.dat",  min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep)
+        qvalue_dat.addGlobalParameter("normalization", len(structure_interactions_tbm_q))
+        for structure_interaction_tbm_q in structure_interactions_tbm_q:
+            qvalue_dat.addBond(*structure_interaction_tbm_q)
+        return qvalue_dat
+
 
 
     def addForce(self, force):
@@ -1440,6 +1523,7 @@ class OpenMMAWSEMSystem:
     def additive_amhgo_term(self, pdb_file, chain_name, k_amhgo=4.184, amhgo_min_seq_sep=10, amhgo_contact_threshold=0.8*nanometers, amhgo_well_width=0.1):
         import itertools
         # multiply interaction strength by overall scaling
+        print("AMH-GO structure based term is ON")
         k_amhgo *= self.k_awsem
         # create contact force
         amhgo = CustomBondForce("-k_amhgo*gamma_ij*exp(-(r-r_ijN)^2/(2*sigma_ij^2))")
@@ -1454,11 +1538,16 @@ class OpenMMAWSEMSystem:
         for structure_interaction in structure_interactions:
             print(structure_interaction)
             amhgo.addBond(*structure_interaction)
+        #amhgo.setForceGroup(22)
         return amhgo
 
-    def er_term(self, k_er=4.184, er_min_seq_sep=2, er_cutoff=99.0, er_well_width=1.0):
+    def er_term(self, k_er=4.184, er_min_seq_sep=2, er_cutoff=99.0, er_well_width=0.1):
+        ### this is a structure prediction related term; Adapted from Sirovitz Schafer Wolynes 2017 Protein Science;
+        ### See original papers for reference: Make AWSEM AWSEM-ER with Evolutionary restrictions
+        ### ER restrictions can be obtained from multiple sources (RaptorX, deepcontact, and Gremlin)
         ### term modified from amh-go term, and the current strength seems to be high, and needs to be lowered somehow.
         ### amh-go normalization factor will be added soon. Based on Eastwood Wolynes 2000 JCP
+        print("ER term is ON")
         import itertools
         k_er *= self.k_awsem
         # create contact force
@@ -1469,7 +1558,7 @@ class OpenMMAWSEMSystem:
         er.addPerBondParameter("r_ijN")
         er.addPerBondParameter("sigma_ij")
         structure_interactions_er = []
-        ### read in dat files from contact predictions; 
+        ### read in dat files from contact predictions;
         in_rnativeCACA = np.loadtxt('go_rnativeCACA.dat');
         in_rnativeCACB = np.loadtxt('go_rnativeCACB.dat');
         in_rnativeCBCB = np.loadtxt('go_rnativeCBCB.dat');
@@ -1494,7 +1583,10 @@ class OpenMMAWSEMSystem:
         # create bonds
         for structure_interaction_er in structure_interactions_er:
             er.addBond(*structure_interaction_er)
+        er.setForceGroup(21)
         return er
+
+
 
     def qbias_term(self, q0, reference_pdb_file, reference_chain_name, k_qbias=10000, qbias_min_seq_sep=3, qbias_max_seq_sep=np.inf, qbias_contact_threshold=0.8*nanometers):
         qbias = CustomCVForce("0.5*k_qbias*(q-q0)^2")

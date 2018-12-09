@@ -7,13 +7,14 @@ import subprocess
 import fileinput
 import platform
 
-if(platform.system() == 'Darwin'):  # Mac system (local machine)
-    OPENAWSEM_LOCATION = "/Users/weilu/openmmawsem/"
-elif(platform.system() == 'Linux'):
-    OPENAWSEM_LOCATION = '/projects/pw8/wl45/openmmawsem/'
-else:
-    print("system unknown")
-sys.path.insert(0, OPENAWSEM_LOCATION)
+try:
+    OPENAWSEM_LOCATION = os.environ["OPENAWSEM_LOCATION"]
+    sys.path.insert(0, OPENAWSEM_LOCATION)
+    # print(OPENAWSEM_LOCATION)
+except KeyError:
+    print("Please set the environment variable name OPENAWSEM_LOCATION.\n Example: export OPENAWSEM_LOCATION='YOUR_OPENAWSEM_LOCATION'")
+    exit()
+
 from openmmawsem import *
 from helperFunctions.myFunctions import *
 

@@ -13,7 +13,7 @@ import fileinput
 
 
 if(platform.system() == 'Darwin'):  # Mac system (local machine)
-    OPENAWSEM_LOCATION = "/Users/weilu/openmmawsem/"
+    OPENAWSEM_LOCATION = "/Users/mingchenchen/Documents/openmmawsem/openmmawsem/"
 elif(platform.system() == 'Linux'):
     OPENAWSEM_LOCATION = '/projects/pw8/wl45/openmmawsem/'
 else:
@@ -53,6 +53,7 @@ proteinName = pdb_id = args.protein
 chain=args.chain.upper()
 pdb = f"{pdb_id}.pdb"
 
+
 if chain == "-1":
     chain = getAllChains("crystal_structure.pdb")
     print("Chains to simulate: ", chain)
@@ -61,7 +62,7 @@ input_pdb_filename, cleaned_pdb_filename = prepare_pdb(pdb, chain)
 ensure_atom_order(input_pdb_filename)
 getSeqFromCleanPdb(input_pdb_filename, chains=chain)
 
-reporter_frequency = 4000
+reporter_frequency = 10000
 oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml") # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 
 # apply forces
@@ -74,11 +75,14 @@ forces = [
     oa.rama_proline_term(),
     oa.rama_ssweight_term(),
     oa.contact_term(z_dependent=False),
-    # oa.direct_term(),
-    # oa.burial_term(),
-    # oa.mediated_term(),
-    oa.fragment_memory_term(frag_location_pre="./"),
-    # oa.membrane_term(),
+    #oa.er_term(),
+    oa.tbm_q_term(k_tbm_q=10000),
+    #oa.additive_amhgo_term(pdb_file = "1r69.pdb", chain_name="A"),
+    #oa.direct_term(),
+    #oa.burial_term(),
+    #oa.mediated_term(),
+    #oa.fragment_memory_term(frag_location_pre="./"),
+    #oa.membrane_term(),
 ]
 oa.addForces(forces)
 
@@ -96,8 +100,8 @@ simulation.reporters.append(PDBReporter("movie.pdb", reporter_frequency)) # outp
 print("Simulation Starts")
 start_time = time.time()
 
-simulation.step(int(1e6))
-# simulation.reporters.append(CheckpointReporter(checkpoint_file, checkpoint_reporter_frequency)) # save progress during the simulation
+simulation.step(int(5e5))
+simulation.reporters.append(CheckpointReporter(checkpoint_file, checkpoint_reporter_frequency)) # save progress during the simulation
 
 time_taken = time.time() - start_time  # time_taken is in seconds
 hours, rest = divmod(time_taken,3600)

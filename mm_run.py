@@ -62,6 +62,8 @@ input_pdb_filename, cleaned_pdb_filename = prepare_pdb(pdb, chain)
 ensure_atom_order(input_pdb_filename)
 getSeqFromCleanPdb(input_pdb_filename, chains=chain)
 
+
+
 reporter_frequency = 10000
 oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml") # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 
@@ -75,19 +77,21 @@ forces = [
     oa.rama_proline_term(),
     oa.rama_ssweight_term(),
     oa.contact_term(z_dependent=False),
-    #oa.er_term(),
-    oa.tbm_q_term(k_tbm_q=10000),
+    oa.er_term(),
+    oa.tbm_q_term(k_tbm_q=2000),
     #oa.additive_amhgo_term(pdb_file = "1r69.pdb", chain_name="A"),
     #oa.direct_term(),
     #oa.burial_term(),
     #oa.mediated_term(),
-    #oa.fragment_memory_term(frag_location_pre="./"),
+    oa.fragment_memory_term(frag_location_pre="./"),
     #oa.membrane_term(),
 ]
 oa.addForces(forces)
 
 # start simulation
 collision_rate = 5.0 / picoseconds
+checkpoint_file = "restart"
+checkpoint_reporter_frequency = 100000
 
 integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 2*femtoseconds)
 simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)

@@ -75,7 +75,7 @@ forces = [
     oa.contact_term(z_dependent=False),
     oa.fragment_memory_term(frag_location_pre="./"),
     oa.er_term(),
-    oa.tbm_q_term(),
+    oa.tbm_q_term(k_tbm_q=10000),
     # oa.membrane_term(),
 ]
 oa.addForcesWithDefaultForceGroup(forces)

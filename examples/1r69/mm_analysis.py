@@ -5,17 +5,17 @@ import sys
 from time import sleep
 import subprocess
 import fileinput
-
+import platform
 
 if(platform.system() == 'Darwin'):  # Mac system (local machine)
-    OPENAWSEM_LOCATION = "/Users/weilu/openmmawsem/"
+    OPENAWSEM_LOCATION = "/Users/mingchenchen/Documents/openmmawsem/openmmawsem/"
 elif(platform.system() == 'Linux'):
     OPENAWSEM_LOCATION = '/projects/pw8/wl45/openmmawsem/'
 else:
     print("system unknown")
 sys.path.insert(0, OPENAWSEM_LOCATION)
 from openmmawsem import *
-from small_script.myFunctions import *
+from myFunctions_helper import *
 
 
 parser = argparse.ArgumentParser(
@@ -61,7 +61,7 @@ oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filena
 # forceGroupTable_Rev = {11:"Con", 12:"Chain", 13:"Chi", 14:"Excluded", 15:"Rama", 16:"Direct",
 #                   17:"Burial", 18:"Mediated", 19:"Fragment"}
 forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
-                    "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "Total":list(range(11, 21)),
+                    "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "Total":list(range(11, 22)),
                     "Water":[16, 18], "Q":1}
 forces = [
     oa.q_value("crystal_structure-cleaned.pdb"),
@@ -74,6 +74,8 @@ forces = [
     oa.rama_ssweight_term(),
     oa.contact_term(z_dependent=False),
     oa.fragment_memory_term(frag_location_pre="./"),
+    oa.er_term(),
+    oa.tbm_q_term(),
     # oa.membrane_term(),
 ]
 oa.addForcesWithDefaultForceGroup(forces)
@@ -85,7 +87,7 @@ integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 2*femtoseconds)
 simulation = Simulation(oa.pdb.topology, oa.system, integrator, Platform.getPlatformByName("OpenCL"))
 
 
-showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane", "Total"]
+showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q", "Total"]
 # print("Steps", *showEnergy)
 print(" ".join(["{0:<8s}".format(i) for i in ["Steps"] + showEnergy]))
 for step, pdb in enumerate(pdb_trajectory):

@@ -1,0 +1,1 @@
+mm_create_project.py 6btc -c A

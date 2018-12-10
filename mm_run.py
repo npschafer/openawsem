@@ -76,6 +76,10 @@ forces = [
     oa.contact_term(z_dependent=False),
     oa.er_term(),
     oa.tbm_q_term(k_tbm_q=2000),
+    oa.apply_beta_term_1(),
+    oa.apply_beta_term_2(),
+    oa.apply_beta_term_3(),
+    oa.pap_term(),
     #oa.additive_amhgo_term(pdb_file = "1r69.pdb", chain_name="A"),
     #oa.direct_term(),
     #oa.burial_term(),
@@ -88,9 +92,9 @@ oa.addForces(forces)
 # start simulation
 collision_rate = 5.0 / picoseconds
 checkpoint_file = "restart"
-checkpoint_reporter_frequency = 100000
+checkpoint_reporter_frequency = 10000
 
-integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 2*femtoseconds)
+integrator = LangevinIntegrator(600*kelvin, 1/picosecond, 2*femtoseconds)
 simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
 simulation.context.setPositions(oa.pdb.positions) # set the initial positions of the atoms
 # simulation.context.setVelocitiesToTemperature(300*kelvin) # set the initial velocities of the atoms according to the desired starting temperature
@@ -101,7 +105,11 @@ simulation.reporters.append(PDBReporter("movie.pdb", reporter_frequency)) # outp
 print("Simulation Starts")
 start_time = time.time()
 
-simulation.step(int(5e5))
+for i in range(100):
+    integrator.setTemperature(3*(200-i)*kelvin)
+    simulation.step(10000)
+
+#simulation.step(int(1e6))
 simulation.reporters.append(CheckpointReporter(checkpoint_file, checkpoint_reporter_frequency)) # save progress during the simulation
 
 time_taken = time.time() - start_time  # time_taken is in seconds

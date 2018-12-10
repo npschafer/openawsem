@@ -1484,6 +1484,379 @@ class OpenMMAWSEMSystem:
 
         return am_dd
 
+    def read_beta_parameters(self):
+        ### directly copied from Nick Schafer's
+        #os.chdir(parameter_directory)
+        in_anti_HB = open("anti_HB", 'r').readlines()
+        in_anti_NHB = open("anti_NHB", 'r').readlines()
+        in_para_HB = open("para_HB", 'r').readlines()
+        in_para_one = open("para_one", 'r').readlines()
+        in_anti_one = open("anti_one", 'r').readlines()
+
+        p_par = np.zeros((20))
+        p_anti = np.zeros((20))
+        p_antihb = np.zeros((20,20,2))
+        p_antinhb = np.zeros((20,20,2))
+        p_parhb = np.zeros((20,20,2))
+
+        for i in range(20):
+            p_par[i] = float(in_para_one[i].strip())
+            p_anti[i] = float(in_anti_one[i].strip())
+            for j in range(20):
+                p_antihb[i][j][0] = float(in_anti_HB[i].strip().split()[j])
+                p_antinhb[i][j][0] = float(in_anti_NHB[i].strip().split()[j])
+                p_parhb[i][j][0] = float(in_para_HB[i].strip().split()[j])
+
+        for i in range(20):
+            for j in range(20):
+                p_antihb[i][j][1] = float(in_anti_HB[i+21].strip().split()[j])
+                p_antinhb[i][j][1] = float(in_anti_NHB[i+21].strip().split()[j])
+                p_parhb[i][j][1] = float(in_para_HB[i+21].strip().split()[j])
+        return p_par, p_anti, p_antihb, p_antinhb, p_parhb
+
+    def lambda_coefficient(self, i, j, lambda_index):
+        p_par, p_anti, p_antihb, p_antinhb, p_parhb = self.read_beta_parameters()
+        parameter_i = []
+        #print(i,j,lambda_index)
+        for ii in range(self.nres):
+            #print(self.seq[i])
+            parameter_i.append(se_map_1_letter[self.seq[ii]])
+        #print(p_antihb[parameter_i[i], parameter_i[j]][0],p_antinhb[parameter_i[i+1],parameter_i[j-1]][0],p_anti[parameter_i[i]], p_anti[parameter_i[j]])
+        lambda_2_extra_terms = -0.5*self.alpha_coefficient(parameter_i[i],parameter_i[j],1)*p_antihb[parameter_i[i], parameter_i[j]][0]-0.25*self.alpha_coefficient(parameter_i[i], parameter_i[j], 2)*(p_antinhb[parameter_i[i+1],parameter_i[j-1]][0] + p_antinhb[parameter_i[i-1],parameter_i[j+1]][0])-self.alpha_coefficient(parameter_i[i], parameter_i[j], 3)*(p_anti[parameter_i[i]]+p_anti[parameter_i[j]])
+        lambda_3_extra_terms = -self.alpha_coefficient(parameter_i[i],parameter_i[j], 4)*p_parhb[parameter_i[i+1],parameter_i[j]][0]-self.alpha_coefficient(parameter_i[i],parameter_i[j],5)*p_par[parameter_i[i+1]]+self.alpha_coefficient(parameter_i[i],parameter_i[j],4)*p_par[parameter_i[j]]
+        if abs(j-i) >= 4 and abs(j-i) < 18:
+            if lambda_index == 1:
+                return 1.37
+            elif lambda_index == 2:
+                return 3.89+lambda_2_extra_terms
+            elif lambda_index == 3:
+                return 0.0+lambda_3_extra_terms
+        elif abs(j-i) >= 18 and abs(j-i) < 45:
+            if lambda_index == 1:
+                return 1.36
+            elif lambda_index == 2:
+                return 3.50+lambda_2_extra_terms
+            elif lambda_index == 3:
+                return 3.47+lambda_3_extra_terms
+        elif abs(j-i) >= 45:
+            if lambda_index == 1:
+                return 1.17
+            elif lambda_index == 2:
+                return 3.52+lambda_2_extra_terms
+            elif lambda_index == 3:
+                return 3.62+lambda_3_extra_terms
+        elif abs(j-i) < 4:
+            return 0.0
+
+    def alpha_coefficient(self, i,j, alpha_index):
+        if abs(j-i) >= 4 and abs(j-i) < 18:
+            if alpha_index == 1:
+                return 1.3
+            if alpha_index == 2:
+                return 1.32
+            if alpha_index == 3:
+                return 1.22
+            if alpha_index == 4:
+                return 0.0
+            if alpha_index == 5:
+                return 0.0
+        elif abs(j-i) >= 18 and abs(j-i) < 45:
+            if alpha_index == 1:
+                return 1.3
+            if alpha_index == 2:
+                return 1.32
+            if alpha_index == 3:
+                return 1.22
+            if alpha_index == 4:
+                return 0.33
+            if alpha_index == 5:
+                return 1.01
+        elif abs(j-i) >= 45:
+            if alpha_index == 1:
+                return 1.3
+            if alpha_index == 2:
+                return 1.32
+            if alpha_index == 3:
+                return 1.22
+            if alpha_index == 4:
+                return 0.33
+            if alpha_index == 5:
+                return 1.01
+        elif abs(j-i) <4:
+            return 0.0
+    def apply_beta_term_1(self):
+            nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi, res_names = self.nres, self.n, self.h, self.ca, self.c, self.o, self.cb, self.res_type, self.natoms, self.bonds, self.resi, self.residues
+
+
+            # add beta potential
+            # setup parameters
+            k_beta = 0.5*4.184
+            lambda_1 = [0]*nres*nres
+            #lambda_2 = [0]*nres*nres
+            #lambda_3 = [0]*nres*nres
+            for i in range(1,nres-1):
+                for j in range(1,nres-1):
+                    #print(i,j)
+                    if abs(j-i) < 4: continue
+                    lambda_1[i+j*nres] = self.lambda_coefficient(i,j,1)
+
+                    #lambda_2[i+j*nres] = 1 #lambda_coefficient(i,j,2)
+                    #lambda_3[i+j*nres] = 1 #lambda_coefficient(i,j,3)
+            #print(lambda_1)
+            r_ON = .298
+            sigma_NO = .068
+            r_OH = .206
+            sigma_HO = .076
+            eta_beta_1 = 10.0
+            eta_beta_2 = 5.0
+            r_HB_c = 0.2
+
+            theta_ij =   "exp(-(r_Oi_Nj-r_ON)^2/(2*sigma_NO^2)-(r_Oi_Hj-r_OH)^2/(2*sigma_HO^2))"
+            theta_ji =   "exp(-(r_Oj_Ni-r_ON)^2/(2*sigma_NO^2)-(r_Oj_Hi-r_OH)^2/(2*sigma_HO^2))"
+            theta_jip2 = "exp(-(r_Oj_Nip2-r_ON)^2/(2*sigma_NO^2)-(r_Oj_Hip2-r_OH)^2/(2*sigma_HO^2))"
+            nu_i = "0.5*(1+tanh(eta_beta_1*(r_CAim2_CAip2-r_HB_c)))"
+            nu_j = "0.5*(1+tanh(eta_beta_2*(r_CAjm2_CAjp2-r_HB_c)))"
+
+            # Oi Nj Hj CAi-2 CAi+2 CAj-2 CAj+2
+            # 1  2  3  4     5     6     7
+            beta_string_1 = "-k_beta*lambda_1(index_i,index_j)*theta_ij*nu_i*nu_j;theta_ij=%s;r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
+                            nu_i=%s;nu_j=%s;r_CAim2_CAip2=distance(p4,p5);r_CAjm2_CAjp2=distance(p6,p7)" % (theta_ij, nu_i, nu_j)
+
+            beta_1 = CustomCompoundBondForce(7, beta_string_1)
+            #beta_2 = CustomCompoundBondForce(10, beta_string_2)
+            #beta_3 = CustomCompoundBondForce(10, beta_string_3)
+            # add parameters to force
+            beta_1.addGlobalParameter("k_beta", k_beta)
+            beta_1.addGlobalParameter("r_ON", r_ON)
+            beta_1.addGlobalParameter("sigma_NO", sigma_NO)
+            beta_1.addGlobalParameter("r_OH", r_OH)
+            beta_1.addGlobalParameter("sigma_HO", sigma_HO)
+            beta_1.addGlobalParameter("eta_beta_1", eta_beta_1)
+            beta_1.addGlobalParameter("eta_beta_2", eta_beta_2)
+            beta_1.addGlobalParameter("r_HB_c", r_HB_c)
+            beta_1.addPerBondParameter("index_i")
+            beta_1.addPerBondParameter("index_j")
+            beta_1.addTabulatedFunction("lambda_1", Discrete2DFunction(nres, nres, lambda_1))
+            #beta_2.addTabulatedFunction("lambda_2", Discrete2DFunction(nres, nres, lambda_2))
+            #beta_3.addTabulatedFunction("lambda_3", Discrete2DFunction(nres, nres, lambda_3))
+
+            for i in range(nres):
+                for j in range(i, nres):
+                    if i-2 < 0 or i+2 >= nres or \
+                       j-2 < 0 or j+2 >= nres:
+                       continue
+                    if not res_type[j] == "IPR":
+                        beta_1.addBond([o[i], n[j], h[j], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
+                    #if not res_type[i] == "IPR" and not res_type[j] == "IPR":
+                    #    beta_2.addBond([o[i], n[j], h[j], o[j], n[i], h[i], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
+                    #if not res_type[i+2] == "IPR" and not res_type[j] == "IPR":
+                    #    beta_3.addBond([o[i], n[j], h[j], o[j], n[i+2], h[i+2], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
+
+            beta_1.setForceGroup(23)
+            #beta_2.setForceGroup(24)
+            #beta_3.setForceGroup(25)
+            return beta_1
+
+    def apply_beta_term_2(self):
+            nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi, res_names = self.nres, self.n, self.h, self.ca, self.c, self.o, self.cb, self.res_type, self.natoms, self.bonds, self.resi, self.residues
+            # add beta potential
+            # setup parameters
+            k_beta = 0.5*4.184
+            #lambda_1 = [0]*nres*nres
+            lambda_2 = [0]*nres*nres
+            #lambda_3 = [0]*nres*nres
+            for i in range(1,nres-1):
+                for j in range(1,nres-1):
+                    if abs(j-i) < 4: continue
+                    #lambda_1[i+j*nres] = 1 #lambda_coefficient(i,j,1)
+                    lambda_2[i+j*nres] = self.lambda_coefficient(i,j,2)
+                    #lambda_3[i+j*nres] = 1 #lambda_coefficient(i,j,3)
+
+            r_ON = .298
+            sigma_NO = .068
+            r_OH = .206
+            sigma_HO = .076
+            eta_beta_1 = 10.0
+            eta_beta_2 = 5.0
+            r_HB_c = 0.2
+
+            theta_ij =   "exp(-(r_Oi_Nj-r_ON)^2/(2*sigma_NO^2)-(r_Oi_Hj-r_OH)^2/(2*sigma_HO^2))"
+            theta_ji =   "exp(-(r_Oj_Ni-r_ON)^2/(2*sigma_NO^2)-(r_Oj_Hi-r_OH)^2/(2*sigma_HO^2))"
+            theta_jip2 = "exp(-(r_Oj_Nip2-r_ON)^2/(2*sigma_NO^2)-(r_Oj_Hip2-r_OH)^2/(2*sigma_HO^2))"
+            nu_i = "0.5*(1+tanh(eta_beta_1*(r_CAim2_CAip2-r_HB_c)))"
+            nu_j = "0.5*(1+tanh(eta_beta_2*(r_CAjm2_CAjp2-r_HB_c)))"
+
+            # Oi Nj Hj CAi-2 CAi+2 CAj-2 CAj+2
+            # 1  2  3  4     5     6     7
+            #beta_string_1 = "-k_beta*lambda_1(index_i,index_j)*theta_ij*nu_i*nu_j;theta_ij=%s;r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
+            #                nu_i=%s;nu_j=%s;r_CAim2_CAip2=distance(p4,p5);r_CAjm2_CAjp2=distance(p6,p7)" % (theta_ij, nu_i, nu_j)
+
+            # Oi Nj Hj Oj Ni Hi CAi-2 CAi+2 CAj-2 CAj+2
+            # 1  2  3  4  5  6  7     8     9     10
+            beta_string_2 = "-k_beta*lambda_2(index_i,index_j)*theta_ij*theta_ji*nu_i*nu_j;\
+                            theta_ij=%s;r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
+                            theta_ji=%s;r_Oj_Ni=distance(p4,p5);r_Oj_Hi=distance(p4,p6);\
+                            nu_i=%s;nu_j=%s;r_CAim2_CAip2=distance(p7,p8);r_CAjm2_CAjp2=distance(p9,p10)" % (theta_ij, theta_ji, nu_i, nu_j)
+
+            # Oi Nj Hj Oj Ni+2 Hi+2 CAi-2 CAi+2 CAj-2 CAj+2
+            # 1  2  3  4  5    6    7     8     9     10
+            #beta_string_3 = "-k_beta*lambda_3(index_i,index_j)*theta_ij*theta_jip2*nu_i*nu_j;\
+            #                theta_ij=%s;r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
+            #                theta_ji=%s;r_Oj_Ni=distance(p4,p5);r_Oj_Hi=distance(p4,p6);\
+            #                theta_jip2=%s;r_Oj_Nip2=distance(p4,p5);r_Oj_Hip2=distance(p4,p6);\
+            #                nu_i=%s;nu_j=%s;r_CAim2_CAip2=distance(p7,p8);r_CAjm2_CAjp2=distance(p9,p10)" % (theta_ij, theta_ji, theta_jip2, nu_i, nu_j)
+
+            #beta_1 = CustomCompoundBondForce(7, beta_string_1)
+            beta_2 = CustomCompoundBondForce(10, beta_string_2)
+            #beta_3 = CustomCompoundBondForce(10, beta_string_3)
+            # add parameters to force
+            beta_2.addGlobalParameter("k_beta", k_beta)
+            beta_2.addGlobalParameter("r_ON", r_ON)
+            beta_2.addGlobalParameter("sigma_NO", sigma_NO)
+            beta_2.addGlobalParameter("r_OH", r_OH)
+            beta_2.addGlobalParameter("sigma_HO", sigma_HO)
+            beta_2.addGlobalParameter("eta_beta_1", eta_beta_1)
+            beta_2.addGlobalParameter("eta_beta_2", eta_beta_2)
+            beta_2.addGlobalParameter("r_HB_c", r_HB_c)
+            beta_2.addPerBondParameter("index_i")
+            beta_2.addPerBondParameter("index_j")
+            beta_2.addTabulatedFunction("lambda_2", Discrete2DFunction(nres, nres, lambda_2))
+
+
+            for i in range(nres):
+                for j in range(i, nres):
+                    if i-2 < 0 or i+2 >= nres or \
+                       j-2 < 0 or j+2 >= nres:
+                       continue
+                    #if not res_type[j] == "IPR":
+                    #    beta_1.addBond([o[i], n[j], h[j], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
+                    if not res_type[i] == "IPR" and not res_type[j] == "IPR":
+                        beta_2.addBond([o[i], n[j], h[j], o[j], n[i], h[i], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
+                    #if not res_type[i+2] == "IPR" and not res_type[j] == "IPR":
+                    #    beta_3.addBond([o[i], n[j], h[j], o[j], n[i+2], h[i+2], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
+
+
+            #beta_1.setForceGroup(23)
+            beta_2.setForceGroup(24)
+            #beta_3.setForceGroup(25)
+            return beta_2
+
+
+    def apply_beta_term_3(self):
+            nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi, res_names = self.nres, self.n, self.h, self.ca, self.c, self.o, self.cb, self.res_type, self.natoms, self.bonds, self.resi, self.residues
+            # add beta potential
+            # setup parameters
+            k_beta = 0.5*4.184
+            lambda_3 = [0]*nres*nres
+            for i in range(1,nres-1):
+                for j in range(1,nres-1):
+                    if abs(j-i) < 4: continue
+                    lambda_3[i+j*nres] = self.lambda_coefficient(i,j,3)
+
+            r_ON = .298
+            sigma_NO = .068
+            r_OH = .206
+            sigma_HO = .076
+            eta_beta_1 = 10.0
+            eta_beta_2 = 5.0
+            r_HB_c = 0.2
+
+            theta_ij =   "exp(-(r_Oi_Nj-r_ON)^2/(2*sigma_NO^2)-(r_Oi_Hj-r_OH)^2/(2*sigma_HO^2))"
+            theta_ji =   "exp(-(r_Oj_Ni-r_ON)^2/(2*sigma_NO^2)-(r_Oj_Hi-r_OH)^2/(2*sigma_HO^2))"
+            theta_jip2 = "exp(-(r_Oj_Nip2-r_ON)^2/(2*sigma_NO^2)-(r_Oj_Hip2-r_OH)^2/(2*sigma_HO^2))"
+            nu_i = "0.5*(1+tanh(eta_beta_1*(r_CAim2_CAip2-r_HB_c)))"
+            nu_j = "0.5*(1+tanh(eta_beta_2*(r_CAjm2_CAjp2-r_HB_c)))"
+
+            # Oi Nj Hj CAi-2 CAi+2 CAj-2 CAj+2
+            # 1  2  3  4     5     6     7
+            #beta_string_1 = "-k_beta*lambda_1(index_i,index_j)*theta_ij*nu_i*nu_j;theta_ij=%s;r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
+            #                nu_i=%s;nu_j=%s;r_CAim2_CAip2=distance(p4,p5);r_CAjm2_CAjp2=distance(p6,p7)" % (theta_ij, nu_i, nu_j)
+
+            # Oi Nj Hj Oj Ni Hi CAi-2 CAi+2 CAj-2 CAj+2
+            # 1  2  3  4  5  6  7     8     9     10
+            #beta_string_2 = "-k_beta*lambda_2(index_i,index_j)*theta_ij*theta_ji*nu_i*nu_j;\
+            #                theta_ij=%s;r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
+            #                theta_ji=%s;r_Oj_Ni=distance(p4,p5);r_Oj_Hi=distance(p4,p6);\
+            #                nu_i=%s;nu_j=%s;r_CAim2_CAip2=distance(p7,p8);r_CAjm2_CAjp2=distance(p9,p10)" % (theta_ij, theta_ji, nu_i, nu_j)
+
+            # Oi Nj Hj Oj Ni+2 Hi+2 CAi-2 CAi+2 CAj-2 CAj+2
+            # 1  2  3  4  5    6    7     8     9     10
+            beta_string_3 = "-k_beta*lambda_3(index_i,index_j)*theta_ij*theta_jip2*nu_i*nu_j;\
+                            theta_ij=%s;r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
+                            theta_ji=%s;r_Oj_Ni=distance(p4,p5);r_Oj_Hi=distance(p4,p6);\
+                            theta_jip2=%s;r_Oj_Nip2=distance(p4,p5);r_Oj_Hip2=distance(p4,p6);\
+                            nu_i=%s;nu_j=%s;r_CAim2_CAip2=distance(p7,p8);r_CAjm2_CAjp2=distance(p9,p10)" % (theta_ij, theta_ji, theta_jip2, nu_i, nu_j)
+
+            beta_3 = CustomCompoundBondForce(10, beta_string_3)
+            # add parameters to force
+            beta_3.addGlobalParameter("k_beta", k_beta)
+            beta_3.addGlobalParameter("r_ON", r_ON)
+            beta_3.addGlobalParameter("sigma_NO", sigma_NO)
+            beta_3.addGlobalParameter("r_OH", r_OH)
+            beta_3.addGlobalParameter("sigma_HO", sigma_HO)
+            beta_3.addGlobalParameter("eta_beta_1", eta_beta_1)
+            beta_3.addGlobalParameter("eta_beta_2", eta_beta_2)
+            beta_3.addGlobalParameter("r_HB_c", r_HB_c)
+            beta_3.addPerBondParameter("index_i")
+            beta_3.addPerBondParameter("index_j")
+            beta_3.addTabulatedFunction("lambda_3", Discrete2DFunction(nres, nres, lambda_3))
+
+            for i in range(nres):
+                for j in range(i, nres):
+                    if i-2 < 0 or i+2 >= nres or \
+                       j-2 < 0 or j+2 >= nres:
+                       continue
+                    #if not res_type[j] == "IPR":
+                    #    beta_1.addBond([o[i], n[j], h[j], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
+                    #if not res_type[i] == "IPR" and not res_type[j] == "IPR":
+                    #    beta_2.addBond([o[i], n[j], h[j], o[j], n[i], h[i], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
+                    if not res_type[i+2] == "IPR" and not res_type[j] == "IPR":
+                        beta_3.addBond([o[i], n[j], h[j], o[j], n[i+2], h[i+2], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
+
+
+            #beta_1.setForceGroup(23)
+            #beta_2.setForceGroup(24)
+            beta_3.setForceGroup(25)
+            return beta_3
+    def pap_term(self):
+        nres, n, h, ca, c, o, cb, res_type, natoms, bonds, resi, res_names = self.nres, self.n, self.h, self.ca, self.c, self.o, self.cb, self.res_type, self.natoms, self.bonds, self.resi, self.residues
+
+        pap_function = "-k_pap*gamma*0.5*(1+tanh(eta_pap*(r0-distance(p1,p2))))*0.5*(1+tanh(eta_pap*(r0-distance(p3,p4))))"
+        # setup parameters
+        k_pap = 10.0*4.184
+        r0 = 0.8 # nm
+        eta_pap = 70 # nm^-1
+        gamma_aph = 1.0*4.184
+        gamma_ap = 0.4*4.184
+        gamma_p = 0.4*4.184
+
+        pap = CustomCompoundBondForce(4, pap_function)
+        pap.addGlobalParameter("k_pap", k_pap)
+        pap.addGlobalParameter("r0", r0)
+        pap.addGlobalParameter("eta_pap", eta_pap)
+        pap.addPerBondParameter("gamma")
+
+        for i in range(nres):
+            for j in range(nres):
+                # anti-parallel hairpin for i from 1 to N-13 and j from i+13 to min(i+16,N)
+                # CAi CAj CAi+4 CAj-4
+                # 1   2   3     4
+                if i <= nres-13 and j >= i+13 and j <= min(i+16,nres):
+                    pap.addBond([ca[i], ca[j], ca[i+4], ca[j-4]], [gamma_aph])
+                # anti-parallel for i from 1 to N-17 and j from i+17 to N
+                # CAi CAj CAi+4 CAj-4
+                # 1   2   3     4
+                if i <= nres-17 and j >= i+17 and j <= nres:
+                    pap.addBond([ca[i], ca[j], ca[i+4], ca[j-4]], [gamma_ap])
+                # parallel for i from 1 to N-13 and j from i+9 to N-4
+                # CAi CAj CAi+4 CAj+4
+                # 1   2   3     4
+                if i <= nres-13 and j >= i+9 and j <= nres-4:
+                    pap.addBond([ca[i], ca[j], ca[i+4], ca[j-4]], [gamma_p])
+
+        pap.setForceGroup(26)
+        return pap
+
     def read_amhgo_structure(self, pdb_file, chain_name, amhgo_min_seq_sep=4, amhgo_contact_threshold=0.8*nanometers, amhgo_well_width=0.1):
         structure_interactions = []
         parser = PDBParser()

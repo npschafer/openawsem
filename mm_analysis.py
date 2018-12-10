@@ -56,14 +56,18 @@ ensure_atom_order(input_pdb_filename, quiet=1)
 
 
 pdb_trajectory = read_trajectory_pdb_positions("movie.pdb")
-oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filename=OPENAWSEM_LOCATION+"awsem.xml") # k_awsem is an overall scaling factor that will affect the relevant temperature scales
+oa = OpenMMAWSEMSystem("t0958-openmmawsem.pdb", chains=chain, k_awsem=1.0, xml_filename=OPENAWSEM_LOCATION+"awsem.xml") # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 
 # apply forces
 # forceGroupTable_Rev = {11:"Con", 12:"Chain", 13:"Chi", 14:"Excluded", 15:"Rama", 16:"Direct",
 #                   17:"Burial", 18:"Mediated", 19:"Fragment"}
 forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
-                    "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "Total":list(range(11, 22)),
-                    "Water":[16, 18], "Q":1}
+                    "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "beta_2":24,"beta_3":25,"pap":26, "Total":list(range(11, 27)),
+                    "Water":[16, 18], "beta":[23, 24, 25], "pap":26, "Q":1}
+#forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
+#                    "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "Total":list(range(11, 26)),
+#                    "Water":[16, 18], "beta":[23, 24, 25], "Q":1}
+
 forces = [
     oa.q_value("crystal_structure-cleaned.pdb"),
     oa.con_term(),
@@ -74,9 +78,13 @@ forces = [
     oa.rama_proline_term(),
     oa.rama_ssweight_term(),
     oa.contact_term(z_dependent=False),
+    oa.apply_beta_term_1(),
+    oa.apply_beta_term_2(),
+    oa.apply_beta_term_3(),
+    oa.pap_term(),
     oa.fragment_memory_term(frag_location_pre="./"),
     oa.er_term(),
-    oa.tbm_q_term(k_tbm_q=10000),
+    oa.tbm_q_term(k_tbm_q=2000),
     # oa.membrane_term(),
 ]
 oa.addForcesWithDefaultForceGroup(forces)
@@ -87,8 +95,8 @@ collision_rate = 5.0 / picoseconds
 integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 2*femtoseconds)
 simulation = Simulation(oa.pdb.topology, oa.system, integrator, Platform.getPlatformByName("OpenCL"))
 
-
-showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q", "Total"]
+#showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q","beta_1", "Total"]
+showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q","beta_1","beta_2","beta_3","pap", "Total"]
 # print("Steps", *showEnergy)
 print(" ".join(["{0:<8s}".format(i) for i in ["Steps"] + showEnergy]))
 for step, pdb in enumerate(pdb_trajectory):

@@ -58,7 +58,7 @@ if chain == "-1":
 input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
 
 pdb_trajectory = read_trajectory_pdb_positions("movie.pdb")
-oa = OpenMMAWSEMSystem("t0958-openmmawsem.pdb", chains=chain, k_awsem=1.0, xml_filename=OPENAWSEM_LOCATION+"awsem.xml") # k_awsem is an overall scaling factor that will affect the relevant temperature scales
+oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filename=OPENAWSEM_LOCATION+"awsem.xml") # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 
 # apply forces
 # forceGroupTable_Rev = {11:"Con", 12:"Chain", 13:"Chi", 14:"Excluded", 15:"Rama", 16:"Direct",

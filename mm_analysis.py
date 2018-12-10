@@ -50,10 +50,12 @@ with open('analysis_commandline_args.txt', 'w') as f:
     f.write(' '.join(sys.argv))
     f.write('\n')
 
-# for compute Q
-input_pdb_filename, cleaned_pdb_filename = prepare_pdb("crystal_structure.pdb", chain)
-ensure_atom_order(input_pdb_filename, quiet=1)
+if chain == "-1":
+    chain = getAllChains("crystal_structure.pdb")
+    print("Chains to simulate: ", chain)
 
+# for compute Q
+input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
 
 pdb_trajectory = read_trajectory_pdb_positions("movie.pdb")
 oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filename=OPENAWSEM_LOCATION+"awsem.xml") # k_awsem is an overall scaling factor that will affect the relevant temperature scales

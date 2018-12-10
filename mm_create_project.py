@@ -66,10 +66,10 @@ if chain == "-1":
 input_pdb_filename, cleaned_pdb_filename = prepare_pdb("crystal_structure.pdb", chain)
 ensure_atom_order(input_pdb_filename)
 # get fasta, pdb, seq file ready
-getSeqFromCleanPdb(input_pdb_filename, chains=chain)
+getSeqFromCleanPdb(input_pdb_filename, chains=chain, writeFastaFile=True)
+do(f"cp crystal_structure.fasta {pdb_id}.fasta")
 
 if not args.crystal:
-    do(f"cp crystal_structure.fasta {pdb_id}.fasta")
     do("~/opt/fasta2pdb.py "+proteinName)
     add_chain_to_pymol_pdb(pdb)  # only work for one chain only now
 else:
@@ -77,7 +77,6 @@ else:
 
 input_pdb_filename, cleaned_pdb_filename = prepare_pdb(pdb, chain)
 ensure_atom_order(input_pdb_filename)
-
 
 os.system(f"cp {OPENAWSEM_LOCATION}parameters/burial_gamma.dat .")
 os.system(f"cp {OPENAWSEM_LOCATION}parameters/gamma.dat .")

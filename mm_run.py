@@ -59,11 +59,7 @@ if chain == "-1":
     chain = getAllChains("crystal_structure.pdb")
     print("Chains to simulate: ", chain)
 
-input_pdb_filename, cleaned_pdb_filename = prepare_pdb(pdb, chain)
-ensure_atom_order(input_pdb_filename)
-getSeqFromCleanPdb(input_pdb_filename, chains=chain)
-
-
+input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
 
 reporter_frequency = 10000
 oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml") # k_awsem is an overall scaling factor that will affect the relevant temperature scales

@@ -316,7 +316,7 @@ def read_gamma(gammaFile):
     return gamma_direct, gamma_mediated
 
 
-def getSeqFromCleanPdb(input_pdb_filename, chains='A'):
+def getSeqFromCleanPdb(input_pdb_filename, chains='A', writeFastaFile=False):
     cleaned_pdb_filename = input_pdb_filename.replace("openmmawsem.pdb", "cleaned.pdb")
     pdb = input_pdb_filename.replace("-openmmawsem.pdb", "")
     fastaFile = pdb + ".fasta"
@@ -327,15 +327,24 @@ def getSeqFromCleanPdb(input_pdb_filename, chains='A'):
     s = PDBParser().get_structure("X", cleaned_pdb_filename)
     m = s[0] # model 0
     seq = ""
-    with open(fastaFile, "w") as out:
+    if writeFastaFile:
+        with open(fastaFile, "w") as out:
+            for chain in chains:
+                out.write(f">{pdb.upper()}:{chain.upper()}|PDBID|CHAIN|SEQUENCE\n")
+                c = m[chain]
+                chain_seq = ""
+                for residue in c:
+                    residue_name = residue.get_resname()
+                    chain_seq += ThreeToOne[residue_name]
+                out.write("\n".join(textwrap.wrap(chain_seq, width=80))+"\n")
+                seq += chain_seq
+    else:
         for chain in chains:
-            out.write(f">{pdb.upper()}:{chain.upper()}|PDBID|CHAIN|SEQUENCE\n")
             c = m[chain]
             chain_seq = ""
             for residue in c:
                 residue_name = residue.get_resname()
                 chain_seq += ThreeToOne[residue_name]
-            out.write("\n".join(textwrap.wrap(chain_seq, width=80))+"\n")
             seq += chain_seq
     return seq
 

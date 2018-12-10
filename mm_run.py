@@ -114,7 +114,11 @@ simulation.context.setPositions(oa.pdb.positions) # set the initial positions of
 # simulation.context.setVelocitiesToTemperature(300*kelvin) # set the initial velocities of the atoms according to the desired starting temperature
 simulation.minimizeEnergy() # first, minimize the energy to a local minimum to reduce any large forces that might be present
 simulation.reporters.append(StateDataReporter(stdout, reporter_frequency, step=True, potentialEnergy=True, temperature=True)) # output energy and temperature during simulation
+<<<<<<< HEAD
 simulation.reporters.append(PDBReporter(os.path.join(args.to, "movie.pdb"), reporter_frequency))  # output PDBs of simulated structures
+=======
+simulation.reporters.append(PDBReporter(pdb, reporter_frequency)) # output PDBs of simulated structures
+>>>>>>> 62f52e752dd5a80c6af7f94b191cee64dcc0c365
 
 print("Simulation Starts")
 start_time = time.time()

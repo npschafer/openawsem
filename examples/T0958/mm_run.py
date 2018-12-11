@@ -81,7 +81,7 @@ forces = [
     oa.tbm_q_term(k_tbm_q=2000),
     oa.apply_beta_term_1(),
     oa.apply_beta_term_2(),
-    oa.apply_beta_term_3(),
+    #oa.apply_beta_term_3(),
     oa.pap_term(),
     #oa.additive_amhgo_term(pdb_file = "1r69.pdb", chain_name="A"),
     #oa.direct_term(),

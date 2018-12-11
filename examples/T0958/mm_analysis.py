@@ -53,8 +53,8 @@ with open('analysis_commandline_args.txt', 'w') as f:
 input_pdb_filename, cleaned_pdb_filename = prepare_pdb("crystal_structure.pdb", chain)
 ensure_atom_order(input_pdb_filename, quiet=1)
 
-
 pdb_trajectory = read_trajectory_pdb_positions("movie.pdb")
+#pdb_trajectory = read_trajectory_pdb_positions("openmmMovie.pdb")
 oa = OpenMMAWSEMSystem("t0958-openmmawsem.pdb", chains=chain, k_awsem=1.0, xml_filename=OPENAWSEM_LOCATION+"awsem.xml") # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 
 # apply forces

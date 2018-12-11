@@ -1,4 +1,6 @@
 # openmmawsem
+We are still in beta. all codes are subject to changes.
+
 An implementation of the AWSEM coarse-grained protein folding forcefield in OpenMM
 
 Example:

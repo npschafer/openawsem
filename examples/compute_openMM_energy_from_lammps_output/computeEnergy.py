@@ -20,13 +20,19 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.interpolate import griddata
 import matplotlib as mpl
-sys.path.insert(0,'..')
+
 # from notebookFunctions import *
 # from .. import notebookFunctions
 
 
 import sys
-sys.path.insert(0, '/Users/weilu/openmmawsem/')
+try:
+    OPENAWSEM_LOCATION = os.environ["OPENAWSEM_LOCATION"]
+    sys.path.insert(0, OPENAWSEM_LOCATION)
+    # print(OPENAWSEM_LOCATION)
+except KeyError:
+    print("Please set the environment variable name OPENAWSEM_LOCATION.\n Example: export OPENAWSEM_LOCATION='YOUR_OPENAWSEM_LOCATION'")
+    exit()
 
 from openmmawsem import *
 
@@ -36,23 +42,22 @@ pdb_id = '1r69'
 pdb = f"{pdb_id}.pdb"
 chain='T'
 
-# download(pdb_id)
-os.system("cp /Users/weilu/opt/parameters/globular_parameters/burial_gamma.dat .")
-os.system("cp /Users/weilu/opt/parameters/globular_parameters/gamma.dat .")
-input_pdb_filename, cleaned_pdb_filename = prepare_pdb(pdb, chain)
+# input_pdb_filename, cleaned_pdb_filename = prepare_pdb(pdb, chain)
+input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
 # ensure_atom_order(input_pdb_filename)
 # getSeqFromCleanPdb(input_pdb_filename, chains='A')
 
+
 # ensure_atom_order(input_pdb_filename)
-a = open(pdb).read().split("END")
-os.system("rm openmmMovie.pdb")
-os.system(f"echo 'REMARK converted from awsem lammps output' >> openmmMovie.pdb")
-for i in range(30):
-    with open("tmp.pdb", "w") as out:
-        out.write(a[i])
-    input_pdb_filename, cleaned_pdb_filename =prepare_pdb("tmp.pdb", chain)
-    os.system(f"echo 'MODEL  {i+1}' >> openmmMovie.pdb")
-    os.system("cat tmp-openmmawsem.pdb >> openmmMovie.pdb")
+# a = open(pdb).read().split("END")
+# os.system("rm openmmMovie.pdb")
+# os.system(f"echo 'REMARK converted from awsem lammps output' >> openmmMovie.pdb")
+# for i in range(30):
+#     with open("tmp.pdb", "w") as out:
+#         out.write(a[i])
+#     input_pdb_filename, cleaned_pdb_filename =prepare_pdb("tmp.pdb", chain)
+#     os.system(f"echo 'MODEL  {i+1}' >> openmmMovie.pdb")
+#     os.system("cat tmp-openmmawsem.pdb >> openmmMovie.pdb")
 
 pdb_trajectory = read_trajectory_pdb_positions("openmmMovie.pdb")
 oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, xml_filename="../../awsem.xml") # k_awsem is an overall scaling factor that will affect the relevant temperature scales
@@ -73,7 +78,7 @@ forces = [
     oa.direct_term(),
     oa.burial_term(),
     oa.mediated_term(),
-    # oa.fragment_memory_term(frag_location_pre="./")
+    oa.fragment_memory_term(frag_location_pre="./")
 ]
 oa.addForcesWithDefaultForceGroup(forces)
 
@@ -83,8 +88,8 @@ collision_rate = 5.0 / picoseconds
 integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 2*femtoseconds)
 simulation = Simulation(oa.pdb.topology, oa.system, integrator, Platform.getPlatformByName("OpenCL"))
 
-# showEnergy = ["Con", "Chain", "Chi", "Excluded", "Rama", "Water", "Burial", "Fragment", "Total"]
-showEnergy = ["Con", "Chain", "Chi", "Excluded", "Rama", "Water", "Burial", "Total"]  # frag removed in this example.
+showEnergy = ["Con", "Chain", "Chi", "Excluded", "Rama", "Water", "Burial", "Fragment", "Total"]
+# showEnergy = ["Con", "Chain", "Chi", "Excluded", "Rama", "Water", "Burial", "Total"]  # frag removed in this example.
 # print("Steps", *showEnergy)
 print(" ".join(["{0:<8s}".format(i) for i in ["Steps"] + showEnergy]))
 for step, pdb in enumerate(pdb_trajectory):

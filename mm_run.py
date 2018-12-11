@@ -35,7 +35,7 @@ parser.add_argument("--to", default="./", help="location of movie file")
 parser.add_argument("-c", "--chain", type=str, default="-1")
 parser.add_argument("-t", "--thread", type=int, default=-1, help="default is using all that is available")
 parser.add_argument("--platform", type=str, default="OpenCL")
-parser.add_argument("-s", "--step", type=int, default=int(1e5), help="step size")
+parser.add_argument("-s", "--steps", type=int, default=int(1e5), help="step size")
 parser.add_argument("--simulation_mode", type=int, default=0,
                 help="default 0: constant temperature,\
                         1: temperature annealing")
@@ -114,18 +114,14 @@ simulation.context.setPositions(oa.pdb.positions) # set the initial positions of
 # simulation.context.setVelocitiesToTemperature(300*kelvin) # set the initial velocities of the atoms according to the desired starting temperature
 simulation.minimizeEnergy() # first, minimize the energy to a local minimum to reduce any large forces that might be present
 simulation.reporters.append(StateDataReporter(stdout, reporter_frequency, step=True, potentialEnergy=True, temperature=True)) # output energy and temperature during simulation
-<<<<<<< HEAD
 simulation.reporters.append(PDBReporter(os.path.join(args.to, "movie.pdb"), reporter_frequency))  # output PDBs of simulated structures
-=======
-simulation.reporters.append(PDBReporter(pdb, reporter_frequency)) # output PDBs of simulated structures
->>>>>>> 62f52e752dd5a80c6af7f94b191cee64dcc0c365
 
 print("Simulation Starts")
 start_time = time.time()
 
-if args.mode == 0:
+if args.simulation_mode == 0:
     simulation.step(args.steps)
-elif args.mode == 1:
+elif args.simulation_mode == 1:
     for i in range(100):
         integrator.setTemperature(3*(200-i)*kelvin)
         simulation.step(10000)

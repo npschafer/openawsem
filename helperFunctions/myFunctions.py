@@ -483,7 +483,8 @@ def getAllChains(pdbFile):
     chains = list(fixer.topology.chains())
     a = ""
     for i in chains:
-        a += i.id
+        if i.id in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+            a += i.id
     return ''.join(sorted(set(a.upper().replace(" ", ""))))
 
 

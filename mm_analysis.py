@@ -30,7 +30,7 @@ parser.add_argument("--crystal", action="store_true", default=False)
 parser.add_argument("--membrane", action="store_true", default=False)
 parser.add_argument("--globular", action="store_true", default=False)
 parser.add_argument("--hybrid", action="store_true", default=False)
-parser.add_argument("-c", "--chain", type=str, default="A")
+parser.add_argument("-c", "--chain", type=str, default="-1")
 
 args = parser.parse_args()
 

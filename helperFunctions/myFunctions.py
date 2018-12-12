@@ -500,9 +500,53 @@ def add_chain_to_pymol_pdb(location):
     os.system(f"mv tmp {location}")
 
 
+def get_seq_dic(fasta="../crystal_structure.fasta"):
+    seq_dic = {}
+    chain = None
+    with open(fasta) as f:
+        for line in f:
+            if line[0] == ">":
+                assert line[:19] == ">CRYSTAL_STRUCTURE:"
+                if chain is not None:
+                    seq_dic[chain] = seq
+                chain = line[19]
+                seq = ""
+            else:
+                seq += line.replace("\n", "")
+        seq_dic[chain] = seq
+    return seq_dic
+
+def get_frame(file="movie.pdb", to="last_frame.pdb", frame=-1):
+    # default is last frame.
+    # if you want first, please set frame to 1.
+    a = open(file).read().split("ENDMDL")
+    assert a[-1] == "\nEND\n"
+    with open(to, "w") as out:
+        out.write(a[frame-1])
 
 
 
+def convert_openMM_to_standard_pdb(fileName="last_frame.pdb", seq_dic=None):
+    code = {"GLY" : "G", "ALA" : "A", "LEU" : "L", "ILE" : "I",
+            "ARG" : "R", "LYS" : "K", "MET" : "M", "CYS" : "C",
+            "TYR" : "Y", "THR" : "T", "PRO" : "P", "SER" : "S",
+            "TRP" : "W", "ASP" : "D", "GLU" : "E", "ASN" : "N",
+            "GLN" : "Q", "PHE" : "F", "HIS" : "H", "VAL" : "V",
+            "M3L" : "K", "MSE" : "M", "CAS" : "C"}
+    inv_code_map = {v: k for k, v in code.items()}
+    if seq_dic is None:
+        seq_dic = get_seq_dic()
+    with fileinput.FileInput(fileName, inplace=True, backup='.bak') as file:
+        for line in file:
+            if len(line) > 25:
+                i = int(line[22:26])
+                chain = line[21]
+                res = seq_dic[chain][i-1]
+                tmp = list(line)
+                tmp[17:20] = inv_code_map[res]
+                if line[:6] == "HETATM":
+                    tmp[:6] = "ATOM  "
+                print("".join(tmp), end='')
 
 
 

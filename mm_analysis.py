@@ -25,13 +25,10 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("protein", help="The name of the protein")
 parser.add_argument("-d", "--debug", action="store_true", default=False)
-parser.add_argument("--frag", action="store_true", default=False)
-parser.add_argument("--crystal", action="store_true", default=False)
-parser.add_argument("--membrane", action="store_true", default=False)
-parser.add_argument("--globular", action="store_true", default=False)
-parser.add_argument("--hybrid", action="store_true", default=False)
 parser.add_argument("-c", "--chain", type=str, default="-1")
-
+parser.add_argument("-t", "--thread", type=int, default=2, help="default is using 2 CPUs, -1 is using all")
+parser.add_argument("--platform", type=str, default="CPU", help="Could be OpenCL, CUDA and CPU")
+parser.add_argument("--trajectory", type=str, default="./movie.pdb")
 args = parser.parse_args()
 
 if(args.debug):
@@ -45,6 +42,14 @@ proteinName = pdb_id = args.protein
 chain=args.chain.upper()
 pdb = f"{pdb_id}.pdb"
 
+simulation_platform = args.platform
+platform = Platform.getPlatformByName(simulation_platform)
+if simulation_platform == "CPU":
+    if args.thread != -1:
+        platform.setPropertyDefaultValue("Threads", str(args.thread))
+    print(f"{simulation_platform}: {platform.getPropertyDefaultValue('Threads')} threads")
+
+
 # print(args)
 with open('analysis_commandline_args.txt', 'w') as f:
     f.write(' '.join(sys.argv))
@@ -57,7 +62,7 @@ if chain == "-1":
 # for compute Q
 input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
 
-pdb_trajectory = read_trajectory_pdb_positions("movie.pdb")
+pdb_trajectory = read_trajectory_pdb_positions(args.trajectory)
 oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filename=OPENAWSEM_LOCATION+"awsem.xml") # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 
 # apply forces
@@ -95,10 +100,11 @@ oa.addForcesWithDefaultForceGroup(forces)
 collision_rate = 5.0 / picoseconds
 
 integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 2*femtoseconds)
-simulation = Simulation(oa.pdb.topology, oa.system, integrator, Platform.getPlatformByName("OpenCL"))
+simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
 
+showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane", "Total"]
 #showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q","beta_1", "Total"]
-showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q","beta_1","beta_2","beta_3","pap", "Total"]
+# showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q","beta_1","beta_2","beta_3","pap", "Total"]
 # print("Steps", *showEnergy)
 print(" ".join(["{0:<8s}".format(i) for i in ["Steps"] + showEnergy]))
 for step, pdb in enumerate(pdb_trajectory):

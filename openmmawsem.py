@@ -1014,7 +1014,7 @@ class OpenMMAWSEMSystem:
         return mediated
 
 
-    def contact_term(self, k_contact=4.184, z_dependent=False, z_m=1.5):
+    def contact_term(self, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False):
         k_contact *= self.k_awsem
         # combine direct, burial, mediated.
         # default membrane thickness 1.5 nm
@@ -1044,7 +1044,8 @@ class OpenMMAWSEMSystem:
         burial_ro_max = [3.0, 6.0, 9.0]
         burial_gamma = np.loadtxt("burial_gamma.dat")
 
-        k_relative_mem = 200  # adjust the relative strength of gamma
+        k_relative_mem = 400  # adjust the relative strength of gamma
+        inMembrane = int(inMembrane)
         contact = CustomGBForce()
 
         m = 0  # water environment
@@ -1080,7 +1081,7 @@ class OpenMMAWSEMSystem:
                     res_table[0][i][j] = 0
 
 
-        if z_dependent:
+        if z_dependent or inMembrane:
             mem_gamma_direct, mem_gamma_mediated = read_gamma("membrane_gamma.dat")
             m = 1  # membrane environment
             count = 0
@@ -1150,7 +1151,7 @@ class OpenMMAWSEMSystem:
 
 
         if z_dependent:
-            print(f"0.5*tanh({eta_switching}*(z+{z_m}))+0.5*tanh({eta_switching}*({z_m}-z))")
+            # print(f"0.5*tanh({eta_switching}*(z+{z_m}))+0.5*tanh({eta_switching}*({z_m}-z))")
             contact.addComputedValue("alphaMembrane", f"0.5*tanh({eta_switching}*(z+{z_m}))+0.5*tanh({eta_switching}*({z_m}-z))", CustomGBForce.SingleParticle)
             # contact.addComputedValue("alphaMembrane", f"z", CustomGBForce.SingleParticle)
             # contact.addComputedValue("isInMembrane", f"z", CustomGBForce.SingleParticle)
@@ -1177,16 +1178,16 @@ class OpenMMAWSEMSystem:
                                     CustomGBForce.ParticlePair)
         else:
             # mediated term
-            contact.addEnergyTerm("-res_table(0, resId1, resId2)*k_contact*thetaII*\
-                                    (sigma_water*water_gamma_ijm(0, resName1, resName2)+\
-                                    sigma_protein*protein_gamma_ijm(0, resName1, resName2));\
+            contact.addEnergyTerm(f"-res_table({inMembrane}, resId1, resId2)*k_contact*thetaII*\
+                                    (sigma_water*water_gamma_ijm({inMembrane}, resName1, resName2)+\
+                                    sigma_protein*protein_gamma_ijm({inMembrane}, resName1, resName2));\
                                     sigma_protein=1-sigma_water;\
                                     thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
                                     sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
                                     CustomGBForce.ParticlePair)
             # direct term
-            contact.addEnergyTerm("-res_table(0, resId1, resId2)*k_contact*\
-                                    gamma_ijm(0, resName1, resName2)*theta;\
+            contact.addEnergyTerm(f"-res_table({inMembrane}, resId1, resId2)*k_contact*\
+                                    gamma_ijm({inMembrane}, resName1, resName2)*theta;\
                                     theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))",
                                     CustomGBForce.ParticlePair)
 

@@ -436,11 +436,13 @@ def downloadPdb(pdb_list):
 
 
 
-def cleanPdb(pdb_list, chain=None, fromFolder="original_pdbs", toFolder="cleaned_pdbs"):
+def cleanPdb(pdb_list, chain=None, fromFile=None, toFolder="cleaned_pdbs"):
     os.system(f"mkdir -p {toFolder}")
     for pdb_id in pdb_list:
         pdb = f"{pdb_id.lower()[:4]}"
         pdbFile = pdb+".pdb"
+        if fromFile is None:
+            fromFile = os.path.join("original_pdbs", pdbFile)
         if chain is None:
             if len(pdb_id) == 5:
                 Chosen_chain = pdb_id[4].upper()
@@ -448,11 +450,11 @@ def cleanPdb(pdb_list, chain=None, fromFolder="original_pdbs", toFolder="cleaned
                 assert(len(pdb_id) == 4)
                 Chosen_chain = "A"
         elif chain == "-1" or chain == -1:
-            Chosen_chain = getAllChains(os.path.join(fromFolder, pdbFile))
+            Chosen_chain = getAllChains(fromFile)
         else:
             Chosen_chain = chain
         # clean pdb
-        fixer = PDBFixer(filename=os.path.join(fromFolder, pdbFile))
+        fixer = PDBFixer(filename=fromFile)
         # remove unwanted chains
         chains = list(fixer.topology.chains())
         chains_to_remove = [i for i, x in enumerate(chains) if x.id not in Chosen_chain]

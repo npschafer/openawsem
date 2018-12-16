@@ -54,8 +54,11 @@ with open('create_project_commandline_args.txt', 'w') as f:
 
 # Download the file and rename it to crystal_structure.pdb
 if not os.path.exists(f"crystal_structure.pdb"):
-    downloadPdb([proteinName])
-    do(f"cp original_pdbs/{pdb} crystal_structure.pdb")
+    pdb_list = [proteinName]
+    downloadPdb(pdb_list)
+    cleanPdb(pdb_list, chain="-1", toFolder="cleaned_pdbs")
+    do(f"cp cleaned_pdbs/{pdb} crystal_structure.pdb")
+
 
 
 if chain == "-1":

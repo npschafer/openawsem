@@ -7,7 +7,6 @@ from random import seed, randint
 import argparse
 import platform
 from datetime import datetime
-import imp
 from time import sleep
 import fileinput
 
@@ -35,7 +34,7 @@ parser.add_argument("--to", default="./", help="location of movie file")
 parser.add_argument("-c", "--chain", type=str, default="-1")
 parser.add_argument("-t", "--thread", type=int, default=-1, help="default is using all that is available")
 parser.add_argument("--platform", type=str, default="OpenCL")
-parser.add_argument("-s", "--steps", type=int, default=int(1e5), help="step size")
+parser.add_argument("-s", "--steps", type=float, default=1e5, help="step size")
 parser.add_argument("--simulation_mode", type=int, default=0,
                 help="default 0: constant temperature,\
                         1: temperature annealing")
@@ -120,7 +119,7 @@ print("Simulation Starts")
 start_time = time.time()
 
 if args.simulation_mode == 0:
-    simulation.step(args.steps)
+    simulation.step(int(args.steps))
 elif args.simulation_mode == 1:
     for i in range(100):
         integrator.setTemperature(3*(200-i)*kelvin)

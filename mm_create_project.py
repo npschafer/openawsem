@@ -84,6 +84,8 @@ ensure_atom_order(input_pdb_filename)
 os.system(f"cp {OPENAWSEM_LOCATION}parameters/burial_gamma.dat .")
 os.system(f"cp {OPENAWSEM_LOCATION}parameters/gamma.dat .")
 os.system(f"cp {OPENAWSEM_LOCATION}parameters/membrane_gamma.dat .")
+os.system(f"cp {OPENAWSEM_LOCATION}parameters/anti_* .")
+os.system(f"cp {OPENAWSEM_LOCATION}parameters/para_* .")
 
 do("python2 ~/opt/Pdb2Gro.py crystal_structure.pdb amh-go.gro")
 

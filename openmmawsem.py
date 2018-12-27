@@ -1231,6 +1231,7 @@ class OpenMMAWSEMSystem:
         contact.setForceGroup(18)
         return contact
 
+
     def contact_test_term(self, k_contact=4.184, z_dependent=False, z_m=1.5):
         contact = CustomGBForce()
         gamma_ijm = np.zeros((2, 20, 20))
@@ -1673,27 +1674,54 @@ class OpenMMAWSEMSystem:
         else:
             return 0
 
-    def get_Lambda_2(self, i, j, p_par, p_anti, p_antihb, p_antinhb, p_parhb):
+    def get_Lambda_2(self, i, j, p_par, p_anti, p_antihb, p_antinhb, p_parhb, a):
         Lambda = self.get_lambda_by_index(i, j, 1)
-        a = []
-        for ii in range(self.nres):
-            a.append(se_map_1_letter[self.seq[ii]])
-
         Lambda += -0.5*self.get_alpha_by_index(i, j, 0)*p_antihb[a[i], a[j]][0]
         Lambda += -0.25*self.get_alpha_by_index(i, j, 1)*(p_antinhb[a[i+1], a[j-1]][0] + p_antinhb[a[i-1], a[j+1]][0])
         Lambda += -self.get_alpha_by_index(i, j, 2)*(p_anti[a[i]] + p_anti[a[j]])
         return Lambda
 
-    def get_Lambda_3(self, i, j, p_par, p_anti, p_antihb, p_antinhb, p_parhb):
+    def get_Lambda_3(self, i, j, p_par, p_anti, p_antihb, p_antinhb, p_parhb, a):
         Lambda = self.get_lambda_by_index(i, j, 2)
-        a = []
-        for ii in range(self.nres):
-            a.append(se_map_1_letter[self.seq[ii]])
-
         Lambda += -self.get_alpha_by_index(i, j, 3)*p_parhb[a[i+1], a[j]][0]
         Lambda += -self.get_alpha_by_index(i, j, 4)*p_par[a[i+1]]
         Lambda += -self.get_alpha_by_index(i, j, 3)*p_par[a[j]]
         return Lambda
+
+
+    def apply_beta_term_1_future(self, k_beta=4.184):
+        print("beta_1 term ON")
+        nres, n, h, ca, o, res_type = self.nres, self.n, self.h, self.ca, self.o, self.res_type
+        #print(lambda_1)
+        r_ON = .298
+        sigma_NO = .068
+        r_OH = .206
+        sigma_HO = .076
+
+        lambda_1 = np.zeros((self.nres, self.nres))
+        for i in range(self.nres):
+            for j in range(self.nres):
+                lambda_1[j] = self.get_lambda_by_index(i, j, 0);
+        theta_ij = f"exp(-(r_Oi_Nj-{r_ON})^2/(2*{sigma_NO}^2)-(r_Oi_Hj-{r_OH})^2/(2*{sigma_HO}^2))"
+        beta_string_1 = f"-{k_beta}*lambda_1(res_i,res_j)*theta_ij;theta_ij={theta_ij};r_Oi_Nj=distance(d1,a1);r_Oi_Hj=distance(d1,a2);"
+        beta_1 = CustomHbondForce(beta_string_1);
+        beta_1.addGlobalParameter("k_beta", k_beta)
+        beta_1.addPerDonorParameter("res_i");
+        beta_1.addPerAcceptorParameter("res_j");
+        beta_1.addTabulatedFunction("lambda_1", Discrete2DFunction(self.nres, self.nres, lambda_1.T.flatten()))
+        # print(lambda_1)
+        print(len(self.o), nres)
+        for i in range(2):
+            if self.o[i]!= -1:
+                beta_1.addDonor(self.o[i], -1, -1, );
+            if self.n[i]!=-1 and self.h[i]!=-1:
+                beta_1.addAcceptor(self.n[i], self.h[i], -1, )
+        beta_1.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
+        beta_1.setCutoffDistance(1.0);
+        beta_1.setForceGroup(23)
+        #beta_2.setForceGroup(24)
+        #beta_3.setForceGroup(25)
+        return beta_1
 
     def apply_beta_term_1(self, k_beta=4.184):
 
@@ -1795,7 +1823,10 @@ class OpenMMAWSEMSystem:
         beta_2.addGlobalParameter("k_beta", k_beta)
         beta_2.addPerBondParameter("lambda_2")
 
-
+        # for lookup table.
+        a = []
+        for ii in range(self.nres):
+            a.append(se_map_1_letter[self.seq[ii]])
 
         for i in range(nres):
             for j in range(nres):
@@ -1805,7 +1836,7 @@ class OpenMMAWSEMSystem:
                 #if not res_type[j] == "IPR":
                 #    beta_1.addBond([o[i], n[j], h[j], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
                 if not res_type[i] == "IPR" and not res_type[j] == "IPR":
-                    beta_2.addBond([o[i], n[j], h[j], o[j], n[i], h[i], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [self.get_Lambda_2(i, j, p_par, p_anti, p_antihb, p_antinhb, p_parhb)])
+                    beta_2.addBond([o[i], n[j], h[j], o[j], n[i], h[i], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [self.get_Lambda_2(i, j, p_par, p_anti, p_antihb, p_antinhb, p_parhb, a)])
                 #if not res_type[i+2] == "IPR" and not res_type[j] == "IPR":
                 #    beta_3.addBond([o[i], n[j], h[j], o[j], n[i+2], h[i+2], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
 
@@ -1859,6 +1890,11 @@ class OpenMMAWSEMSystem:
         beta_3.addGlobalParameter("k_beta", k_beta)
         beta_3.addPerBondParameter("lambda_3")
 
+        # for lookup table.
+        a = []
+        for ii in range(self.nres):
+            a.append(se_map_1_letter[self.seq[ii]])
+
         for i in range(nres):
             for j in range(nres):
                 if isChainEdge(i, self.chain_starts, self.chain_ends, n=2) or \
@@ -1869,7 +1905,7 @@ class OpenMMAWSEMSystem:
                 #if not res_type[i] == "IPR" and not res_type[j] == "IPR":
                 #    beta_2.addBond([o[i], n[j], h[j], o[j], n[i], h[i], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
                 if not res_type[i+2] == "IPR" and not res_type[j] == "IPR":
-                    beta_3.addBond([o[i], n[j], h[j], o[j], n[i+2], h[i+2], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [self.get_Lambda_3(i, j, p_par, p_anti, p_antihb, p_antinhb, p_parhb)])
+                    beta_3.addBond([o[i], n[j], h[j], o[j], n[i+2], h[i+2], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [self.get_Lambda_3(i, j, p_par, p_anti, p_antihb, p_antinhb, p_parhb, a)])
 
 
         #beta_1.setForceGroup(23)

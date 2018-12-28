@@ -439,6 +439,7 @@ def downloadPdb(pdb_list):
 def cleanPdb(pdb_list, chain=None, fromFile=None, toFolder="cleaned_pdbs"):
     os.system(f"mkdir -p {toFolder}")
     for pdb_id in pdb_list:
+        # print(chain)
         pdb = f"{pdb_id.lower()[:4]}"
         pdbFile = pdb+".pdb"
         if fromFile is None:
@@ -466,8 +467,8 @@ def cleanPdb(pdb_list, chain=None, fromFile=None, toFolder="cleaned_pdbs"):
         keys = fixer.missingResidues.keys()
         # print(keys)
         for key in list(keys):
-            chain = chains[key[0]]
-            if key[1] == 0 or key[1] == len(list(chain.residues())):
+            chain_tmp = chains[key[0]]
+            if key[1] == 0 or key[1] == len(list(chain_tmp.residues())):
                 del fixer.missingResidues[key]
 
         fixer.findNonstandardResidues()

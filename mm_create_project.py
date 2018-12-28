@@ -26,7 +26,7 @@ parser.add_argument("protein", help="The name of the protein")
 parser.add_argument("-c", "--chain", default="-1", help="chains to be simulated, could be for example 'abc'.")
 parser.add_argument("-d", "--debug", action="store_true", default=False)
 parser.add_argument("--frag", action="store_true", default=False)
-parser.add_argument("--crystal", action="store_true", default=False)
+parser.add_argument("--extended", action="store_true", default=False)
 parser.add_argument("--membrane", action="store_true", default=False)
 parser.add_argument("--hybrid", action="store_true", default=False)
 
@@ -72,8 +72,8 @@ ensure_atom_order(input_pdb_filename)
 getSeqFromCleanPdb(input_pdb_filename, chains=chain, writeFastaFile=True)
 do(f"cp crystal_structure.fasta {pdb_id}.fasta")
 
-if not args.crystal:
-    do("~/opt/fasta2pdb.py "+proteinName)
+if args.extended:
+    do(f"{OPENAWSEM_LOCATION}/helperFunctions/fasta2pdb.py "+proteinName)
     add_chain_to_pymol_pdb(pdb)  # only work for one chain only now
 else:
     do(f"cp crystal_structure.pdb {pdb}")

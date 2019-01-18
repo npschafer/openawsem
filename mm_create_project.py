@@ -22,7 +22,8 @@ parser = argparse.ArgumentParser(
     description="The goal of this python3 code is to automatically create \
     the project template as fast as possible. Written by Wei Lu."
 )
-parser.add_argument("protein", help="The name of the protein")
+parser.add_argument("protein", help="The name of the protein, \
+            do: python3 ~/OPENAWSEM_LOCATION/mm_create_project.py")
 parser.add_argument("-c", "--chain", default="-1", help="chains to be simulated, could be for example 'abc'.")
 parser.add_argument("-d", "--debug", action="store_true", default=False)
 parser.add_argument("--frag", action="store_true", default=False)

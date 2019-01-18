@@ -423,28 +423,38 @@ def read_variable_folder(location, match="*_", **kwargs):
     data.reset_index(drop=True).to_feather(name)
 
 
-def downloadPdb(pdb_list):
+def downloadPdb(pdb_list, membrane_protein=False):
     os.system("mkdir -p original_pdbs")
     for pdb_id in pdb_list:
         pdb = f"{pdb_id.lower()[:4]}"
         pdbFile = pdb+".pdb"
         if not os.path.isfile("original_pdbs/"+pdbFile):
-            pdbl = PDBList()
-            name = pdbl.retrieve_pdb_file(pdb, pdir='.', file_format='pdb')
-            os.system(f"mv {name} original_pdbs/{pdbFile}")
+            if membrane_protein:
+                # os.system(f"wget http://pdbtm.enzim.hu/data/database/fn/{pdbFile}.gz")
+                # os.system(f"gunzip {pdbFile}.gz")
+                os.system(f"wget https://opm-assets.storage.googleapis.com/pdb/{pdbFile}")
+                os.system(f"mv {pdbFile} original_pdbs/{pdbFile}")
+            else:
+                pdbl = PDBList()
+                name = pdbl.retrieve_pdb_file(pdb, pdir='.', file_format='pdb')
+                os.system(f"mv {name} original_pdbs/{pdbFile}")
+            os.system("rm -r obsolete")
 
 
 
-
-def cleanPdb(pdb_list, chain=None, fromFile=None, toFolder="cleaned_pdbs"):
+def cleanPdb(pdb_list, chain=None, fromFolder=None, toFolder="cleaned_pdbs"):
     os.system(f"mkdir -p {toFolder}")
     for pdb_id in pdb_list:
         # print(chain)
         pdb = f"{pdb_id.lower()[:4]}"
         pdbFile = pdb+".pdb"
-        if fromFile is None:
+        if fromFolder is None:
             fromFile = os.path.join("original_pdbs", pdbFile)
-        if chain is None:
+        elif fromFolder[:4] == ".pdb":
+            fromFile = fromFolder
+        else:
+            fromFile = os.path.join(fromFolder, pdbFile)
+        if chain is None:  # None mean deafult is chain A unless specified.
             if len(pdb_id) == 5:
                 Chosen_chain = pdb_id[4].upper()
             else:
@@ -542,6 +552,8 @@ def convert_openMM_to_standard_pdb(fileName="last_frame.pdb", seq_dic=None):
     with fileinput.FileInput(fileName, inplace=True, backup='.bak') as file:
         for line in file:
             if len(line) > 25:
+                if line[:6] == "REMARK":
+                    continue
                 i = int(line[22:26])
                 chain = line[21]
                 res = seq_dic[chain][i-1]
@@ -550,6 +562,8 @@ def convert_openMM_to_standard_pdb(fileName="last_frame.pdb", seq_dic=None):
                 if line[:6] == "HETATM":
                     tmp[:6] = "ATOM  "
                 print("".join(tmp), end='')
+            else:
+                print(line, end='')
 
 
 

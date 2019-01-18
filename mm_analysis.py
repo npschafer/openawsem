@@ -89,7 +89,7 @@ forces = [
     # oa.apply_beta_term_2(),
     # oa.apply_beta_term_3(),
     # oa.pap_term(),
-    oa.fragment_memory_term(frag_location_pre="./"),
+    # oa.fragment_memory_term(frag_location_pre="./"),
     # oa.er_term(),
     # oa.tbm_q_term(k_tbm_q=2000),
     # oa.membrane_term(),

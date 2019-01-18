@@ -361,6 +361,46 @@ def getSeqFromCleanPdb(input_pdb_filename, chains='A', writeFastaFile=False):
             seq += chain_seq
     return seq
 
+def getSeq(input_pdb_filename, chains='A', writeFastaFile=False, fromPdb=False, fromFasta=False):
+    if fromPdb:
+        cleaned_pdb_filename = input_pdb_filename.replace("openmmawsem.pdb", "cleaned.pdb")
+        pdb = input_pdb_filename.replace("-openmmawsem.pdb", "")
+        fastaFile = pdb + ".fasta"
+        ThreeToOne = {'ALA':'A','ARG':'R','ASN':'N','ASP':'D','CYS':'C','GLU':'E','GLN':'Q','GLY':'G','HIS':'H',
+            'ILE':'I','LEU':'L','LYS':'K','MET':'M','PHE':'F','PRO':'P','SER':'S','THR':'T','TRP':'W',
+            'TYR':'Y','VAL':'V'}
+
+        s = PDBParser().get_structure("X", cleaned_pdb_filename)
+        m = s[0] # model 0
+        seq = ""
+        if writeFastaFile:
+            with open(fastaFile, "w") as out:
+                for chain in chains:
+                    out.write(f">{pdb.upper()}:{chain.upper()}|PDBID|CHAIN|SEQUENCE\n")
+                    c = m[chain]
+                    chain_seq = ""
+                    for residue in c:
+                        residue_name = residue.get_resname()
+                        chain_seq += ThreeToOne[residue_name]
+                    out.write("\n".join(textwrap.wrap(chain_seq, width=80))+"\n")
+                    seq += chain_seq
+        else:
+            for chain in chains:
+                c = m[chain]
+                chain_seq = ""
+                for residue in c:
+                    residue_name = residue.get_resname()
+                    chain_seq += ThreeToOne[residue_name]
+                seq += chain_seq
+    elif fromFasta:
+        for line in f:
+            if line[0] == ">":
+                pass
+            else:
+                # print(line)
+                seq += line.strip()
+    return seq
+
 def fixPymolPdb(location):
     # location = "1r69.pdb"
     with open("tmp", "w") as out:
@@ -378,7 +418,7 @@ def download(pdb_id):
         os.rename("pdb%s.ent" % pdb_id, f"{pdb_id}.pdb")
 
 class OpenMMAWSEMSystem:
-    def __init__(self, pdb_filename, chains='A', xml_filename='awsem.xml', k_awsem=1.0):
+    def __init__(self, pdb_filename, chains='A', xml_filename='awsem.xml', k_awsem=1.0, seqFromPdb=1):
         # read PDB
         self.pdb = PDBFile(pdb_filename)
         self.forcefield = ForceField(xml_filename)
@@ -414,8 +454,10 @@ class OpenMMAWSEMSystem:
         # keep track of force names for output purposes
         self.force_names = []
         # save seq info
-        self.seq = getSeqFromCleanPdb(pdb_filename, chains=chains)
-
+        if seqFromPdb == 1:
+            self.seq = getSeq(pdb_filename, chains=chains, fromPdb=True)
+        elif seqFromPdb == 0:
+            self.seq = getSeq(pdb_filename, chains=chains, fromFasta=True)
 
     def addForces(self, forces):
         for i, (force) in enumerate(forces):
@@ -684,7 +726,7 @@ class OpenMMAWSEMSystem:
         chi.addGlobalParameter("chi0", chi0)
         for i in range(self.nres):
             if i not in self.chain_starts and i not in self.chain_ends and not self.res_type[i] == "IGL":
-                chi.addBond([self.ca[i], self.c[i], self.n[i], self.cb[i]])
+                    chi.addBond([self.ca[i], self.c[i], self.n[i], self.cb[i]])
         chi.setForceGroup(13)
         return chi
 

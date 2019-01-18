@@ -68,7 +68,8 @@ if chain == "-1":
     print("Chains to simulate: ", chain)
 
 if args.to != "./":
-    os.system(f"mkdir -p {args.to}")
+    # os.system(f"mkdir -p {args.to}")
+    os.makedirs(args.to, exist_ok=True)
     # os.system(f"cp {pdb} {args.to}/{pdb}")
     # pdb = os.path.join(args.to, pdb)
 
@@ -94,10 +95,7 @@ forces = [
     # oa.apply_beta_term_3(),
     # oa.pap_term(),
     #oa.additive_amhgo_term(pdb_file = "1r69.pdb", chain_name="A"),
-    #oa.direct_term(),
-    #oa.burial_term(),
-    #oa.mediated_term(),
-    oa.fragment_memory_term(frag_location_pre="./"),
+    # oa.fragment_memory_term(frag_location_pre="./"),
     #oa.membrane_term(),
 ]
 oa.addForces(forces)
@@ -108,6 +106,7 @@ checkpoint_file = "restart"
 checkpoint_reporter_frequency = 10000
 
 integrator = LangevinIntegrator(600*kelvin, 1/picosecond, 2*femtoseconds)
+# integrator = CustomIntegrator(0.001)
 simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
 simulation.context.setPositions(oa.pdb.positions) # set the initial positions of the atoms
 # simulation.context.setVelocitiesToTemperature(300*kelvin) # set the initial velocities of the atoms according to the desired starting temperature

@@ -726,7 +726,7 @@ class OpenMMAWSEMSystem:
         chi.addGlobalParameter("chi0", chi0)
         for i in range(self.nres):
             if i not in self.chain_starts and i not in self.chain_ends and not self.res_type[i] == "IGL":
-                    chi.addBond([self.ca[i], self.c[i], self.n[i], self.cb[i]])
+                chi.addBond([self.ca[i], self.c[i], self.n[i], self.cb[i]])
         chi.setForceGroup(13)
         return chi
 

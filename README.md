@@ -1,9 +1,9 @@
-# openmmawsem
-We are still in beta. all codes are subject to changes.
+# OpenAWSEM
+## An implementation of the AWSEM coarse-grained protein folding forcefield in OpenMM
 
-An implementation of the AWSEM coarse-grained protein folding forcefield in OpenMM
+The OpenAWSEM code is currently being tested. Use at your own risk. And let us know what you find. :-)
 
-Installation
+## Installation
 1. Download and install STRIDE and put it in your PATH: http://webclu.bio.wzw.tum.de/stride/
 1. Download and install psiblast and put it in your PATH: ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/
 1. Install conda or miniconda: https://conda.io/en/latest/miniconda.html
@@ -20,7 +20,7 @@ export OPENAWSEM_LOCATION='/YOUR/OPENAWSEM/DIRECTORY/'
 source activate openmm
 ```
 
-Example:
+## Example
 1r69.
 
 setup simulation folder:

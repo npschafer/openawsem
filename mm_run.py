@@ -80,23 +80,24 @@ oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filena
 
 # apply forces
 forces = [
-    oa.con_term(),
-    oa.chain_term(),
-    oa.chi_term(),
-    oa.excl_term(),
-    oa.rama_term(),
-    oa.rama_proline_term(),
-    oa.rama_ssweight_term(),
-    oa.contact_term(z_dependent=False),
+    oa.q_value("crystal_structure-cleaned.pdb"),
+    # oa.con_term(),
+    con_term(oa),
+    chain_term(oa),
+    chi_term(oa),
+    excl_term(oa),
+    rama_term(oa),
+    rama_proline_term(oa),
+    rama_ssweight_term(oa),
+    contact_term(oa, z_dependent=False),
+    # beta_term_1(oa),
+    # beta_term_2(oa),
+    # beta_term_3(oa),
+    # pap_term(oa),
+    # oa.fragment_memory_term(frag_location_pre="./"),
     # oa.er_term(),
     # oa.tbm_q_term(k_tbm_q=2000),
-    # oa.apply_beta_term_1(),
-    # oa.apply_beta_term_2(),
-    # oa.apply_beta_term_3(),
-    # oa.pap_term(),
-    #oa.additive_amhgo_term(pdb_file = "1r69.pdb", chain_name="A"),
-    # oa.fragment_memory_term(frag_location_pre="./"),
-    #oa.membrane_term(),
+    # oa.membrane_term(),
 ]
 oa.addForces(forces)
 
@@ -108,9 +109,9 @@ checkpoint_reporter_frequency = 10000
 integrator = LangevinIntegrator(600*kelvin, 1/picosecond, 2*femtoseconds)
 # integrator = CustomIntegrator(0.001)
 simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
-simulation.context.setPositions(oa.pdb.positions) # set the initial positions of the atoms
+simulation.context.setPositions(oa.pdb.positions)  # set the initial positions of the atoms
 # simulation.context.setVelocitiesToTemperature(300*kelvin) # set the initial velocities of the atoms according to the desired starting temperature
-simulation.minimizeEnergy() # first, minimize the energy to a local minimum to reduce any large forces that might be present
+simulation.minimizeEnergy()  # first, minimize the energy to a local minimum to reduce any large forces that might be present
 simulation.reporters.append(StateDataReporter(stdout, reporter_frequency, step=True, potentialEnergy=True, temperature=True)) # output energy and temperature during simulation
 simulation.reporters.append(PDBReporter(os.path.join(args.to, "movie.pdb"), reporter_frequency))  # output PDBs of simulated structures
 
@@ -124,7 +125,7 @@ elif args.simulation_mode == 1:
         integrator.setTemperature(3*(200-i)*kelvin)
         simulation.step(10000)
 
-#simulation.step(int(1e6))
+# simulation.step(int(1e6))
 simulation.reporters.append(CheckpointReporter(checkpoint_file, checkpoint_reporter_frequency)) # save progress during the simulation
 
 time_taken = time.time() - start_time  # time_taken is in seconds

@@ -70,25 +70,25 @@ oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filena
 #                   17:"Burial", 18:"Mediated", 19:"Fragment"}
 forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
                     "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "beta_2":24,"beta_3":25,"pap":26, "Total":list(range(11, 27)),
-                    "Water":[16, 18], "beta":[23, 24, 25], "pap":26, "Q":1}
+                    "Water":[16, 18], "Beta":[23, 24, 25], "Pap":26, "Q":1}
 #forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
 #                    "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "Total":list(range(11, 26)),
 #                    "Water":[16, 18], "beta":[23, 24, 25], "Q":1}
-
 forces = [
     oa.q_value("crystal_structure-cleaned.pdb"),
-    oa.con_term(),
-    oa.chain_term(),
-    oa.chi_term(),
-    oa.excl_term(),
-    oa.rama_term(),
-    oa.rama_proline_term(),
-    oa.rama_ssweight_term(),
-    oa.contact_term(z_dependent=False),
-    # oa.apply_beta_term_1(),
-    # oa.apply_beta_term_2(),
-    # oa.apply_beta_term_3(),
-    # oa.pap_term(),
+    # oa.con_term(),
+    con_term(oa),
+    chain_term(oa),
+    chi_term(oa),
+    excl_term(oa),
+    rama_term(oa),
+    rama_proline_term(oa),
+    rama_ssweight_term(oa),
+    contact_term(oa, z_dependent=False),
+    # beta_term_1(oa),
+    # beta_term_2(oa),
+    # beta_term_3(oa),
+    # pap_term(oa),
     # oa.fragment_memory_term(frag_location_pre="./"),
     # oa.er_term(),
     # oa.tbm_q_term(k_tbm_q=2000),
@@ -103,7 +103,7 @@ integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 2*femtoseconds)
 simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
 
 showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane", "Total"]
-#showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q","beta_1", "Total"]
+# showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q","beta_1", "Total"]
 # showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q","beta_1","beta_2","beta_3","pap", "Total"]
 # print("Steps", *showEnergy)
 print(" ".join(["{0:<8s}".format(i) for i in ["Steps"] + showEnergy]))

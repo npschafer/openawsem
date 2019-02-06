@@ -37,10 +37,11 @@ cutoff_identical = 90   # Consider >90% identity as itself, < 90% as homologs.
 
 # set up directories
 myhome = os.environ.get("HOME")
-pdbDir = myhome + "/opt/script/PDBs/"
-indexDir = myhome + "/opt/script/Indices/"
-fLibDir = "fraglib/"
-pdbSeqres = "/Users/weilu/opt/script/pdb_seqres.txt"
+openawsem_location = os.environ.et("OPENAWSEM_LOCATION")
+pdbDir = openawsem_location + "/PDBs/"
+indexDir = openawsem_location + "/Indices/"
+fLibDir = "./fraglib/"
+pdbSeqres = openawsem_location + "/pdb_seqres.txt"
 if not os.path.exists(indexDir):
     os.makedirs(indexDir)
 if not os.path.exists(pdbDir):

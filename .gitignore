@@ -54,3 +54,7 @@ __pycache__
 test
 _local
 *.bak
+
+PDBs
+Indices
+pdb_seqres.txt

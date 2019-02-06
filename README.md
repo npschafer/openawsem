@@ -4,12 +4,20 @@
 The OpenAWSEM code is currently being tested. Use at your own risk. And let us know what you find. :-)
 
 ## Installation
+1. Clone openawsem repository
+```
+git clone https://github.com/npschafer/openawsem.git
+```
 1. Download and install STRIDE and put it in your PATH: http://webclu.bio.wzw.tum.de/stride/
 1. Download and install psiblast and put it in your PATH: ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/
+1. Download pdb_seqres.txt and put it in the cloned openawsem repository location
+```
+wget ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt
+```
 1. Install conda or miniconda: https://conda.io/en/latest/miniconda.html
 1. Create an openmm environment that includes the necessary Python packages.
 ```
-conda create -n openmm python=3.6 biopython matplotlib pdbfixer mdtraj numpy pandas openmm
+conda create -n openmm python=3.6 biopython matplotlib numpy pandas 
 ```
 1. Set OPENAWSEM_LOCATION environment variable (the location where you cloned this Github repository).
 ```
@@ -18,6 +26,10 @@ export OPENAWSEM_LOCATION='/YOUR/OPENAWSEM/DIRECTORY/'
 1. Activate the openmm environment.
 ```
 source activate openmm
+```
+1. Install additional python packages
+```
+conda install -c omnia -c conda-forge openmm pdbfixer mdtraj 
 ```
 
 ## Example

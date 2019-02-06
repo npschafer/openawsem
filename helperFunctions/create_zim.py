@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!python
 import os
 import argparse
 import sys
@@ -32,7 +32,7 @@ with open("crystal_structure.fasta", "r") as f:
             # print(line)
             seq += line.strip()
 # create_zim(f"crystal.seq")
-print(seq, len(seq))
+print((seq, len(seq)))
 
 data = read_hydrophobicity_scale(seq, isNew=False)
 z = data["DGwoct"].values

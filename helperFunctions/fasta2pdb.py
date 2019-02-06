@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!python
 import os
 import argparse
 import sys
@@ -23,7 +23,7 @@ with open(protein_name+".fasta") as input_data:
             pass
         else:
             data += line.strip("\n")
-    print(len(data))
+    print((len(data)))
     print(data)
     out = open(protein_name+".pml", 'w')
     out.write("sequence = \""+data+"\"\n")

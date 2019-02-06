@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!python
 ######################################
 # Originally written by Ryan Hoffmann from Wolynes group,
 # Modified by Weihua Zheng 06/01/2011
@@ -18,9 +18,9 @@ from Bio import SeqIO
 from Bio.PDB.PDBParser import PDBParser
 
 if len(sys.argv) != 6:
-    print "\n######################################################################"
-    print "*.py database-prefix file.fasta N_mem brain_damage_flag (1/0.5/0 for yes/exclude self/no) frag_length > logfile"
-    print "######################################################################"
+    print("\n######################################################################")
+    print("*.py database-prefix file.fasta N_mem brain_damage_flag (1/0.5/0 for yes/exclude self/no) frag_length > logfile")
+    print("######################################################################")
     sys.exit()
 # read arguments into variables
 database = sys.argv[1]
@@ -48,7 +48,7 @@ if not os.path.exists(pdbDir):
 if not os.path.exists(fLibDir):
     os.makedirs(fLibDir)
 if not os.path.exists(pdbDir) or not os.path.exists(fLibDir) or not os.path.exists(indexDir):
-    print "Can't create necessary directories"
+    print("Can't create necessary directories")
     sys.exit()
 
 # set up out
@@ -62,11 +62,11 @@ residue_base = 0  # a shift of residue index set for multiple chains.
 for record in SeqIO.parse(handle, "fasta"):
     # Part I, BLAST fragments
     if(len(record.seq) < fragmentLength):
-        print "Exception::query sequence is shorter than " + str(fragmentLength) + " residues. Exit."
+        print("Exception::query sequence is shorter than " + str(fragmentLength) + " residues. Exit.")
         sys.exit()
 
     query = str(record.name)[0:4]
-    print 'processing sequence:', record.name
+    print('processing sequence:', record.name)
     match = open('prepFrags.match', 'w')
     match.write(query + "\n")
 
@@ -76,9 +76,9 @@ for record in SeqIO.parse(handle, "fasta"):
     for i in range(1, iterations + 1):  # loop2, run through all sliding windows in a given chain
         rangeStart = i - 1
         rangeEnd = i + fragmentLength - 1
-        print "window position:::" + str(i)
+        print("window position:::" + str(i))
         subrange = str(record[rangeStart:rangeEnd].seq)
-        print "fragment subrange:::" + subrange
+        print("fragment subrange:::" + subrange)
         fragment = open('fragment.fasta', 'w')
         fragment.write(subrange)
         fragment.close()  # a temporary file for BLAST
@@ -90,7 +90,7 @@ for record in SeqIO.parse(handle, "fasta"):
         #exeline+=" -outfmt '6 sseqid qstart qend sstart send qseq sseq length gaps bitscore evalue' -matrix PAM30 -threshold 9 -window_size 0"
         exeline += " -outfmt '6 sseqid qstart qend sstart send qseq sseq length gaps bitscore evalue' -matrix BLOSUM62 -threshold 9 -window_size 0"
         exeline += " -db " + database + " -query fragment.fasta"
-        print "executing:::" + exeline
+        print("executing:::" + exeline)
 
         psiblastOut = os.popen(exeline).read()
         psiblastOut = psiblastOut.splitlines()  # now an array
@@ -115,7 +115,7 @@ for record in SeqIO.parse(handle, "fasta"):
             if pdbID != pdbID_old:
                 e_score_old = e_score
                 pdbID_old = pdbID
-        print "Number of searched PDBs:  ", N_blast, N_start_new
+        print("Number of searched PDBs:  ", N_blast, N_start_new)
 
         # convert psiblastOut to a list, sorted by evalue
         psilist = [None] * (N_blast - N_start_new + 1)
@@ -136,8 +136,8 @@ for record in SeqIO.parse(handle, "fasta"):
                     list_tmp.append(float(that[ii]))
             psilist[kk] = list_tmp
             kk += 1
-            print list_tmp
-        psilist.sort(lambda x, y: cmp(x[10], y[10]))
+            print(list_tmp)
+        psilist.sort(key=lambda x: x[10])
 
         # write output alignments to match file
         for jj in range(0, N_blast - N_start_new + 1):
@@ -165,12 +165,12 @@ for record in SeqIO.parse(handle, "fasta"):
         entries = line.split()
         pdbfull = str(entries[0])
         keys[pdbfull] = 1
-    unique = keys.keys()
+    unique = list(keys.keys())
 
     # pdbparse=PDBParser(PERMISSIVE=1)
 
     # Part II, BLAST the whole sequence to find homologs
-    print record.seq
+    print(record.seq)
     fragment = open('fragment.fasta', 'w')
     fragment.write(str(record.seq))
     fragment.close()
@@ -197,7 +197,7 @@ for record in SeqIO.parse(handle, "fasta"):
                       pdbID + ".ent " + pdbDir + pdbID.upper() + ".pdb")
         if not os.path.isfile(pdbDir + pdbID.upper() + ".pdb"):
             failed_pdb[pdbID] = 1
-            print ":::Cannot build PDB for PDB ID, failed to download:" + pdbID.upper()
+            print(":::Cannot build PDB for PDB ID, failed to download:" + pdbID.upper())
 
         # exit()
 
@@ -205,13 +205,13 @@ for record in SeqIO.parse(handle, "fasta"):
     exeline = "psiblast -num_iterations 1 -word_size 3 -evalue 0.005"
     exeline += " -outfmt '6 sseqid slen bitscore score evalue pident' -matrix BLOSUM62 -db " + \
         database + " -query fragment.fasta"
-    print "finding homologs"
-    print "executing::: " + exeline
+    print("finding homologs")
+    print("executing::: " + exeline)
     homoOut = os.popen(exeline).read()
     homoOut = homoOut.splitlines()  # now an array
     for line in homoOut:
         entries = line.split()
-        print "homologues: ", entries
+        print("homologues: ", entries)
         if len(entries):
             pdbfull = entries[0]
             pdbID = pdbfull[0:4].lower()
@@ -255,40 +255,40 @@ for record in SeqIO.parse(handle, "fasta"):
                 continue  # failed-downloaded ones are still in matchlines, need to be ignored
             if homo[pdbID]:
                 if brain_damage == 0:
-                    print pdbID, " Using  a homolog."
+                    print(pdbID, " Using  a homolog.")
                     homo_count[pdbID] += 1
                 if brain_damage:
-                    print pdbID, " is a homolog, discard"
+                    print(pdbID, " is a homolog, discard")
                     continue
             residue_list = entries[6]  # sseq
 
             res_Start = int(entries[3])
             res_End = int(entries[4])
-            print pdbFile, "start: ", res_Start, "end: ", res_End
+            print(pdbFile, "start: ", res_Start, "end: ", res_End)
             # Do I have the index file?  If No, write it
 
             if not os.path.isfile(indexFile):
                 # generate fasta file
                 if not os.path.isfile(pdbSeqres):
-                    print pdbSeqres
-                    print "Need to download pdb_seqres.txt from PDB!"
-                    print "ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt"
-                    print "Copy to $HOME/opt/script/"
+                    print(pdbSeqres)
+                    print("Need to download pdb_seqres.txt from PDB!")
+                    print("ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt")
+                    print("Copy to $HOME/opt/script/")
                     exit()
                 fastaFile = pdbID + '_' + chainID.upper()
                 exeline = "grep -A1 " + fastaFile + " " + pdbSeqres + " > ./tmp.fasta"
-                print "generating fastaFile: ", fastaFile
+                print("generating fastaFile: ", fastaFile)
                 os.popen(exeline)
 
                 if os.path.getsize('tmp.fasta') > 0:
                     writeIndexFile(fastFile, pdbFile,
                                    indexFile, chainID.upper())
-                    print "Writing indexFile: ", indexFile
+                    print("Writing indexFile: ", indexFile)
             else:
-                print indexFile, "exist, no need to create."
+                print(indexFile, "exist, no need to create.")
 
             if not os.path.isfile(indexFile):
-                print "Can't create index file, ignore and go on!"
+                print("Can't create index file, ignore and go on!")
                 continue
 
             # Read index file
@@ -307,25 +307,25 @@ for record in SeqIO.parse(handle, "fasta"):
                     flag = tmp_line[0]  # index_line
                 if flag == "SHIFT" and line_count == 2:
                     index_shift = int(tmp_line[0])
-                    print "shift: ", tmp_line[0]
+                    print("shift: ", tmp_line[0])
 
             r_list = ''  # list()
             if flag == "SKIP":
                 Missing_pdb[pdbID] = 1
                 Missing_count += 1
-                print "***********", flag
-                print "SKIP pdb:", pdbID + chainID
+                print("***********", flag)
+                print("SKIP pdb:", pdbID + chainID)
                 continue
             elif flag == "FULLMATCH":
                 new_index = int(entries[3])
                 r_list = residue_list
-                print "***********", flag
+                print("***********", flag)
             elif flag == "SHIFT":
                 new_index = int(entries[3]) + index_shift
                 r_list = residue_list
-                print "***********", flag
+                print("***********", flag)
             elif flag == "INDEXED":
-                print "***********", flag
+                print("***********", flag)
                 # check if there is gaps for the fragment of sequence
                 count_flag = 0
                 line_count1 = 0
@@ -340,7 +340,7 @@ for record in SeqIO.parse(handle, "fasta"):
                         if seq_id > res_End:
                             break
                         if res_id == -1:
-                            print "Missing residues in PDB: ", pdbID + chainID
+                            print("Missing residues in PDB: ", pdbID + chainID)
                             break
                         if count_flag == 0:
                             new_index = res_id
@@ -348,11 +348,11 @@ for record in SeqIO.parse(handle, "fasta"):
                         res_nm = index_entries[2]
                         r_list += res_nm
             else:
-                print "Skip wrongly written index file ", indexFile
+                print("Skip wrongly written index file ", indexFile)
                 continue
 
             if r_list != residue_list:
-                print "Missing residues: ", pdbID + chainID, residue_list, " incomplete: ", r_list
+                print("Missing residues: ", pdbID + chainID, residue_list, " incomplete: ", r_list)
                 Missing_pdb[pdbID] = 1
                 Missing_count += 1
                 continue
@@ -360,9 +360,9 @@ for record in SeqIO.parse(handle, "fasta"):
             if os.path.isfile(pdbFile):
                 if not os.path.isfile(groFile):
                     Pdb2Gro(pdbFile, groFile, chainID.upper())
-                    print "converting...... " + pdbFile + " --> " + groFile
+                    print("converting...... " + pdbFile + " --> " + groFile)
                 else:
-                    print "Exist " + groFile
+                    print("Exist " + groFile)
                 count[windows_index_str] += 1
 
                 length = res_End - res_Start + 1
@@ -376,39 +376,39 @@ for record in SeqIO.parse(handle, "fasta"):
                     length) + ' ' + str(weight) + ' 0' + entries[5] + ' 0' + entries[6] + "\n"
                 log_match.write(out1)
             else:
-                print pdbFile, "does not exist! Go figure..."
+                print(pdbFile, "does not exist! Go figure...")
         # loop3 ends
 
-    print "HOMOLOGS:::"
+    print("HOMOLOGS:::")
     total_homo_count = 0
     for line in homoOut:
         entries = line.split()
-        print "sseqid slen bitscore score evalue pident"
-        print entries
+        print("sseqid slen bitscore score evalue pident")
+        print(entries)
         pdbfull = entries[0]
         pdbID = pdbfull[0:4].lower()
         if brain_damage == 0:
             total_homo_count += homo_count[pdbID]
-            print "Homolog count =", homo_count[pdbID]
+            print("Homolog count =", homo_count[pdbID])
 
     if brain_damage == 0:
-        print "Total homolog count = ", total_homo_count, round(total_homo_count / iterations, 2)
+        print("Total homolog count = ", total_homo_count, round(total_homo_count / iterations, 2))
 
-    print "memories per position that is fewer than expected:"
+    print("memories per position that is fewer than expected:")
     for i in count:
         if count[i] < N_mem:
-            print i, count[i]
+            print(i, count[i])
 
-    print "Number of blasted PDB: ", len(failed_pdb)
-    print "Number of failed downloaded PDB: ", sum(failed_pdb.values())
-    print "Number of PDB with Missing atoms: ", len(Missing_pdb)
-    print "Discarded fragments with Missing atoms: ", Missing_count
+    print("Number of blasted PDB: ", len(failed_pdb))
+    print("Number of failed downloaded PDB: ", sum(failed_pdb.values()))
+    print("Number of PDB with Missing atoms: ", len(Missing_pdb))
+    print("Discarded fragments with Missing atoms: ", Missing_count)
     residue_base += len(record.seq)
     for line in homoOut:
         entries = line.split()
         if len(entries):
             pdbfull = entries[0]
             pdbID = pdbfull[0:4].lower()
-            print pdbID
+            print(pdbID)
 
 # loop1 close

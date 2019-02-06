@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!python
 import math
 
 # line = "{type:4}  {serialNumber:5} {AtomName:4} {ReidueName:3} {Chain:1}{ResId:4} {x:8.3f}{y:8.3f}{z:8.3f}{1:6.2f}{0:6.2f}    {element} \n"

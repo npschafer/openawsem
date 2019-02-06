@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!python
 import os
 import argparse
 import sys
@@ -88,11 +88,11 @@ os.system(f"cp {OPENAWSEM_LOCATION}parameters/membrane_gamma.dat .")
 os.system(f"cp {OPENAWSEM_LOCATION}parameters/anti_* .")
 os.system(f"cp {OPENAWSEM_LOCATION}parameters/para_* .")
 
-do(f"python2 {OPENAWSEM_LOCATION}/helperFunctions/Pdb2Gro.py crystal_structure.pdb amh-go.gro")
+do(f"python {OPENAWSEM_LOCATION}/helperFunctions/Pdb2Gro.py crystal_structure.pdb amh-go.gro")
 
 ## ssweight
 do("stride crystal_structure.pdb > ssweight.stride")
-do(f"python2 {OPENAWSEM_LOCATION}/helperFunctions/stride2ssweight.py > ssweight")
+do(f"python {OPENAWSEM_LOCATION}/helperFunctions/stride2ssweight.py > ssweight")
 
 # below used for zim and zimPosition file
 if args.membrane or args.hybrid:
@@ -104,7 +104,7 @@ if args.membrane or args.hybrid:
 if args.frag:
     do(f"cp crystal_structure.fasta {proteinName}.fasta")
     do(f"cp {OPENAWSEM_LOCATION}/database/cullpdb_pc80_* .")
-    do(f"python2 {OPENAWSEM_LOCATION}/helperFunctions/MultCha_prepFrags_index.py \
+    do(f"python {OPENAWSEM_LOCATION}/helperFunctions/MultCha_prepFrags_index.py \
     cullpdb_pc80_res3.0_R1.0_d160504_chains29712 %s.fasta 20 1 9 > logfile" % proteinName)
     check_and_correct_fragment_memory("frags.mem")
 

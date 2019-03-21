@@ -96,7 +96,7 @@ def get_Lambda_3(i, j, p_par, p_anti, p_antihb, p_antinhb, p_parhb, a):
     return Lambda
 
 
-def beta_term_1_future(oa, k_beta=4.184):
+def beta_term_1(oa, k_beta=4.184):
     print("beta_1 term ON")
     nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
     # print(lambda_1)
@@ -105,14 +105,13 @@ def beta_term_1_future(oa, k_beta=4.184):
     r_OH = .206
     sigma_HO = .076
 
-    lambda_1 = np.zeros((oa.nres, oa.nres))
-    for i in range(oa.nres):
-        for j in range(oa.nres):
+    lambda_1 = np.zeros((nres, nres))
+    for i in range(nres):
+        for j in range(nres):
             lambda_1[i][j] = get_lambda_by_index(i, j, 0)
     theta_ij = f"exp(-(r_Oi_Nj-{r_ON})^2/(2*{sigma_NO}^2)-(r_Oi_Hj-{r_OH})^2/(2*{sigma_HO}^2))"
     beta_string_1 = f"-{k_beta}*lambda_1(res_i,res_j)*theta_ij;theta_ij={theta_ij};r_Oi_Nj=distance(a1,d1);r_Oi_Hj=distance(a1,d2);"
     beta_1 = CustomHbondForce(beta_string_1)
-    beta_1.addGlobalParameter("k_beta", k_beta)
     beta_1.addPerDonorParameter("res_i")
     beta_1.addPerAcceptorParameter("res_j")
     beta_1.addTabulatedFunction("lambda_1", Discrete2DFunction(nres, nres, lambda_1.T.flatten()))
@@ -130,7 +129,113 @@ def beta_term_1_future(oa, k_beta=4.184):
     # beta_3.setForceGroup(25)
     return beta_1
 
-def beta_term_1(oa, k_beta=4.184):
+def beta_term_2(oa, k_beta=4.184):
+    print("beta_2 term ON")
+    nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
+    # print(lambda_1)
+    r_ON = .298
+    sigma_NO = .068
+    r_OH = .206
+    sigma_HO = .076
+    eta_beta_1 = 10.0
+    eta_beta_2 = 5.0
+    # r_HB_c = 0.4
+    r_HB_c = 1.2
+    p_par, p_anti, p_antihb, p_antinhb, p_parhb = read_beta_parameters()
+
+    # for lookup table.
+    a = []
+    for ii in range(oa.nres):
+        a.append(se_map_1_letter[oa.seq[ii]])
+
+    lambda_2 = np.zeros((nres, nres))
+    for i in range(nres):
+        for j in range(nres):
+            if isChainEdge(i, oa.chain_starts, oa.chain_ends, n=1) or \
+                    isChainEdge(j, oa.chain_starts, oa.chain_ends, n=1):
+                continue
+            lambda_2[i][j] = get_Lambda_2(i, j, p_par, p_anti, p_antihb, p_antinhb, p_parhb, a)
+    theta_ij = f"exp(-(r_Oi_Nj-{r_ON})^2/(2*{sigma_NO}^2)-(r_Oi_Hj-{r_OH})^2/(2*{sigma_HO}^2))"
+    theta_ji = f"exp(-(r_Oj_Ni-{r_ON})^2/(2*{sigma_NO}^2)-(r_Oj_Hi-{r_OH})^2/(2*{sigma_HO}^2))"
+    beta_string_2 = f"-{k_beta}*lambda_2(res_i,res_j)*theta_ij*theta_ji;\
+                        theta_ij={theta_ij};r_Oi_Nj=distance(a1,d1);r_Oi_Hj=distance(a1,d2);\
+                        theta_ji={theta_ji};r_Oj_Ni=distance(d3,a2);r_Oj_Hi=distance(d3,a3);"
+    beta_2 = CustomHbondForce(beta_string_2)
+    beta_2.addPerDonorParameter("res_i")
+    beta_2.addPerAcceptorParameter("res_j")
+    beta_2.addTabulatedFunction("lambda_2", Discrete2DFunction(nres, nres, lambda_2.T.flatten()))
+    # print(lambda_1)
+    # print(len(oa.o), nres)
+    for i in range(nres):
+        if o[i]!= -1 and n[i]!=-1 and h[i]!=-1:
+            beta_2.addAcceptor(o[i], n[i], h[i], [i])
+            beta_2.addDonor(n[i], h[i], o[i], [i])
+    beta_2.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
+    beta_2.setCutoffDistance(1.0)
+    # beta_1.setForceGroup(23)
+    beta_2.setForceGroup(24)
+    # beta_3.setForceGroup(25)
+
+    return beta_2
+
+
+def beta_term_3(oa, k_beta=4.184):
+    print("beta_3 term ON")
+    nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
+    # print(lambda_1)
+    r_ON = .298
+    sigma_NO = .068
+    r_OH = .206
+    sigma_HO = .076
+    eta_beta_1 = 10.0
+    eta_beta_2 = 5.0
+    # r_HB_c = 0.4
+    r_HB_c = 1.2
+    p_par, p_anti, p_antihb, p_antinhb, p_parhb = read_beta_parameters()
+
+    # for lookup table.
+    a = []
+    for ii in range(oa.nres):
+        a.append(se_map_1_letter[oa.seq[ii]])
+
+    lambda_3 = np.zeros((nres, nres))
+    for i in range(nres):
+        for j in range(nres):
+            if isChainEdge(i, oa.chain_starts, oa.chain_ends, n=1) or \
+                    isChainEdge(j, oa.chain_starts, oa.chain_ends, n=1):
+                continue
+            lambda_3[i][j] = get_Lambda_3(i, j, p_par, p_anti, p_antihb, p_antinhb, p_parhb, a)
+
+    theta_ij = f"exp(-(r_Oi_Nj-{r_ON})^2/(2*{sigma_NO}^2)-(r_Oi_Hj-{r_OH})^2/(2*{sigma_HO}^2))"
+    theta_jip2 = f"exp(-(r_Oj_Nip2-{r_ON})^2/(2*{sigma_NO}^2)-(r_Oj_Hip2-{r_OH})^2/(2*{sigma_HO}^2))"
+
+    beta_string_3 = f"-{k_beta}*lambda_3(res_i,res_j)*theta_ij*theta_jip2;\
+                        theta_ij={theta_ij};r_Oi_Nj=distance(a1,d1);r_Oi_Hj=distance(a1,d2);\
+                        theta_jip2={theta_jip2};r_Oj_Nip2=distance(d3,a2);r_Oj_Hip2=distance(d3,a3);"
+    beta_3 = CustomHbondForce(beta_string_3)
+
+    beta_3.addPerDonorParameter("res_i")
+    beta_3.addPerAcceptorParameter("res_j")
+    beta_3.addTabulatedFunction("lambda_3", Discrete2DFunction(nres, nres, lambda_3.T.flatten()))
+    # print(lambda_1)
+    # print(len(oa.o), nres)
+    for i in range(nres):
+        if isChainEdge(i, oa.chain_starts, oa.chain_ends, n=2):
+            continue
+        if o[i] != -1 and n[i+2] !=-1 and h[i+2] !=-1:
+            beta_3.addAcceptor(o[i], n[i+2], h[i+2], [i])
+        if o[i] != -1 and n[i] !=-1 and h[i] !=-1:
+            beta_3.addDonor(n[i], h[i], o[i], [i])
+    beta_3.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
+    beta_3.setCutoffDistance(1.0)
+    # beta_1.setForceGroup(23)
+    # beta_2.setForceGroup(24)
+    beta_3.setForceGroup(25)
+
+    return beta_3
+
+
+def beta_term_1_old(oa, k_beta=4.184, debug=False):
 
     print("beta_1 term ON")
     nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
@@ -154,6 +259,11 @@ def beta_term_1(oa, k_beta=4.184):
     # 1  2  3  4     5     6     7
     beta_string_1 = f"-k_beta*lambda_1*theta_ij*nu_i*nu_j;theta_ij={theta_ij};r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
                     nu_i={nu_i};nu_j={nu_j};r_CAim2_CAip2=distance(p4,p5);r_CAjm2_CAjp2=distance(p6,p7)"
+    # # below used for debug, set, vi vj = 0
+    if debug:
+        beta_string_1 = f"-k_beta*lambda_1*theta_ij*nu_i*nu_j;theta_ij={theta_ij};r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
+                        nu_i=1+0*{nu_i};nu_j=1+0*{nu_j};r_CAim2_CAip2=distance(p4,p5);r_CAjm2_CAjp2=distance(p6,p7)"
+
     # beta_string_1 = f"-k_beta*lambda_1"
     # beta_string_1 = f"-k_beta"
 
@@ -183,7 +293,7 @@ def beta_term_1(oa, k_beta=4.184):
     #beta_3.setForceGroup(25)
     return beta_1
 
-def beta_term_2(oa, k_beta=4.184):
+def beta_term_2_old(oa, k_beta=4.184, debug=False):
     print("beta_2 term ON");
     nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
     # add beta potential
@@ -214,6 +324,12 @@ def beta_term_2(oa, k_beta=4.184):
                     theta_ij={theta_ij};r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
                     theta_ji={theta_ji};r_Oj_Ni=distance(p4,p5);r_Oj_Hi=distance(p4,p6);\
                     nu_i={nu_i};nu_j={nu_j};r_CAim2_CAip2=distance(p7,p8);r_CAjm2_CAjp2=distance(p9,p10)"
+    # # below used for debug, set, vi vj = 0
+    if debug:
+        beta_string_2 = f"-k_beta*lambda_2*theta_ij*theta_ji*nu_i*nu_j;\
+                        theta_ij={theta_ij};r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
+                        theta_ji={theta_ji};r_Oj_Ni=distance(p4,p5);r_Oj_Hi=distance(p4,p6);\
+                        nu_i=1+0*{nu_i};nu_j=1+0*{nu_j};r_CAim2_CAip2=distance(p7,p8);r_CAjm2_CAjp2=distance(p9,p10)"
 
     # Oi Nj Hj Oj Ni+2 Hi+2 CAi-2 CAi+2 CAj-2 CAj+2
     # 1  2  3  4  5    6    7     8     9     10
@@ -253,7 +369,7 @@ def beta_term_2(oa, k_beta=4.184):
     #beta_3.setForceGroup(25)
     return beta_2
 
-def beta_term_3(oa, k_beta=4.184):
+def beta_term_3_old(oa, k_beta=4.184, debug=False):
     print("beta_3 term ON")
     nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
     # add beta potential
@@ -291,6 +407,12 @@ def beta_term_3(oa, k_beta=4.184):
                     theta_ij={theta_ij};r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
                     theta_jip2={theta_jip2};r_Oj_Nip2=distance(p4,p5);r_Oj_Hip2=distance(p4,p6);\
                     nu_i={nu_i};nu_j={nu_j};r_CAim2_CAip2=distance(p7,p8);r_CAjm2_CAjp2=distance(p9,p10)"
+    # # below used for debug, set, vi vj = 0
+    if debug:
+        beta_string_3 = f"-k_beta*lambda_3*theta_ij*theta_jip2*nu_i*nu_j;\
+                        theta_ij={theta_ij};r_Oi_Nj=distance(p1,p2);r_Oi_Hj=distance(p1,p3);\
+                        theta_jip2={theta_jip2};r_Oj_Nip2=distance(p4,p5);r_Oj_Hip2=distance(p4,p6);\
+                        nu_i=1+0*{nu_i};nu_j=1+0*{nu_j};r_CAim2_CAip2=distance(p7,p8);r_CAjm2_CAjp2=distance(p9,p10)"
 
     beta_3 = CustomCompoundBondForce(10, beta_string_3)
     # add parameters to force

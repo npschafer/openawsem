@@ -50,76 +50,6 @@ def read_beta_parameters():
             p_parhb[i][j][1] = float(in_para_HB[i+21].strip().split()[j])
     return p_par, p_anti, p_antihb, p_antinhb, p_parhb
 
-def lambda_coefficient(oa, i, j, lambda_index):
-    p_par, p_anti, p_antihb, p_antinhb, p_parhb = read_beta_parameters()
-    parameter_i = []
-    # print(i,j,lambda_index)
-    for ii in range(oa.nres):
-        # print(oa.seq[i])
-        parameter_i.append(se_map_1_letter[oa.seq[ii]])
-    # print(p_antihb[parameter_i[i], parameter_i[j]][0],p_antinhb[parameter_i[i+1],parameter_i[j-1]][0],p_anti[parameter_i[i]], p_anti[parameter_i[j]])
-    lambda_2_extra_terms = -0.5*oa.alpha_coefficient(parameter_i[i],parameter_i[j],1)*p_antihb[parameter_i[i], parameter_i[j]][0]-0.25*oa.alpha_coefficient(parameter_i[i], parameter_i[j], 2)*(p_antinhb[parameter_i[i+1],parameter_i[j-1]][0] + p_antinhb[parameter_i[i-1],parameter_i[j+1]][0])-oa.alpha_coefficient(parameter_i[i], parameter_i[j], 3)*(p_anti[parameter_i[i]]+p_anti[parameter_i[j]])
-    lambda_3_extra_terms = -oa.alpha_coefficient(parameter_i[i],parameter_i[j], 4)*p_parhb[parameter_i[i+1],parameter_i[j]][0]-oa.alpha_coefficient(parameter_i[i],parameter_i[j],5)*p_par[parameter_i[i+1]]+oa.alpha_coefficient(parameter_i[i],parameter_i[j],4)*p_par[parameter_i[j]]
-    if abs(j-i) >= 4 and abs(j-i) < 18:
-        if lambda_index == 1:
-            return 1.37
-        elif lambda_index == 2:
-            return 3.89+lambda_2_extra_terms
-        elif lambda_index == 3:
-            return 0.0+lambda_3_extra_terms
-    elif abs(j-i) >= 18 and abs(j-i) < 45:
-        if lambda_index == 1:
-            return 1.36
-        elif lambda_index == 2:
-            return 3.50+lambda_2_extra_terms
-        elif lambda_index == 3:
-            return 3.47+lambda_3_extra_terms
-    elif abs(j-i) >= 45:
-        if lambda_index == 1:
-            return 1.17
-        elif lambda_index == 2:
-            return 3.52+lambda_2_extra_terms
-        elif lambda_index == 3:
-            return 3.62+lambda_3_extra_terms
-    elif abs(j-i) < 4:
-        return 0.0
-
-def alpha_coefficient(oa, i,j, alpha_index):
-    if abs(j-i) >= 4 and abs(j-i) < 18:
-        if alpha_index == 1:
-            return 1.3
-        if alpha_index == 2:
-            return 1.32
-        if alpha_index == 3:
-            return 1.22
-        if alpha_index == 4:
-            return 0.0
-        if alpha_index == 5:
-            return 0.0
-    elif abs(j-i) >= 18 and abs(j-i) < 45:
-        if alpha_index == 1:
-            return 1.3
-        if alpha_index == 2:
-            return 1.32
-        if alpha_index == 3:
-            return 1.22
-        if alpha_index == 4:
-            return 0.33
-        if alpha_index == 5:
-            return 1.01
-    elif abs(j-i) >= 45:
-        if alpha_index == 1:
-            return 1.3
-        if alpha_index == 2:
-            return 1.32
-        if alpha_index == 3:
-            return 1.22
-        if alpha_index == 4:
-            return 0.33
-        if alpha_index == 5:
-            return 1.01
-    elif abs(j-i) <4:
-        return 0.0
 
 def get_lambda_by_index(i, j, lambda_i):
 
@@ -178,23 +108,23 @@ def beta_term_1_future(oa, k_beta=4.184):
     lambda_1 = np.zeros((oa.nres, oa.nres))
     for i in range(oa.nres):
         for j in range(oa.nres):
-            lambda_1[j] = get_lambda_by_index(i, j, 0);
+            lambda_1[i][j] = get_lambda_by_index(i, j, 0)
     theta_ij = f"exp(-(r_Oi_Nj-{r_ON})^2/(2*{sigma_NO}^2)-(r_Oi_Hj-{r_OH})^2/(2*{sigma_HO}^2))"
-    beta_string_1 = f"-{k_beta}*lambda_1(res_i,res_j)*theta_ij;theta_ij={theta_ij};r_Oi_Nj=distance(d1,a1);r_Oi_Hj=distance(d1,a2);"
-    beta_1 = CustomHbondForce(beta_string_1);
+    beta_string_1 = f"-{k_beta}*lambda_1(res_i,res_j)*theta_ij;theta_ij={theta_ij};r_Oi_Nj=distance(a1,d1);r_Oi_Hj=distance(a1,d2);"
+    beta_1 = CustomHbondForce(beta_string_1)
     beta_1.addGlobalParameter("k_beta", k_beta)
-    beta_1.addPerDonorParameter("res_i");
-    beta_1.addPerAcceptorParameter("res_j");
-    beta_1.addTabulatedFunction("lambda_1", Discrete2DFunction(oa.nres, oa.nres, lambda_1.T.flatten()))
+    beta_1.addPerDonorParameter("res_i")
+    beta_1.addPerAcceptorParameter("res_j")
+    beta_1.addTabulatedFunction("lambda_1", Discrete2DFunction(nres, nres, lambda_1.T.flatten()))
     # print(lambda_1)
-    print(len(oa.o), nres)
-    for i in range(2):
+    # print(len(oa.o), nres)
+    for i in range(nres):
         if oa.o[i]!= -1:
-            beta_1.addDonor(oa.o[i], -1, -1, );
+            beta_1.addAcceptor(oa.o[i], -1, -1, [i])
         if oa.n[i]!=-1 and oa.h[i]!=-1:
-            beta_1.addAcceptor(oa.n[i], oa.h[i], -1, )
+            beta_1.addDonor(oa.n[i], oa.h[i], -1, [i])
     beta_1.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
-    beta_1.setCutoffDistance(1.0);
+    beta_1.setCutoffDistance(1.0)
     beta_1.setForceGroup(23)
     # beta_2.setForceGroup(24)
     # beta_3.setForceGroup(25)
@@ -432,3 +362,77 @@ def pap_term(oa, k_pap=4.184):
     #print(count)
     pap.setForceGroup(26)
     return pap
+
+'''
+# old way of getting lambda
+def lambda_coefficient(oa, i, j, lambda_index):
+    p_par, p_anti, p_antihb, p_antinhb, p_parhb = read_beta_parameters()
+    parameter_i = []
+    # print(i,j,lambda_index)
+    for ii in range(oa.nres):
+        # print(oa.seq[i])
+        parameter_i.append(se_map_1_letter[oa.seq[ii]])
+    # print(p_antihb[parameter_i[i], parameter_i[j]][0],p_antinhb[parameter_i[i+1],parameter_i[j-1]][0],p_anti[parameter_i[i]], p_anti[parameter_i[j]])
+    lambda_2_extra_terms = -0.5*oa.alpha_coefficient(parameter_i[i],parameter_i[j],1)*p_antihb[parameter_i[i], parameter_i[j]][0]-0.25*oa.alpha_coefficient(parameter_i[i], parameter_i[j], 2)*(p_antinhb[parameter_i[i+1],parameter_i[j-1]][0] + p_antinhb[parameter_i[i-1],parameter_i[j+1]][0])-oa.alpha_coefficient(parameter_i[i], parameter_i[j], 3)*(p_anti[parameter_i[i]]+p_anti[parameter_i[j]])
+    lambda_3_extra_terms = -oa.alpha_coefficient(parameter_i[i],parameter_i[j], 4)*p_parhb[parameter_i[i+1],parameter_i[j]][0]-oa.alpha_coefficient(parameter_i[i],parameter_i[j],5)*p_par[parameter_i[i+1]]+oa.alpha_coefficient(parameter_i[i],parameter_i[j],4)*p_par[parameter_i[j]]
+    if abs(j-i) >= 4 and abs(j-i) < 18:
+        if lambda_index == 1:
+            return 1.37
+        elif lambda_index == 2:
+            return 3.89+lambda_2_extra_terms
+        elif lambda_index == 3:
+            return 0.0+lambda_3_extra_terms
+    elif abs(j-i) >= 18 and abs(j-i) < 45:
+        if lambda_index == 1:
+            return 1.36
+        elif lambda_index == 2:
+            return 3.50+lambda_2_extra_terms
+        elif lambda_index == 3:
+            return 3.47+lambda_3_extra_terms
+    elif abs(j-i) >= 45:
+        if lambda_index == 1:
+            return 1.17
+        elif lambda_index == 2:
+            return 3.52+lambda_2_extra_terms
+        elif lambda_index == 3:
+            return 3.62+lambda_3_extra_terms
+    elif abs(j-i) < 4:
+        return 0.0
+
+def alpha_coefficient(oa, i,j, alpha_index):
+    if abs(j-i) >= 4 and abs(j-i) < 18:
+        if alpha_index == 1:
+            return 1.3
+        if alpha_index == 2:
+            return 1.32
+        if alpha_index == 3:
+            return 1.22
+        if alpha_index == 4:
+            return 0.0
+        if alpha_index == 5:
+            return 0.0
+    elif abs(j-i) >= 18 and abs(j-i) < 45:
+        if alpha_index == 1:
+            return 1.3
+        if alpha_index == 2:
+            return 1.32
+        if alpha_index == 3:
+            return 1.22
+        if alpha_index == 4:
+            return 0.33
+        if alpha_index == 5:
+            return 1.01
+    elif abs(j-i) >= 45:
+        if alpha_index == 1:
+            return 1.3
+        if alpha_index == 2:
+            return 1.32
+        if alpha_index == 3:
+            return 1.22
+        if alpha_index == 4:
+            return 0.33
+        if alpha_index == 5:
+            return 1.01
+    elif abs(j-i) <4:
+        return 0.0
+'''

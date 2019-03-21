@@ -75,8 +75,7 @@ forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Di
 #                    "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "Total":list(range(11, 26)),
 #                    "Water":[16, 18], "beta":[23, 24, 25], "Q":1}
 forces = [
-    oa.q_value("crystal_structure-cleaned.pdb"),
-    # oa.con_term(),
+    q_value(oa, "crystal_structure-cleaned.pdb"),
     con_term(oa),
     chain_term(oa),
     chi_term(oa),
@@ -89,10 +88,10 @@ forces = [
     # beta_term_2(oa),
     # beta_term_3(oa),
     # pap_term(oa),
-    # oa.fragment_memory_term(frag_location_pre="./"),
-    # oa.er_term(),
-    # oa.tbm_q_term(k_tbm_q=2000),
-    # oa.membrane_term(),
+    # fragment_memory_term(oa, frag_location_pre="./"),
+    # er_term(oa),
+    # tbm_q_term(oa, k_tbm_q=2000),
+    # membrane_term(oa),
 ]
 oa.addForcesWithDefaultForceGroup(forces)
 

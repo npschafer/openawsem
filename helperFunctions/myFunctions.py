@@ -446,8 +446,11 @@ def cleanPdb(pdb_list, chain=None, fromFolder=None, toFolder="cleaned_pdbs"):
     os.system(f"mkdir -p {toFolder}")
     for pdb_id in pdb_list:
         # print(chain)
-        pdb = f"{pdb_id.lower()[:4]}"
-        pdbFile = pdb+".pdb"
+        print(pdb_id)
+        # pdb = f"{pdb_id.lower()[:4]}"
+        # pdbFile = pdb+".pdb"
+        pdb = pdb_id
+        pdbFile = pdb + ".pdb"
         if fromFolder is None:
             fromFile = os.path.join("original_pdbs", pdbFile)
         elif fromFolder[:4] == ".pdb":
@@ -455,8 +458,9 @@ def cleanPdb(pdb_list, chain=None, fromFolder=None, toFolder="cleaned_pdbs"):
         else:
             fromFile = os.path.join(fromFolder, pdbFile)
         if chain is None:  # None mean deafult is chain A unless specified.
-            if len(pdb_id) == 5:
-                Chosen_chain = pdb_id[4].upper()
+            if len(pdb_id) >= 5:
+                Chosen_chain = pdb_id[4]
+                # Chosen_chain = pdb_id[4].upper()
             else:
                 assert(len(pdb_id) == 4)
                 Chosen_chain = "A"

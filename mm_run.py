@@ -80,8 +80,7 @@ oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filena
 
 # apply forces
 forces = [
-    oa.q_value("crystal_structure-cleaned.pdb"),
-    # oa.con_term(),
+    q_value(oa, "crystal_structure-cleaned.pdb"),
     con_term(oa),
     chain_term(oa),
     chi_term(oa),
@@ -94,10 +93,10 @@ forces = [
     # beta_term_2(oa),
     # beta_term_3(oa),
     # pap_term(oa),
-    # oa.fragment_memory_term(frag_location_pre="./"),
-    # oa.er_term(),
-    # oa.tbm_q_term(k_tbm_q=2000),
-    # oa.membrane_term(),
+    # fragment_memory_term(oa, frag_location_pre="./"),
+    # er_term(oa),
+    # tbm_q_term(oa, k_tbm_q=2000),
+    # membrane_term(oa),
 ]
 oa.addForces(forces)
 

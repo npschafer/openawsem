@@ -548,8 +548,7 @@ def convert_openMM_to_standard_pdb(fileName="last_frame.pdb", seq_dic=None):
             "ARG" : "R", "LYS" : "K", "MET" : "M", "CYS" : "C",
             "TYR" : "Y", "THR" : "T", "PRO" : "P", "SER" : "S",
             "TRP" : "W", "ASP" : "D", "GLU" : "E", "ASN" : "N",
-            "GLN" : "Q", "PHE" : "F", "HIS" : "H", "VAL" : "V",
-            "M3L" : "K", "MSE" : "M", "CAS" : "C"}
+            "GLN" : "Q", "PHE" : "F", "HIS" : "H", "VAL" : "V"}
     inv_code_map = {v: k for k, v in code.items()}
     if seq_dic is None:
         seq_dic = get_seq_dic()

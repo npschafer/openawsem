@@ -267,7 +267,7 @@ def setup_virtual_sites(nres, system, n, h, ca, c, o, cb, res_type, chain_starts
                 h_virtual_site = ThreeParticleAverageSite(ca[i-1], ca[i], o[i-1],
                                                           0.84100, 0.89296, -0.73389)
                 system.setVirtualSite(h[i], h_virtual_site)
-        if  i not in chain_ends:
+        if i not in chain_ends:
             c_virtual_site = ThreeParticleAverageSite(ca[i], ca[i+1], o[i],
                                                       0.44365, 0.23520, 0.32115)
             # print("Virtual", c[i])

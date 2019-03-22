@@ -8,17 +8,40 @@ se_map_1_letter = {'A': 0,  'P': 1,  'K': 2,  'N': 3,  'R': 4,
                    'I': 10, 'H': 11, 'L': 12, 'C': 13, 'M': 14,
                    'S': 15, 'T': 16, 'Y': 17, 'V': 18, 'W': 19}
 
-def isChainEdge(residueId, chain_starts, chain_ends, n=2):
-    # n is how far away from the two ends count as in chain edge.
+def isChainStart(residueId, chain_starts, n=2):
     atBegin = False
-    atEnd = False
+
     for i in range(n):
         if (residueId-i) in chain_starts:
             atBegin = True
+    return atBegin
+
+def isChainEnd(residueId, chain_ends, n=2):
+    atEnd = False
     for i in range(n):
         if (residueId+i) in chain_ends:
             atEnd = True
-    return (atBegin or atEnd)
+    return atEnd
+def isChainEdge(residueId, chain_starts, chain_ends, n=2):
+    # n is how far away from the two ends count as in chain edge.
+    return (isChainStart(residueId, chain_starts, n) or isChainEnd(residueId, chain_ends, n))
+    # atBegin = False
+    # atEnd = False
+    # for i in range(n):
+    #     if (residueId-i) in chain_starts:
+    #         atBegin = True
+    # for i in range(n):
+    #     if (residueId+i) in chain_ends:
+    #         atEnd = True
+    # return (atBegin or atEnd)
+
+def inWhichChain(residueId, chain_ends):
+    chain_table = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    for i, end_of_chain_resId in enumerate(chain_ends):
+        if end_of_chain_resId < residueId:
+            pass
+        else:
+            return chain_table[i]
 
 def read_beta_parameters():
     ### directly copied from Nick Schafer's
@@ -78,6 +101,33 @@ def get_alpha_by_index(i, j, alpha_i):
         return alpha_table[alpha_i][1]
     elif abs(j-i) >= 45:
         return alpha_table[alpha_i][2]
+    else:
+        return 0
+
+def get_pap_gamma_APH(donor_idx, acceptor_idx, chain_i, chain_j, gamma_APH):
+    # if chain_i == chain_j and abs(j-i) < 13 or abs(j-i) > 16:
+    # if abs(j-i) < 13 or abs(j-i) > 16:
+    # if i-j < 13 or i-j > 16:
+    # if (donor_idx - acceptor_idx >= 13 and donor_idx - acceptor_idx <= 16) or chain_i != chain_j:
+    if (donor_idx - acceptor_idx >= 13 and donor_idx - acceptor_idx <= 16):
+        return gamma_APH
+    else:
+        return 0
+    # if donor_idx - acceptor_idx < 13 or donor_idx - acceptor_idx > 16:
+    #     return 0
+    # else:
+    #     return gamma_APH
+
+def get_pap_gamma_AP(donor_idx, acceptor_idx, chain_i, chain_j, gamma_AP):
+    # if (donor_idx - acceptor_idx >= 17) or chain_i != chain_j:
+    if (donor_idx - acceptor_idx >= 17):
+        return gamma_AP
+    else:
+        return 0
+
+def get_pap_gamma_P(donor_idx, acceptor_idx, chain_i, chain_j, gamma_P):
+    if (donor_idx - acceptor_idx >= 9) or chain_i != chain_j:
+        return gamma_P
     else:
         return 0
 
@@ -234,6 +284,156 @@ def beta_term_3(oa, k_beta=4.184):
 
     return beta_3
 
+def pap_term_1(oa, k_pap=4.184):
+    print("pap_1 term ON")
+    nres, ca = oa.nres, oa.ca
+    # r0 = 2.0 # nm
+    r0 = 0.8 # nm
+    eta_pap = 70 # nm^-1
+    gamma_aph = 1.0
+    gamma_ap = 0.4
+    gamma_p = 0.4
+
+    gamma_1 = np.zeros((nres, nres))
+    gamma_2 = np.zeros((nres, nres))
+    for i in range(nres):
+        for j in range(nres):
+            resId1 = i
+            chain1 = inWhichChain(resId1, oa.chain_ends)
+            resId2 = j
+            chain2 = inWhichChain(resId2, oa.chain_ends)
+            gamma_1[i][j] = get_pap_gamma_APH(i, j, chain1, chain2, gamma_aph)
+            gamma_2[i][j] = get_pap_gamma_AP(i, j, chain1, chain2, gamma_ap)
+
+    pap_function = f"-{k_pap}*(gamma_1(donor_idx,acceptor_idx)+gamma_2(donor_idx,acceptor_idx))\
+                        *0.5*(1+tanh({eta_pap}*({r0}-distance(a1,d1))))\
+                        *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))"
+
+    # pap_function = f"-{k_pap}*(gamma_1(donor_idx,acceptor_idx))\
+    #                     *0.5*(1+tanh({eta_pap}*({r0}-distance(a1,d1))))\
+    #                     *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))"
+
+    # pap_function = f"-{k_pap}*distance(a1,d1)"
+    pap = CustomHbondForce(pap_function)
+    pap.addPerDonorParameter("donor_idx")
+    pap.addPerAcceptorParameter("acceptor_idx")
+    pap.addTabulatedFunction("gamma_1", Discrete2DFunction(nres, nres, gamma_1.T.flatten()))
+    pap.addTabulatedFunction("gamma_2", Discrete2DFunction(nres, nres, gamma_2.T.flatten()))
+    # print(ca)
+    # count = 0;
+    i = 0
+    # pap.addAcceptor(ca[0], ca[4], -1, [0])
+    # pap.addAcceptor(ca[20], ca[8], -1, [4])
+    # pap.addDonor(ca[20], ca[0], -1, [4])
+    for i in range(nres):
+        if not isChainEnd(i, oa.chain_ends, n=4):
+            pap.addAcceptor(ca[i], ca[i+4], -1, [i])
+
+        if i > 13 and not isChainStart(i, oa.chain_starts, n=4):
+            pap.addDonor(oa.n[i], oa.n[i-4], -1, [i])
+
+    pap.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
+    pap.setCutoffDistance(1.0)
+    # print(count)
+    pap.setForceGroup(26)
+    return pap
+
+
+# def pap_term_1(oa, k_pap=4.184):
+#     print("pap_1 term ON")
+#     nres, ca = oa.nres, oa.ca
+#     # r0 = 2.0 # nm
+#     r0 = 0.8 # nm
+#     eta_pap = 70 # nm^-1
+#     gamma_aph = 1.0
+#     gamma_ap = 0.4
+#     gamma_p = 0.4
+
+#     gamma_1 = np.zeros((nres, nres))
+#     gamma_2 = np.zeros((nres, nres))
+#     for i in range(nres):
+#         for j in range(nres):
+#             resId1 = i
+#             chain1 = inWhichChain(resId1, oa.chain_ends)
+#             resId2 = j
+#             chain2 = inWhichChain(resId2, oa.chain_ends)
+#             gamma_1[i][j] = get_pap_gamma_APH(i, j, chain1, chain2, gamma_aph)
+#             gamma_2[i][j] = get_pap_gamma_AP(i, j, chain1, chain2, gamma_ap)
+
+#     pap_function = f"-{k_pap}*(gamma_1(donor_idx,acceptor_idx)+gamma_2(donor_idx,acceptor_idx))\
+#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a1,d1))))\
+#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))"
+
+#     pap_function = f"-{k_pap}*(gamma_1(donor_idx,acceptor_idx))\
+#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a1,d1))))\
+#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))"
+
+#     pap_function = f"-{k_pap}*distance(a1,d1)"
+#     pap = CustomHbondForce(pap_function)
+#     pap.addPerDonorParameter("donor_idx")
+#     pap.addPerAcceptorParameter("acceptor_idx")
+#     pap.addTabulatedFunction("gamma_1", Discrete2DFunction(nres, nres, gamma_1.T.flatten()))
+#     pap.addTabulatedFunction("gamma_2", Discrete2DFunction(nres, nres, gamma_2.T.flatten()))
+#     # print(ca)
+#     # count = 0;
+#     i = 0
+#     # pap.addAcceptor(ca[0], ca[4], -1, [0])
+#     # pap.addAcceptor(ca[20], ca[8], -1, [4])
+#     # pap.addDonor(ca[20], ca[0], -1, [4])
+#     for i in range(nres):
+#         if not isChainEnd(i, oa.chain_ends, n=4):
+#             pap.addAcceptor(ca[i], ca[i+4], -1, [i])
+
+#         if i > 13 and not isChainStart(i, oa.chain_starts, n=4):
+#             pap.addDonor(ca[i], ca[i-4], -1, [i])
+
+#     pap.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
+#     pap.setCutoffDistance(1.0)
+#     # print(count)
+#     pap.setForceGroup(26)
+#     return pap
+
+def pap_term_2(oa, k_pap=4.184):
+    print("pap_2 term ON")
+    nres, ca = oa.nres, oa.ca
+    # r0 = 2.0 # nm
+    r0 = 0.8 # nm
+    eta_pap = 70 # nm^-1
+    gamma_aph = 1.0
+    gamma_ap = 0.4
+    gamma_p = 0.4
+
+    gamma_3 = np.zeros((nres, nres))
+    for i in range(nres):
+        for j in range(nres):
+            resId1 = i
+            chain1 = inWhichChain(resId1, oa.chain_ends)
+            resId2 = j
+            chain2 = inWhichChain(resId2, oa.chain_ends)
+            gamma_3[i][j] = get_pap_gamma_P(i, j, chain1, chain2, gamma_p)
+
+    pap_function = f"-{k_pap}*gamma_3(donor_idx,acceptor_idx)\
+                        *0.5*(1+tanh({eta_pap}*({r0}-distance(a1,d1))))\
+                        *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))"
+    pap = CustomHbondForce(pap_function)
+    pap.addPerDonorParameter("donor_idx")
+    pap.addPerAcceptorParameter("acceptor_idx")
+    pap.addTabulatedFunction("gamma_3", Discrete2DFunction(nres, nres, gamma_3.T.flatten()))
+    # print(oa.n)
+    # count = 0;
+    for i in range(nres):
+        if not isChainEnd(i, oa.chain_ends, n=13):
+            pap.addAcceptor(ca[i], ca[i+4], -1, [i])
+        if not isChainEnd(i, oa.chain_ends, n=4):
+            # pap.addDonor(ca[i], ca[i+4], -1, [i])
+            if oa.n[i] != -1:
+                pap.addDonor(oa.n[i], oa.n[i+4], -1, [i])
+
+    pap.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
+    pap.setCutoffDistance(1.0)
+    #print(count)
+    pap.setForceGroup(26)
+    return pap
 
 def beta_term_1_old(oa, k_beta=4.184, debug=False):
 
@@ -442,7 +642,7 @@ def beta_term_3_old(oa, k_beta=4.184, debug=False):
     beta_3.setForceGroup(25)
     return beta_3
 
-def pap_term(oa, k_pap=4.184):
+def pap_term_old(oa, k_pap=4.184):
     print("pap term ON")
     nres, ca = oa.nres, oa.ca
     # r0 = 2.0 # nm

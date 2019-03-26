@@ -7,13 +7,16 @@ import subprocess
 import fileinput
 import platform
 
-try:
-    OPENAWSEM_LOCATION = os.environ["OPENAWSEM_LOCATION"]
-    sys.path.insert(0, OPENAWSEM_LOCATION)
-    # print(OPENAWSEM_LOCATION)
-except KeyError:
-    print("Please set the environment variable name OPENAWSEM_LOCATION.\n Example: export OPENAWSEM_LOCATION='YOUR_OPENAWSEM_LOCATION'")
-    exit()
+# try:
+#     OPENAWSEM_LOCATION = os.environ["OPENAWSEM_LOCATION"]
+#     sys.path.insert(0, OPENAWSEM_LOCATION)
+#     # print(OPENAWSEM_LOCATION)
+# except KeyError:
+#     print("Please set the environment variable name OPENAWSEM_LOCATION.\n Example: export OPENAWSEM_LOCATION='YOUR_OPENAWSEM_LOCATION'")
+#     exit()
+
+__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+__author__ = 'Wei Lu'
 
 from openmmawsem import *
 from helperFunctions.myFunctions import *
@@ -31,7 +34,7 @@ parser.add_argument("--platform", type=str, default="CPU", help="Could be OpenCL
 parser.add_argument("--trajectory", type=str, default="./movie.pdb")
 args = parser.parse_args()
 
-if(args.debug):
+if (args.debug):
     do = print
     cd = print
 else:
@@ -63,7 +66,7 @@ if chain == "-1":
 input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
 
 pdb_trajectory = read_trajectory_pdb_positions(args.trajectory)
-oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filename=OPENAWSEM_LOCATION+"awsem.xml") # k_awsem is an overall scaling factor that will affect the relevant temperature scales
+oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filename=__location__ + "awsem.xml") # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 
 # apply forces
 # forceGroupTable_Rev = {11:"Con", 12:"Chain", 13:"Chi", 14:"Excluded", 15:"Rama", 16:"Direct",

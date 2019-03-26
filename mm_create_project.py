@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python3
 import os
 import argparse
 import sys
@@ -7,13 +7,14 @@ import subprocess
 import fileinput
 import platform
 
-try:
-    OPENAWSEM_LOCATION = os.environ["OPENAWSEM_LOCATION"]
-    sys.path.insert(0, OPENAWSEM_LOCATION)
-    # print(OPENAWSEM_LOCATION)
-except KeyError:
-    print("Please set the environment variable name OPENAWSEM_LOCATION.\n Example: export OPENAWSEM_LOCATION='YOUR_OPENAWSEM_LOCATION'")
-    exit()
+#try:
+#    OPENAWSEM_LOCATION = os.environ["OPENAWSEM_LOCATION"]
+#    sys.path.insert(0, OPENAWSEM_LOCATION)
+#    # print(OPENAWSEM_LOCATION)
+#except KeyError:
+#    print("Please set the environment variable name OPENAWSEM_LOCATION.\n Example: export OPENAWSEM_LOCATION='YOUR_OPENAWSEM_LOCATION'")
+#    exit()
+OPENAWSEM_LOCATION = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 from openmmawsem import *
 from helperFunctions.myFunctions import *

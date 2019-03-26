@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python3
 from simtk.openmm.app import *
 from simtk.openmm import *
 from simtk.unit import *

@@ -74,11 +74,11 @@ else:
 input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb(pdb, chain)
 openmmawsem.ensure_atom_order(input_pdb_filename)
 
-os.system(f"cp {__location__}parameters/burial_gamma.dat .")
-os.system(f"cp {__location__}parameters/gamma.dat .")
-os.system(f"cp {__location__}parameters/membrane_gamma.dat .")
-os.system(f"cp {__location__}parameters/anti_* .")
-os.system(f"cp {__location__}parameters/para_* .")
+os.system(f"cp {__location__}/parameters/burial_gamma.dat .")
+os.system(f"cp {__location__}/parameters/gamma.dat .")
+os.system(f"cp {__location__}/parameters/membrane_gamma.dat .")
+os.system(f"cp {__location__}/parameters/anti_* .")
+os.system(f"cp {__location__}/parameters/para_* .")
 
 do(f"python {__location__}/helperFunctions/Pdb2Gro.py crystal_structure.pdb amh-go.gro")
 
@@ -100,5 +100,5 @@ if args.frag:
     cullpdb_pc80_res3.0_R1.0_d160504_chains29712 %s.fasta 20 1 9 > logfile" % name)
     helperFunctions.myFunctions.check_and_correct_fragment_memory("frags.mem")
 
-do(f"cp {__location__}mm_run.py .")
-do(f"cp {__location__}mm_analysis.py .")
+do(f"cp {__location__}/mm_run.py .")
+do(f"cp {__location__}/mm_analysis.py .")

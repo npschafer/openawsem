@@ -33,7 +33,7 @@ parser.add_argument("--name", default="simulation", help="Name of the simulation
 parser.add_argument("--to", default="./", help="location of movie file")
 parser.add_argument("-c", "--chain", type=str, default="-1")
 parser.add_argument("-t", "--thread", type=int, default=-1, help="default is using all that is available")
-parser.add_argument("--platform", type=str, default="OpenCL")
+parser.add_argument("-p", "--platform", type=str, default="OpenCL")
 parser.add_argument("-s", "--steps", type=float, default=1e5, help="step size")
 parser.add_argument("--simulation_mode", type=int, default=0,
                 help="default 0: constant temperature,\

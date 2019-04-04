@@ -34,7 +34,8 @@ def getFromTerminal(CMD):
 
 def read_hydrophobicity_scale(seq, isNew=False):
     seq_dataFrame = pd.DataFrame({"oneLetterCode":list(seq)})
-    HFscales = pd.read_table("~/opt/small_script/Whole_residue_HFscales.txt")
+    # HFscales = pd.read_table("~/opt/small_script/Whole_residue_HFscales.txt")
+    HFscales = pd.read_csv("~/opt/small_script/Whole_residue_HFscales.txt")
     if not isNew:
         # Octanol Scale
         # new and old difference is at HIS.
@@ -442,14 +443,17 @@ def downloadPdb(pdb_list, membrane_protein=False):
 
 
 
-def cleanPdb(pdb_list, chain=None, fromFolder=None, toFolder="cleaned_pdbs"):
+def cleanPdb(pdb_list, chain=None, fromFolder=None, toFolder="cleaned_pdbs", formatName=False):
     os.system(f"mkdir -p {toFolder}")
     for pdb_id in pdb_list:
         # print(chain)
         print(pdb_id)
         # pdb = f"{pdb_id.lower()[:4]}"
         # pdbFile = pdb+".pdb"
-        pdb = pdb_id
+        if formatName:
+            pdb = f"{pdb_id.lower()[:4]}"
+        else:
+            pdb = pdb_id
         pdbFile = pdb + ".pdb"
         if fromFolder is None:
             fromFile = os.path.join("original_pdbs", pdbFile)
@@ -466,6 +470,7 @@ def cleanPdb(pdb_list, chain=None, fromFolder=None, toFolder="cleaned_pdbs"):
                 Chosen_chain = "A"
         elif chain == "-1" or chain == -1:
             Chosen_chain = getAllChains(fromFile)
+            print(f"Chains: {Chosen_chain}")
         else:
             Chosen_chain = chain
         # clean pdb

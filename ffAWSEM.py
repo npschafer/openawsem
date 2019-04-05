@@ -72,6 +72,7 @@ class BaseError(Exception):
 
 class Protein(object):
     def __init__(self, atoms,sequence, k_awsem=1):
+        self.atoms = atoms
         protein_data = atoms[atoms.resname.isin(_AWSEMresidues)].copy()
         # renumber residues
         resix = (protein_data.chainID + '_' + protein_data.resSeq.astype(str))
@@ -97,6 +98,7 @@ class Protein(object):
         self.natoms=len(atoms)
         self.bonds=self._setup_bonds()
         self.seq=sequence
+        self.resi = pandas.merge(self.atoms, self.protein_data, how='left').resID.fillna(-1).astype(int).tolist()
         pass
 
     def _setup_bonds(self):

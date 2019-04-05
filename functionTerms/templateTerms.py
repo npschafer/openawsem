@@ -2,6 +2,7 @@ from simtk.openmm.app import *
 from simtk.openmm import *
 from simtk.unit import *
 import numpy as np
+import pandas as pd
 
 def read_reference_structure_for_q_calculation_4(oa, contact_threshold,rnative_dat,  min_seq_sep=3, max_seq_sep=np.inf):
     # use contact matrix for Q calculation

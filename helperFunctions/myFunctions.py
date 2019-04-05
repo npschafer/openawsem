@@ -11,7 +11,7 @@ import imp
 import subprocess
 import glob
 import re
-from helperFunctions.myFunctions_helper import *
+from .myFunctions_helper import *
 import numpy as np
 import pandas as pd
 import fileinput
@@ -34,8 +34,7 @@ def getFromTerminal(CMD):
 
 def read_hydrophobicity_scale(seq, isNew=False):
     seq_dataFrame = pd.DataFrame({"oneLetterCode":list(seq)})
-    # HFscales = pd.read_table("~/opt/small_script/Whole_residue_HFscales.txt")
-    HFscales = pd.read_csv("~/opt/small_script/Whole_residue_HFscales.txt")
+    HFscales = pd.read_csv("~/opt/small_script/Whole_residue_HFscales.txt", sep="\t")
     if not isNew:
         # Octanol Scale
         # new and old difference is at HIS.
@@ -443,7 +442,7 @@ def downloadPdb(pdb_list, membrane_protein=False):
 
 
 
-def cleanPdb(pdb_list, chain=None, fromFolder=None, toFolder="cleaned_pdbs", formatName=False):
+def cleanPdb(pdb_list, chain=None, fromFolder=None, toFolder="cleaned_pdbs", formatName=False, verbose=False, removeTwoEndsMissingResidues=True):
     os.system(f"mkdir -p {toFolder}")
     for pdb_id in pdb_list:
         # print(chain)
@@ -477,6 +476,7 @@ def cleanPdb(pdb_list, chain=None, fromFolder=None, toFolder="cleaned_pdbs", for
         fixer = PDBFixer(filename=fromFile)
         # remove unwanted chains
         chains = list(fixer.topology.chains())
+
         chains_to_remove = [i for i, x in enumerate(chains) if x.id not in Chosen_chain]
         fixer.removeChains(chains_to_remove)
 
@@ -484,11 +484,13 @@ def cleanPdb(pdb_list, chain=None, fromFolder=None, toFolder="cleaned_pdbs", for
         # add missing residues in the middle of a chain, not ones at the start or end of the chain.
         chains = list(fixer.topology.chains())
         keys = fixer.missingResidues.keys()
-        # print(keys)
-        for key in list(keys):
-            chain_tmp = chains[key[0]]
-            if key[1] == 0 or key[1] == len(list(chain_tmp.residues())):
-                del fixer.missingResidues[key]
+        if verbose:
+            print("missing residues: ", keys)
+        if removeTwoEndsMissingResidues:
+            for key in list(keys):
+                chain_tmp = chains[key[0]]
+                if key[1] == 0 or key[1] == len(list(chain_tmp.residues())):
+                    del fixer.missingResidues[key]
 
         fixer.findNonstandardResidues()
         fixer.replaceNonstandardResidues()

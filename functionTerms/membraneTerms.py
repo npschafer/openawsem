@@ -3,7 +3,6 @@ from simtk.openmm import *
 from simtk.unit import *
 import numpy as np
 
-
 def membrane_term(oa, k_membrane=4.184, k_m=2, z_m=1.5):
     # k_m in units of nm^-1, z_m in units of nm.
     # add membrane forces

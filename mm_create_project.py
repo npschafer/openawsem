@@ -102,3 +102,4 @@ if args.frag:
 
 do(f"cp {__location__}/mm_run.py .")
 do(f"cp {__location__}/mm_analysis.py .")
+do(f"cp {__location__}/params.py .")

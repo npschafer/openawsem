@@ -7,16 +7,16 @@ import subprocess
 import fileinput
 import platform
 
-# try:
-#     OPENAWSEM_LOCATION = os.environ["OPENAWSEM_LOCATION"]
-#     sys.path.insert(0, OPENAWSEM_LOCATION)
-#     # print(OPENAWSEM_LOCATION)
-# except KeyError:
-#     print("Please set the environment variable name OPENAWSEM_LOCATION.\n Example: export OPENAWSEM_LOCATION='YOUR_OPENAWSEM_LOCATION'")
-#     exit()
+try:
+    OPENAWSEM_LOCATION = os.environ["OPENAWSEM_LOCATION"]
+    sys.path.insert(0, OPENAWSEM_LOCATION)
+    # print(OPENAWSEM_LOCATION)
+except KeyError:
+    print("Please set the environment variable name OPENAWSEM_LOCATION.\n Example: export OPENAWSEM_LOCATION='YOUR_OPENAWSEM_LOCATION'")
+    exit()
 
-__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-__author__ = 'Wei Lu'
+# __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+# __author__ = 'Wei Lu'
 
 from openmmawsem import *
 from helperFunctions.myFunctions import *
@@ -29,9 +29,9 @@ parser = argparse.ArgumentParser(
 parser.add_argument("protein", help="The name of the protein")
 parser.add_argument("-d", "--debug", action="store_true", default=False)
 parser.add_argument("-c", "--chain", type=str, default="-1")
-parser.add_argument("-t", "--thread", type=int, default=2, help="default is using 2 CPUs, -1 is using all")
-parser.add_argument("--platform", type=str, default="CPU", help="Could be OpenCL, CUDA and CPU")
-parser.add_argument("--trajectory", type=str, default="./movie.pdb")
+parser.add_argument("--thread", type=int, default=2, help="default is using 2 CPUs, -1 is using all")
+parser.add_argument("-p", "--platform", type=str, default="CPU", help="Could be OpenCL, CUDA and CPU")
+parser.add_argument("-t", "--trajectory", type=str, default="./movie.pdb")
 args = parser.parse_args()
 
 if (args.debug):
@@ -65,8 +65,18 @@ if chain == "-1":
 # for compute Q
 input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
 
-pdb_trajectory = read_trajectory_pdb_positions(args.trajectory)
-oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filename=__location__ + "awsem.xml") # k_awsem is an overall scaling factor that will affect the relevant temperature scales
+fileType = args.trajectory[-3:]
+if fileType == "pdb":
+    pdb_trajectory = md.load(args.trajectory, stride=1)
+elif fileType == "dcd":
+    pdb_trajectory = md.load(args.trajectory, top=input_pdb_filename, stride=1)
+    # may use iterload if loading still too slow
+else:
+    print(f"Unknown fileType {fileType}")
+
+# pdb_trajectory = read_trajectory_pdb_positions(args.trajectory)
+
+oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filename=f"{OPENAWSEM_LOCATION}/awsem.xml")  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 
 # apply forces
 # forceGroupTable_Rev = {11:"Con", 12:"Chain", 13:"Chi", 14:"Excluded", 15:"Rama", 16:"Direct",
@@ -74,7 +84,7 @@ oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filena
 forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
                     "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "beta_2":24,"beta_3":25,"pap":26, "Total":list(range(11, 27)),
                     "Water":[16, 18], "Beta":[23, 24, 25], "Pap":26, "Q":1}
-#forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
+# forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
 #                    "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "Total":list(range(11, 26)),
 #                    "Water":[16, 18], "beta":[23, 24, 25], "Q":1}
 forces = [
@@ -96,7 +106,7 @@ forces = [
     # fragment_memory_term(oa, frag_location_pre="./"),
     # er_term(oa),
     # tbm_q_term(oa, k_tbm_q=2000),
-    # membrane_term(oa),
+    # membrane_term(oa, k_membrane=params.k_membrane),
 ]
 oa.addForcesWithDefaultForceGroup(forces)
 
@@ -106,13 +116,16 @@ collision_rate = 5.0 / picoseconds
 integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 2*femtoseconds)
 simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
 
-showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane", "Total"]
+showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane", "Beta", "Pap", "Total"]
+# showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane", "Total"]
 # showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q","beta_1", "Total"]
 # showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q","beta_1","beta_2","beta_3","pap", "Total"]
 # print("Steps", *showEnergy)
 print(" ".join(["{0:<8s}".format(i) for i in ["Steps"] + showEnergy]))
-for step, pdb in enumerate(pdb_trajectory):
-    simulation.context.setPositions(pdb.positions)
+# for step, pdb in enumerate(pdb_trajectory):
+#     simulation.context.setPositions(pdb.positions)
+for step in range(len(pdb_trajectory)):
+    simulation.context.setPositions(pdb_trajectory.openmm_positions(step))
     e = []
     for term in showEnergy:
         if type(forceGroupTable[term]) == list:

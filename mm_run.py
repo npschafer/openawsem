@@ -9,7 +9,7 @@ import platform
 from datetime import datetime
 from time import sleep
 import fileinput
-
+import params
 
 try:
     OPENAWSEM_LOCATION = os.environ["OPENAWSEM_LOCATION"]
@@ -76,7 +76,7 @@ if args.to != "./":
 input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
 
 reporter_frequency = 10000
-oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml") # k_awsem is an overall scaling factor that will affect the relevant temperature scales
+oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml")  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 
 # apply forces
 forces = [
@@ -98,7 +98,7 @@ forces = [
     # fragment_memory_term(oa, frag_location_pre="./"),
     # er_term(oa),
     # tbm_q_term(oa, k_tbm_q=2000),
-    # membrane_term(oa),
+    # membrane_term(oa, k_membrane=2),
 ]
 oa.addForces(forces)
 
@@ -107,14 +107,27 @@ collision_rate = 5.0 / picoseconds
 checkpoint_file = "restart"
 checkpoint_reporter_frequency = 10000
 
+# output the native and the structure after minimization
+integrator = CustomIntegrator(0.001)
+simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
+simulation.context.setPositions(oa.pdb.positions)  # set the initial positions of the atoms
+simulation.reporters.append(PDBReporter(os.path.join(args.to, "native.pdb"), 1))
+simulation.step(int(1))
+simulation.minimizeEnergy()  # first, minimize the energy to a local minimum to reduce any large forces that might be present
+simulation.step(int(1))
+
 integrator = LangevinIntegrator(600*kelvin, 1/picosecond, 2*femtoseconds)
 # integrator = CustomIntegrator(0.001)
 simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
 simulation.context.setPositions(oa.pdb.positions)  # set the initial positions of the atoms
 # simulation.context.setVelocitiesToTemperature(300*kelvin) # set the initial velocities of the atoms according to the desired starting temperature
 simulation.minimizeEnergy()  # first, minimize the energy to a local minimum to reduce any large forces that might be present
-simulation.reporters.append(StateDataReporter(stdout, reporter_frequency, step=True, potentialEnergy=True, temperature=True)) # output energy and temperature during simulation
+simulation.reporters.append(StateDataReporter(stdout, reporter_frequency, step=True, potentialEnergy=True, temperature=True))  # output energy and temperature during simulation
+
 simulation.reporters.append(PDBReporter(os.path.join(args.to, "movie.pdb"), reporter_frequency))  # output PDBs of simulated structures
+simulation.reporters.append(DCDReporter(os.path.join(args.to, "movie.dcd"), reporter_frequency))  # output PDBs of simulated structures
+# simulation.reporters.append(DCDReporter(os.path.join(args.to, "movie.dcd"), 1))  # output PDBs of simulated structures
+# simulation.reporters.append(PDBReporter(os.path.join(args.to, "movie.pdb"), 1))  # output PDBs of simulated structures
 
 print("Simulation Starts")
 start_time = time.time()
@@ -127,7 +140,7 @@ elif args.simulation_mode == 1:
         simulation.step(10000)
 
 # simulation.step(int(1e6))
-simulation.reporters.append(CheckpointReporter(checkpoint_file, checkpoint_reporter_frequency)) # save progress during the simulation
+simulation.reporters.append(CheckpointReporter(checkpoint_file, checkpoint_reporter_frequency))  # save progress during the simulation
 
 time_taken = time.time() - start_time  # time_taken is in seconds
 hours, rest = divmod(time_taken,3600)

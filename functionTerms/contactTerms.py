@@ -23,7 +23,7 @@ def inWhichChain(residueId, chain_ends):
         else:
             return chain_table[i]
 
-def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False):
+def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0):
     k_contact *= oa.k_awsem
     # combine direct, burial, mediated.
     # default membrane thickness 1.5 nm
@@ -53,7 +53,7 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
     burial_ro_max = [3.0, 6.0, 9.0]
     burial_gamma = np.loadtxt("burial_gamma.dat")
 
-    k_relative_mem = 400  # adjust the relative strength of gamma
+    k_relative_mem = 1  # adjust the relative strength of gamma
     inMembrane = int(inMembrane)
     contact = CustomGBForce()
 
@@ -161,7 +161,7 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
 
     if z_dependent:
         # print(f"0.5*tanh({eta_switching}*(z+{z_m}))+0.5*tanh({eta_switching}*({z_m}-z))")
-        contact.addComputedValue("alphaMembrane", f"0.5*tanh({eta_switching}*(z+{z_m}))+0.5*tanh({eta_switching}*({z_m}-z))", CustomGBForce.SingleParticle)
+        contact.addComputedValue("alphaMembrane", f"0.5*tanh({eta_switching}*((z-{membrane_center})+{z_m}))+0.5*tanh({eta_switching}*({z_m}-(z-{membrane_center})))", CustomGBForce.SingleParticle)
         # contact.addComputedValue("alphaMembrane", f"z", CustomGBForce.SingleParticle)
         # contact.addComputedValue("isInMembrane", f"z", CustomGBForce.SingleParticle)
         # contact.addComputedValue("isInMembrane", f"step({z_m}-abs(z))", CustomGBForce.SingleParticle)

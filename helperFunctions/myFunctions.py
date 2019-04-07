@@ -11,7 +11,8 @@ import imp
 import subprocess
 import glob
 import re
-from .myFunctions_helper import *
+
+from helperFunctions.myFunctions_helper import *
 import numpy as np
 import pandas as pd
 import fileinput
@@ -550,7 +551,7 @@ def get_frame(file="movie.pdb", to="last_frame.pdb", frame=-1):
 
 
 
-def convert_openMM_to_standard_pdb(fileName="last_frame.pdb", seq_dic=None):
+def convert_openMM_to_standard_pdb(fileName="last_frame.pdb", seq_dic=None, back=True):
     code = {"GLY" : "G", "ALA" : "A", "LEU" : "L", "ILE" : "I",
             "ARG" : "R", "LYS" : "K", "MET" : "M", "CYS" : "C",
             "TYR" : "Y", "THR" : "T", "PRO" : "P", "SER" : "S",
@@ -559,7 +560,11 @@ def convert_openMM_to_standard_pdb(fileName="last_frame.pdb", seq_dic=None):
     inv_code_map = {v: k for k, v in code.items()}
     if seq_dic is None:
         seq_dic = get_seq_dic()
-    with fileinput.FileInput(fileName, inplace=True, backup='.bak') as file:
+    if back:
+        backup = '.bak'
+    else:
+        backup = ''
+    with fileinput.FileInput(fileName, inplace=True, backup=backup) as file:
         for line in file:
             if len(line) > 25:
                 if line[:6] == "REMARK":

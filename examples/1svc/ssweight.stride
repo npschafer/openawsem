@@ -1,0 +1,825 @@
+REM  --------------------------------------------------------------------  XXXX
+REM                                                                        XXXX
+REM  STRIDE: Knowledge-based secondary structure assignment                XXXX
+REM  Please cite: D.Frishman & P.Argos, Proteins XX, XXX-XXX, 1995         XXXX
+REM                                                                        XXXX
+REM  Residue accessible surface area calculation                           XXXX
+REM  Please cite: F.Eisenhaber & P.Argos, J.Comp.Chem. 14, 1272-1280, 1993 XXXX
+REM               F.Eisenhaber et al., J.Comp.Chem., 1994, submitted       XXXX
+REM                                                                        XXXX
+REM  ------------------------ General information -----------------------  XXXX
+REM                                                                        XXXX
+HDR  TRANSCRIPTION/DNA                       27-NOV-95   XXXX              XXXX
+CMP  NUCLEAR FACTOR KAPPA-B (NF-KB) MUTANT/DNA COMPLEX                     XXXX
+AUT  C.W.MUELLER, S.C.HARRISON                                             XXXX
+REM                                                                        XXXX
+REM  -------------------- Secondary structure summary -------------------  XXXX
+REM                                                                        XXXX
+CHN  1svc.pdb P                                                            XXXX
+REM                                                                        XXXX
+REM                .         .         .         .         .               XXXX
+SEQ  1    PYLQILEQPKQRGFRFRYVAEGPSHGGLPGASSEKNKKSYPQVKICNYVG   50          XXXX
+STR        EEEEEETB  B    EEGGG      B B   TTTT    EEEEETTTT               XXXX
+REM                                                                        XXXX
+REM                .         .         .         .         .               XXXX
+SEQ  51   PAKVIVQLVTNGKNIHLHAHSLVGKHCEDGICTVTAGPKDMVVGFANLGI  100          XXXX
+STR       TTEEEEEEE  TTTT B   EEEETTEETTEEEEE TTTTTEEETTTEEE               XXXX
+REM                                                                        XXXX
+REM                .         .         .         .         .               XXXX
+SEQ  101  LHVTKKKVFETLEARMTEACIRGYNPGLLVHPDLAYLQAEGGGDRQLGDR  150          XXXX
+STR       EE  GGGHHHHHHHHHHHHHHHTTTHHHHH GGGGGGTTT TTTTTT HH               XXXX
+REM                                                                        XXXX
+REM                .         .         .         .         .               XXXX
+SEQ  151  EKELIRQAALQQTKEMDLSVVRLMFTAFLPDSTGSFTRRLEPVVSDAIYD  200          XXXX
+STR       HHHHHHHHHHHHHH  TTTEEEEEEEEEEE TTTTEEEE   EEEEEEET               XXXX
+REM                                                                        XXXX
+REM                .         .         .         .         .               XXXX
+SEQ  201  SKAPNASNLKIVRMDRTAGCVTGGEEIYLLCDKVQKDDIQIRFYEEEENG  250          XXXX
+STR       TTTTTTT   EEEETTTEEETTT EEEEEEE   TTTTEEEEEEEEETTT               XXXX
+REM                                                                        XXXX
+REM                .         .         .         .         .               XXXX
+SEQ  251  GVWEGFGDFSPTDVHRQFAIVFKTPKYKDINITKPASVFVQLRRKSDLET  300          XXXX
+STR       EEEEEE B  GGGEETTTEEEEEE  TTTT     EEEEEEEEETTTT B               XXXX
+REM                                                                        XXXX
+REM                .                                                       XXXX
+SEQ  301  SEPKPFLYYPE                                         311          XXXX
+STR          EEEEEE                                                        XXXX
+REM                                                                        XXXX
+CHN  1svc.pdb Q                                                            XXXX
+REM                                                                        XXXX
+REM                .         .         .         .         .               XXXX
+SEQ  1    PYLQILEQPKQRGFRFRYVAEGPSHGGLPGASSEKNKKSYPQVKICNYVG   50          XXXX
+STR        EEEEEETB  B    EEGGG      B B   TTTT    EEEEETTTT               XXXX
+REM                                                                        XXXX
+REM                .         .         .         .         .               XXXX
+SEQ  51   PAKVIVQLVTNGKNIHLHAHSLVGKHCEDGICTVTAGPKDMVVGFANLGI  100          XXXX
+STR       TTEEEEEEE  TTTT B   EEEETTEETTEEEEE TTTTTEEETTTEEE               XXXX
+REM                                                                        XXXX
+REM                .         .         .         .         .               XXXX
+SEQ  101  LHVTKKKVFETLEARMTEACIRGYNPGLLVHPDLAYLQAEGGGDRQLGDR  150          XXXX
+STR       EE  GGGHHHHHHHHHHHHHHHTTTHHHHH GGGGGGTTT TTTTTT HH               XXXX
+REM                                                                        XXXX
+REM                .         .         .         .         .               XXXX
+SEQ  151  EKELIRQAALQQTKEMDLSVVRLMFTAFLPDSTGSFTRRLEPVVSDAIYD  200          XXXX
+STR       HHHHHHHHHHHHHH  TTTEEEEEEEEEEE TTTTEEEE   EEEEEEET               XXXX
+REM                                                                        XXXX
+REM                .         .         .         .         .               XXXX
+SEQ  201  SKAPNASNLKIVRMDRTAGCVTGGEEIYLLCDKVQKDDIQIRFYEEEENG  250          XXXX
+STR       TTTTTTT   EEEETTTEEETTT EEEEEEE   TTTTEEEEEEEEETTT               XXXX
+REM                                                                        XXXX
+REM                .         .         .         .         .               XXXX
+SEQ  251  GVWEGFGDFSPTDVHRQFAIVFKTPKYKDINITKPASVFVQLRRKSDLET  300          XXXX
+STR       EEEEEE B  GGGEETTTEEEEEE  TTTT     EEEEEEEEETTTT B               XXXX
+REM                                                                        XXXX
+REM                .                                                       XXXX
+SEQ  301  SEPKPFLYYPE                                         311          XXXX
+STR          EEEEEE                                                        XXXX
+REM                                                                        XXXX
+REM                                                                        XXXX
+REM                                                                        XXXX
+LOC  AlphaHelix   VAL   150 P      ARG    164 P                            XXXX
+LOC  AlphaHelix   PRO   168 P      VAL    172 P                            XXXX
+LOC  AlphaHelix   ASP   191 P      LYS    206 P                            XXXX
+LOC  AlphaHelix   VAL   150 Q      ARG    164 Q                            XXXX
+LOC  AlphaHelix   PRO   168 Q      VAL    172 Q                            XXXX
+LOC  AlphaHelix   ASP   191 Q      LYS    206 Q                            XXXX
+LOC  310Helix     VAL    61 P      GLU     63 P                            XXXX
+LOC  310Helix     LYS   147 P      LYS    149 P                            XXXX
+LOC  310Helix     PRO   174 P      LEU    179 P                            XXXX
+LOC  310Helix     PRO   303 P      ASP    305 P                            XXXX
+LOC  310Helix     VAL    61 Q      GLU     63 Q                            XXXX
+LOC  310Helix     LYS   147 Q      LYS    149 Q                            XXXX
+LOC  310Helix     PRO   174 Q      LEU    179 Q                            XXXX
+LOC  310Helix     PRO   303 Q      ASP    305 Q                            XXXX
+LOC  Strand       TYR    44 P      GLU     49 P                            XXXX
+LOC  Strand       ARG    59 P      TYR     60 P                            XXXX
+LOC  Strand       GLN    84 P      CYS     88 P                            XXXX
+LOC  Strand       LYS    95 P      VAL    101 P                            XXXX
+LOC  Strand       SER   113 P      GLY    116 P                            XXXX
+LOC  Strand       CYS   119 P      GLU    120 P                            XXXX
+LOC  Strand       ILE   123 P      THR    127 P                            XXXX
+LOC  Strand       VAL   134 P      GLY    136 P                            XXXX
+LOC  Strand       LEU   140 P      HIS    144 P                            XXXX
+LOC  Strand       VAL   212 P      PRO    222 P                            XXXX
+LOC  Strand       PHE   228 P      ARG    231 P                            XXXX
+LOC  Strand       VAL   235 P      TYR    241 P                            XXXX
+LOC  Strand       ILE   253 P      MET    256 P                            XXXX
+LOC  Strand       ALA   260 P      CYS    262 P                            XXXX
+LOC  Strand       GLU   267 P      CYS    273 P                            XXXX
+LOC  Strand       ILE   281 P      GLU    289 P                            XXXX
+LOC  Strand       GLY   293 P      PHE    298 P                            XXXX
+LOC  Strand       VAL   306 P      HIS    307 P                            XXXX
+LOC  Strand       ALA   311 P      THR    316 P                            XXXX
+LOC  Strand       ALA   328 P      ARG    336 P                            XXXX
+LOC  Strand       LYS   346 P      TYR    351 P                            XXXX
+LOC  Strand       TYR    44 Q      GLU     49 Q                            XXXX
+LOC  Strand       ARG    59 Q      TYR     60 Q                            XXXX
+LOC  Strand       GLN    84 Q      CYS     88 Q                            XXXX
+LOC  Strand       LYS    95 Q      VAL    101 Q                            XXXX
+LOC  Strand       SER   113 Q      GLY    116 Q                            XXXX
+LOC  Strand       CYS   119 Q      GLU    120 Q                            XXXX
+LOC  Strand       ILE   123 Q      THR    127 Q                            XXXX
+LOC  Strand       VAL   134 Q      GLY    136 Q                            XXXX
+LOC  Strand       LEU   140 Q      HIS    144 Q                            XXXX
+LOC  Strand       VAL   212 Q      PRO    222 Q                            XXXX
+LOC  Strand       PHE   228 Q      ARG    231 Q                            XXXX
+LOC  Strand       VAL   235 Q      TYR    241 Q                            XXXX
+LOC  Strand       ILE   253 Q      MET    256 Q                            XXXX
+LOC  Strand       ALA   260 Q      CYS    262 Q                            XXXX
+LOC  Strand       GLU   267 Q      CYS    273 Q                            XXXX
+LOC  Strand       ILE   281 Q      GLU    289 Q                            XXXX
+LOC  Strand       GLY   293 Q      PHE    298 Q                            XXXX
+LOC  Strand       VAL   306 Q      HIS    307 Q                            XXXX
+LOC  Strand       ALA   311 Q      THR    316 Q                            XXXX
+LOC  Strand       ALA   328 Q      ARG    336 Q                            XXXX
+LOC  Strand       LYS   346 Q      TYR    351 Q                            XXXX
+LOC  TurnVIII     ILE    47 P      GLN     50 P                            XXXX
+LOC  TurnII       GLU    76 P      LYS     79 P                            XXXX
+LOC  TurnIV       ILE    87 P      TYR     90 P                            XXXX
+LOC  TurnIV       VAL    91 P      ALA     94 P                            XXXX
+LOC  TurnVIII     GLY   104 P      ILE    107 P                            XXXX
+LOC  TurnIV       GLY   116 P      CYS    119 P                            XXXX
+LOC  TurnIV       CYS   119 P      GLY    122 P                            XXXX
+LOC  TurnI'       GLU   120 P      ILE    123 P                            XXXX
+LOC  TurnI        GLY   129 P      ASP    132 P                            XXXX
+LOC  TurnIV       PRO   130 P      MET    133 P                            XXXX
+LOC  TurnIV       PHE   137 P      LEU    140 P                            XXXX
+LOC  TurnIV       GLY   165 P      PRO    168 P                            XXXX
+LOC  TurnII       LEU   179 P      GLU    182 P                            XXXX
+LOC  TurnII       GLY   184 P      ARG    187 P                            XXXX
+LOC  TurnIV       GLY   185 P      GLN    188 P                            XXXX
+LOC  TurnI        ASP   186 P      LEU    189 P                            XXXX
+LOC  TurnI        ASP   209 P      VAL    212 P                            XXXX
+LOC  TurnIV       SER   224 P      SER    227 P                            XXXX
+LOC  TurnI        ASP   242 P      ALA    245 P                            XXXX
+LOC  TurnI        ALA   245 P      ALA    248 P                            XXXX
+LOC  TurnIV       PRO   246 P      SER    249 P                            XXXX
+LOC  TurnVIII     MET   256 P      THR    259 P                            XXXX
+LOC  TurnI        CYS   262 P      GLY    265 P                            XXXX
+LOC  TurnIV       GLN   277 P      ASP    280 P                            XXXX
+LOC  TurnIV       LYS   278 P      ILE    281 P                            XXXX
+LOC  TurnI        GLU   289 P      GLY    292 P                            XXXX
+LOC  TurnIV       VAL   306 P      GLN    309 P                            XXXX
+LOC  TurnI'       HIS   307 P      PHE    310 P                            XXXX
+LOC  TurnIV       ARG   308 P      ALA    311 P                            XXXX
+LOC  TurnVIII     TYR   319 P      ILE    322 P                            XXXX
+LOC  TurnIV       ARG   336 P      ASP    339 P                            XXXX
+LOC  TurnI        LYS   337 P      LEU    340 P                            XXXX
+LOC  TurnVIII     ILE    47 Q      GLN     50 Q                            XXXX
+LOC  TurnII       GLU    76 Q      LYS     79 Q                            XXXX
+LOC  TurnIV       ILE    87 Q      TYR     90 Q                            XXXX
+LOC  TurnIV       VAL    91 Q      ALA     94 Q                            XXXX
+LOC  TurnVIII     GLY   104 Q      ILE    107 Q                            XXXX
+LOC  TurnIV       GLY   116 Q      CYS    119 Q                            XXXX
+LOC  TurnIV       CYS   119 Q      GLY    122 Q                            XXXX
+LOC  TurnI'       GLU   120 Q      ILE    123 Q                            XXXX
+LOC  TurnI        GLY   129 Q      ASP    132 Q                            XXXX
+LOC  TurnIV       PRO   130 Q      MET    133 Q                            XXXX
+LOC  TurnIV       PHE   137 Q      LEU    140 Q                            XXXX
+LOC  TurnIV       GLY   165 Q      PRO    168 Q                            XXXX
+LOC  TurnII       LEU   179 Q      GLU    182 Q                            XXXX
+LOC  TurnII       GLY   184 Q      ARG    187 Q                            XXXX
+LOC  TurnIV       GLY   185 Q      GLN    188 Q                            XXXX
+LOC  TurnI        ASP   186 Q      LEU    189 Q                            XXXX
+LOC  TurnI        ASP   209 Q      VAL    212 Q                            XXXX
+LOC  TurnIV       SER   224 Q      SER    227 Q                            XXXX
+LOC  TurnI        ASP   242 Q      ALA    245 Q                            XXXX
+LOC  TurnI        ALA   245 Q      ALA    248 Q                            XXXX
+LOC  TurnIV       PRO   246 Q      SER    249 Q                            XXXX
+LOC  TurnVIII     MET   256 Q      THR    259 Q                            XXXX
+LOC  TurnI        CYS   262 Q      GLY    265 Q                            XXXX
+LOC  TurnIV       GLN   277 Q      ASP    280 Q                            XXXX
+LOC  TurnIV       LYS   278 Q      ILE    281 Q                            XXXX
+LOC  TurnI        GLU   289 Q      GLY    292 Q                            XXXX
+LOC  TurnIV       VAL   306 Q      GLN    309 Q                            XXXX
+LOC  TurnI'       HIS   307 Q      PHE    310 Q                            XXXX
+LOC  TurnIV       ARG   308 Q      ALA    311 Q                            XXXX
+LOC  TurnVIII     TYR   319 Q      ILE    322 Q                            XXXX
+LOC  TurnIV       ARG   336 Q      ASP    339 Q                            XXXX
+LOC  TurnI        LYS   337 Q      LEU    340 Q                            XXXX
+REM                                                                        XXXX
+REM  --------------- Detailed secondary structure assignment-------------  XXXX
+REM                                                                        XXXX
+REM  |---Residue---|    |--Structure--|   |-Phi-|   |-Psi-|  |-Area-|      XXXX
+ASG  PRO P   43    1    C          Coil    360.00    123.98      81.3      XXXX
+ASG  TYR P   44    2    E        Strand   -132.75    147.11     125.3      XXXX
+ASG  LEU P   45    3    E        Strand    -95.96    139.37       8.9      XXXX
+ASG  GLN P   46    4    E        Strand   -134.49    163.62      83.9      XXXX
+ASG  ILE P   47    5    E        Strand   -102.81    114.01      27.8      XXXX
+ASG  LEU P   48    6    E        Strand    -72.73    -48.53      87.0      XXXX
+ASG  GLU P   49    7    E        Strand   -135.99    119.37      27.6      XXXX
+ASG  GLN P   50    8    T          Turn    -67.80    161.71      51.4      XXXX
+ASG  PRO P   51    9    B        Bridge    -84.38    150.89       2.8      XXXX
+ASG  LYS P   52   10    C          Coil    -61.69    119.75     101.4      XXXX
+ASG  GLN P   53   11    C          Coil    -54.38    -65.44      76.2      XXXX
+ASG  ARG P   54   12    B        Bridge   -102.68    154.97      30.1      XXXX
+ASG  GLY P   55   13    C          Coil    120.15    -44.87      22.1      XXXX
+ASG  PHE P   56   14    C          Coil    -70.90    155.45      24.8      XXXX
+ASG  ARG P   57   15    C          Coil   -123.58    117.36      85.9      XXXX
+ASG  PHE P   58   16    C          Coil    -67.92    144.12       1.4      XXXX
+ASG  ARG P   59   17    E        Strand   -116.15    138.05      56.3      XXXX
+ASG  TYR P   60   18    E        Strand    -75.16    149.49     102.6      XXXX
+ASG  VAL P   61   19    G      310Helix    -38.61    -51.65     111.0      XXXX
+ASG  ALA P   62   20    G      310Helix    -53.62    -42.35      97.9      XXXX
+ASG  GLU P   63   21    G      310Helix    -55.30     -4.46      50.0      XXXX
+ASG  GLY P   64   22    C          Coil     83.39    175.41      30.7      XXXX
+ASG  PRO P   65   23    C          Coil   -100.50    -14.44     128.0      XXXX
+ASG  SER P   66   24    C          Coil    -82.47     34.26     119.2      XXXX
+ASG  HIS P   67   25    C          Coil    -94.87    -33.38      96.0      XXXX
+ASG  GLY P   68   26    C          Coil    149.47    162.00      42.0      XXXX
+ASG  GLY P   69   27    C          Coil   -106.90    150.70      24.3      XXXX
+ASG  LEU P   70   28    B        Bridge    -66.37    127.22       1.5      XXXX
+ASG  PRO P   71   29    C          Coil    -88.40    177.91      37.1      XXXX
+ASG  GLY P   72   30    B        Bridge    -96.25    179.63       3.2      XXXX
+ASG  ALA P   73   31    C          Coil    -75.00    -21.70      61.4      XXXX
+ASG  SER P   74   32    C          Coil    -68.15    130.48      37.1      XXXX
+ASG  SER P   75   33    C          Coil   -100.77      5.52     123.0      XXXX
+ASG  GLU P   76   34    T          Turn    -51.24    132.16     110.0      XXXX
+ASG  LYS P   77   35    T          Turn    -61.37    147.31     188.6      XXXX
+ASG  ASN P   78   36    T          Turn     55.80     40.26     161.7      XXXX
+ASG  LYS P   79   37    T          Turn   -142.84    121.91     132.9      XXXX
+ASG  LYS P   80   38    C          Coil    -76.35     -9.45     170.8      XXXX
+ASG  SER P   81   39    C          Coil     24.93    110.05      18.2      XXXX
+ASG  TYR P   82   40    C          Coil   -105.73    145.60      90.3      XXXX
+ASG  PRO P   83   41    C          Coil    -56.14    141.29       4.2      XXXX
+ASG  GLN P   84   42    E        Strand   -128.09    145.39      64.7      XXXX
+ASG  VAL P   85   43    E        Strand   -123.26    161.83       2.8      XXXX
+ASG  LYS P   86   44    E        Strand   -147.61    129.77      79.6      XXXX
+ASG  ILE P   87   45    E        Strand    -89.88     96.26       4.9      XXXX
+ASG  CYS P   88   46    E        Strand    -79.64    137.75      11.3      XXXX
+ASG  ASN P   89   47    T          Turn     82.67     48.26     106.0      XXXX
+ASG  TYR P   90   48    T          Turn      3.74    110.60     140.6      XXXX
+ASG  VAL P   91   49    T          Turn   -129.98    175.55      42.0      XXXX
+ASG  GLY P   92   50    T          Turn    -48.61    143.43      24.3      XXXX
+ASG  PRO P   93   51    T          Turn    -30.11     77.97      60.0      XXXX
+ASG  ALA P   94   52    T          Turn    -60.19    159.50       0.4      XXXX
+ASG  LYS P   95   53    E        Strand   -110.92    104.54      51.9      XXXX
+ASG  VAL P   96   54    E        Strand    -95.93    128.27       1.8      XXXX
+ASG  ILE P   97   55    E        Strand   -117.78    155.28       0.0      XXXX
+ASG  VAL P   98   56    E        Strand   -125.07    131.12       0.0      XXXX
+ASG  GLN P   99   57    E        Strand   -129.36    146.89       3.6      XXXX
+ASG  LEU P  100   58    E        Strand    -87.91    118.61       5.7      XXXX
+ASG  VAL P  101   59    E        Strand   -117.16    166.24       0.0      XXXX
+ASG  THR P  102   60    C          Coil    -78.20    169.24      16.2      XXXX
+ASG  ASN P  103   61    C          Coil   -113.91     29.32      55.9      XXXX
+ASG  GLY P  104   62    T          Turn    -84.76    176.46      40.4      XXXX
+ASG  LYS P  105   63    T          Turn    -54.33    -54.45     200.7      XXXX
+ASG  ASN P  106   64    T          Turn    -97.06    138.15     101.7      XXXX
+ASG  ILE P  107   65    T          Turn    -72.26    144.81      54.3      XXXX
+ASG  HIS P  108   66    C          Coil   -155.29    149.69      41.3      XXXX
+ASG  LEU P  109   67    B        Bridge    -59.43    144.70       3.0      XXXX
+ASG  HIS P  110   68    C          Coil    -95.71    155.93       1.1      XXXX
+ASG  ALA P  111   69    C          Coil    -76.34    -29.36       0.2      XXXX
+ASG  HIS P  112   70    C          Coil    -66.43    162.93       1.4      XXXX
+ASG  SER P  113   71    E        Strand   -119.30    148.16      12.2      XXXX
+ASG  LEU P  114   72    E        Strand    -89.60    129.40       0.3      XXXX
+ASG  VAL P  115   73    E        Strand   -133.97    140.12      61.0      XXXX
+ASG  GLY P  116   74    E        Strand    156.54   -153.92      43.8      XXXX
+ASG  LYS P  117   75    T          Turn    -43.99    -72.89     140.1      XXXX
+ASG  HIS P  118   76    T          Turn    -99.74     58.22     111.2      XXXX
+ASG  CYS P  119   77    E        Strand   -131.07    150.28      33.9      XXXX
+ASG  GLU P  120   78    E        Strand   -156.85    124.76     124.9      XXXX
+ASG  ASP P  121   79    T          Turn     52.95     52.82      89.0      XXXX
+ASG  GLY P  122   80    T          Turn     75.96    -16.63       6.7      XXXX
+ASG  ILE P  123   81    E        Strand   -106.08    150.13       6.7      XXXX
+ASG  CYS P  124   82    E        Strand   -110.98    129.35       1.6      XXXX
+ASG  THR P  125   83    E        Strand   -129.23    126.29      49.9      XXXX
+ASG  VAL P  126   84    E        Strand   -148.03    149.88      26.4      XXXX
+ASG  THR P  127   85    E        Strand   -102.22    150.42      90.1      XXXX
+ASG  ALA P  128   86    C          Coil   -101.26    109.06       0.6      XXXX
+ASG  GLY P  129   87    T          Turn    -66.65    145.65      32.9      XXXX
+ASG  PRO P  130   88    T          Turn    -48.68    -44.76      63.8      XXXX
+ASG  LYS P  131   89    T          Turn    -88.99     29.56     191.1      XXXX
+ASG  ASP P  132   90    T          Turn   -170.07     69.78     107.4      XXXX
+ASG  MET P  133   91    T          Turn    -69.71     -2.88      20.7      XXXX
+ASG  VAL P  134   92    E        Strand   -100.81    130.96      42.3      XXXX
+ASG  VAL P  135   93    E        Strand   -129.62    110.98      15.7      XXXX
+ASG  GLY P  136   94    E        Strand    -92.10    155.74      42.2      XXXX
+ASG  PHE P  137   95    T          Turn   -111.99    112.17       9.1      XXXX
+ASG  ALA P  138   96    T          Turn   -112.81    132.51      43.1      XXXX
+ASG  ASN P  139   97    T          Turn     72.18     53.31      73.3      XXXX
+ASG  LEU P  140   98    E        Strand   -105.08    128.36       7.0      XXXX
+ASG  GLY P  141   99    E        Strand   -113.57    160.50      13.0      XXXX
+ASG  ILE P  142  100    E        Strand   -119.08    112.25       4.0      XXXX
+ASG  LEU P  143  101    E        Strand    -76.94    124.23      37.3      XXXX
+ASG  HIS P  144  102    E        Strand    -95.22    115.70      16.2      XXXX
+ASG  VAL P  145  103    C          Coil    -82.56    154.64      18.1      XXXX
+ASG  THR P  146  104    C          Coil    -82.15    158.48      64.9      XXXX
+ASG  LYS P  147  105    G      310Helix    -58.75    -45.83     175.0      XXXX
+ASG  LYS P  148  106    G      310Helix    -64.69    -14.30     204.8      XXXX
+ASG  LYS P  149  107    G      310Helix   -117.25     15.06     120.7      XXXX
+ASG  VAL P  150  108    H    AlphaHelix    -59.47    -47.68       9.4      XXXX
+ASG  PHE P  151  109    H    AlphaHelix    -60.01    -60.74      50.7      XXXX
+ASG  GLU P  152  110    H    AlphaHelix    -57.35    -21.06     118.6      XXXX
+ASG  THR P  153  111    H    AlphaHelix    -89.38    -40.41      31.7      XXXX
+ASG  LEU P  154  112    H    AlphaHelix    -60.43    -45.17       0.0      XXXX
+ASG  GLU P  155  113    H    AlphaHelix    -60.49    -45.74      47.7      XXXX
+ASG  ALA P  156  114    H    AlphaHelix    -62.02    -36.68      52.7      XXXX
+ASG  ARG P  157  115    H    AlphaHelix    -69.42    -37.62      35.9      XXXX
+ASG  MET P  158  116    H    AlphaHelix    -67.75    -47.24       0.0      XXXX
+ASG  THR P  159  117    H    AlphaHelix    -49.69    -54.04      42.5      XXXX
+ASG  GLU P  160  118    H    AlphaHelix    -57.01    -49.90      44.5      XXXX
+ASG  ALA P  161  119    H    AlphaHelix    -62.39    -27.04       0.6      XXXX
+ASG  CYS P  162  120    H    AlphaHelix    -72.30    -44.44       0.0      XXXX
+ASG  ILE P  163  121    H    AlphaHelix    -70.68    -26.18      23.0      XXXX
+ASG  ARG P  164  122    H    AlphaHelix    -97.14    -11.55      52.2      XXXX
+ASG  GLY P  165  123    T          Turn     71.46     28.08       0.6      XXXX
+ASG  TYR P  166  124    T          Turn    -90.10     81.00      17.0      XXXX
+ASG  ASN P  167  125    T          Turn     50.86     45.98       1.8      XXXX
+ASG  PRO P  168  126    H    AlphaHelix    -64.87    -31.34       0.6      XXXX
+ASG  GLY P  169  127    H    AlphaHelix    -63.54    -41.41      15.0      XXXX
+ASG  LEU P  170  128    H    AlphaHelix    -71.30    -63.70      85.5      XXXX
+ASG  LEU P  171  129    H    AlphaHelix    -72.17    -15.41       0.0      XXXX
+ASG  VAL P  172  130    H    AlphaHelix   -122.36    -66.78      11.1      XXXX
+ASG  HIS P  173  131    C          Coil   -155.94    132.06      52.7      XXXX
+ASG  PRO P  174  132    G      310Helix    -54.06    -20.35      96.0      XXXX
+ASG  ASP P  175  133    G      310Helix    -77.14     -9.88      87.6      XXXX
+ASG  LEU P  176  134    G      310Helix   -101.20     16.14       0.0      XXXX
+ASG  ALA P  177  135    G      310Helix    -52.98    -35.41      49.3      XXXX
+ASG  TYR P  178  136    G      310Helix    -62.09    -34.01     109.1      XXXX
+ASG  LEU P  179  137    G      310Helix    -64.16     -0.99       6.4      XXXX
+ASG  GLN P  180  138    T          Turn    -59.43    130.09      54.7      XXXX
+ASG  ALA P  181  139    T          Turn     55.37     23.83      36.9      XXXX
+ASG  GLU P  182  140    T          Turn   -147.33    178.72     120.2      XXXX
+ASG  GLY P  183  141    C          Coil    140.60    -42.89       8.2      XXXX
+ASG  GLY P  184  142    T          Turn     58.03    100.66      28.4      XXXX
+ASG  GLY P  185  143    T          Turn    -35.60     92.11      47.3      XXXX
+ASG  ASP P  186  144    T          Turn     71.29    -44.83     117.7      XXXX
+ASG  ARG P  187  145    T          Turn    -51.14    -51.48     220.6      XXXX
+ASG  GLN P  188  146    T          Turn   -100.15     -7.19     144.7      XXXX
+ASG  LEU P  189  147    T          Turn    -83.11    113.30       9.3      XXXX
+ASG  GLY P  190  148    C          Coil    -95.45    177.70      28.4      XXXX
+ASG  ASP P  191  149    H    AlphaHelix    -52.32    -42.97     133.4      XXXX
+ASG  ARG P  192  150    H    AlphaHelix    -58.48    -57.82     147.8      XXXX
+ASG  GLU P  193  151    H    AlphaHelix    -56.04    -37.18      27.5      XXXX
+ASG  LYS P  194  152    H    AlphaHelix    -58.81    -50.23      94.7      XXXX
+ASG  GLU P  195  153    H    AlphaHelix    -64.40    -34.48      96.6      XXXX
+ASG  LEU P  196  154    H    AlphaHelix    -65.22    -35.85      13.2      XXXX
+ASG  ILE P  197  155    H    AlphaHelix    -68.31    -37.35       1.2      XXXX
+ASG  ARG P  198  156    H    AlphaHelix    -67.74    -39.11     101.0      XXXX
+ASG  GLN P  199  157    H    AlphaHelix    -65.08    -37.59     103.0      XXXX
+ASG  ALA P  200  158    H    AlphaHelix    -75.06    -43.58       1.8      XXXX
+ASG  ALA P  201  159    H    AlphaHelix    -55.97    -56.88       0.0      XXXX
+ASG  LEU P  202  160    H    AlphaHelix    -52.46    -46.43      71.0      XXXX
+ASG  GLN P  203  161    H    AlphaHelix    -61.58    -42.25     125.1      XXXX
+ASG  GLN P  204  162    H    AlphaHelix    -85.38    -26.11       6.1      XXXX
+ASG  THR P  205  163    H    AlphaHelix    -62.48    -28.43      26.0      XXXX
+ASG  LYS P  206  164    H    AlphaHelix    -69.43    -35.64     179.3      XXXX
+ASG  GLU P  207  165    C          Coil    -81.64    -33.46     121.3      XXXX
+ASG  MET P  208  166    C          Coil    -28.81    117.74      24.3      XXXX
+ASG  ASP P  209  167    T          Turn    -99.62    104.88      84.5      XXXX
+ASG  LEU P  210  168    T          Turn    -69.17     -8.50      16.9      XXXX
+ASG  SER P  211  169    T          Turn    -93.83    -11.66      18.5      XXXX
+ASG  VAL P  212  170    E        Strand   -140.15    141.17       4.0      XXXX
+ASG  VAL P  213  171    E        Strand   -135.55    169.91       0.0      XXXX
+ASG  ARG P  214  172    E        Strand   -135.19    151.81      64.3      XXXX
+ASG  LEU P  215  173    E        Strand    -99.42    134.43       0.4      XXXX
+ASG  MET P  216  174    E        Strand   -122.91    113.73       5.6      XXXX
+ASG  PHE P  217  175    E        Strand    -98.82    136.16       3.6      XXXX
+ASG  THR P  218  176    E        Strand   -130.40    129.52       0.0      XXXX
+ASG  ALA P  219  177    E        Strand   -103.18    110.56       0.0      XXXX
+ASG  PHE P  220  178    E        Strand    -94.91     97.23       5.8      XXXX
+ASG  LEU P  221  179    E        Strand    -73.85    160.12      15.4      XXXX
+ASG  PRO P  222  180    E        Strand    -84.61    139.55      42.6      XXXX
+ASG  ASP P  223  181    C          Coil   -108.97    -85.49      93.3      XXXX
+ASG  SER P  224  182    T          Turn    -74.81    162.81      89.3      XXXX
+ASG  THR P  225  183    T          Turn    -46.37    108.53     150.6      XXXX
+ASG  GLY P  226  184    T          Turn     96.31    -61.58      57.8      XXXX
+ASG  SER P  227  185    T          Turn    -55.18    126.58      73.0      XXXX
+ASG  PHE P  228  186    E        Strand    -97.70    114.75      79.8      XXXX
+ASG  THR P  229  187    E        Strand   -137.10    -19.83      46.3      XXXX
+ASG  ARG P  230  188    E        Strand   -107.53    115.28     129.6      XXXX
+ASG  ARG P  231  189    E        Strand    -96.01    158.19      48.4      XXXX
+ASG  LEU P  232  190    C          Coil    -88.37   -177.37      20.7      XXXX
+ASG  GLU P  233  191    C          Coil    -68.11    125.64     141.2      XXXX
+ASG  PRO P  234  192    C          Coil    -63.32    150.46      12.2      XXXX
+ASG  VAL P  235  193    E        Strand   -118.43    134.25      37.8      XXXX
+ASG  VAL P  236  194    E        Strand   -104.63    131.89      46.0      XXXX
+ASG  SER P  237  195    E        Strand    -82.17   -174.51       0.4      XXXX
+ASG  ASP P  238  196    E        Strand    -74.26    168.12      61.2      XXXX
+ASG  ALA P  239  197    E        Strand    -75.14    136.88       4.0      XXXX
+ASG  ILE P  240  198    E        Strand   -109.13    110.53       0.2      XXXX
+ASG  TYR P  241  199    E        Strand    -94.70    129.24      51.5      XXXX
+ASG  ASP P  242  200    T          Turn    -60.40    126.32       5.4      XXXX
+ASG  SER P  243  201    T          Turn    -71.62    -19.68      17.0      XXXX
+ASG  LYS P  244  202    T          Turn    -82.08     -2.69     129.3      XXXX
+ASG  ALA P  245  203    T          Turn    -82.93    136.03       8.7      XXXX
+ASG  PRO P  246  204    T          Turn    -52.21    -39.75      63.6      XXXX
+ASG  ASN P  247  205    T          Turn    -88.96      2.24      66.9      XXXX
+ASG  ALA P  248  206    T          Turn   -135.01     24.65       1.1      XXXX
+ASG  SER P  249  207    T          Turn    -62.78    163.91      16.5      XXXX
+ASG  ASN P  250  208    C          Coil    -76.32    129.45      75.0      XXXX
+ASG  LEU P  251  209    C          Coil    -93.72    117.52      19.9      XXXX
+ASG  LYS P  252  210    C          Coil   -150.76    130.53     111.5      XXXX
+ASG  ILE P  253  211    E        Strand    -91.41    112.36       5.5      XXXX
+ASG  VAL P  254  212    E        Strand    -73.69    -46.26      57.6      XXXX
+ASG  ARG P  255  213    E        Strand   -165.81    144.62      69.6      XXXX
+ASG  MET P  256  214    E        Strand   -112.56    157.41      18.7      XXXX
+ASG  ASP P  257  215    T          Turn    -68.53    -62.50      35.8      XXXX
+ASG  ARG P  258  216    T          Turn   -118.30    137.89     117.1      XXXX
+ASG  THR P  259  217    T          Turn   -103.74      6.80      98.1      XXXX
+ASG  ALA P  260  218    E        Strand   -149.62    161.06      23.5      XXXX
+ASG  GLY P  261  219    E        Strand   -164.45    156.70       0.4      XXXX
+ASG  CYS P  262  220    E        Strand    -65.09    139.71      19.8      XXXX
+ASG  VAL P  263  221    T          Turn    -51.06    -25.46       2.8      XXXX
+ASG  THR P  264  222    T          Turn    -76.61    -18.01      62.2      XXXX
+ASG  GLY P  265  223    T          Turn     86.77   -162.77      10.2      XXXX
+ASG  GLY P  266  224    C          Coil     84.91    -13.57      49.7      XXXX
+ASG  GLU P  267  225    E        Strand    -67.67    131.44      48.3      XXXX
+ASG  GLU P  268  226    E        Strand    -81.20    121.13      67.9      XXXX
+ASG  ILE P  269  227    E        Strand   -122.25    136.59       0.4      XXXX
+ASG  TYR P  270  228    E        Strand    -99.96    109.19       7.4      XXXX
+ASG  LEU P  271  229    E        Strand   -105.16    126.13       0.4      XXXX
+ASG  LEU P  272  230    E        Strand    -97.99    137.15       1.4      XXXX
+ASG  CYS P  273  231    E        Strand   -147.28   -179.89       0.0      XXXX
+ASG  ASP P  274  232    C          Coil    -83.29    165.86      36.6      XXXX
+ASG  LYS P  275  233    C          Coil    -43.47    120.96      81.8      XXXX
+ASG  VAL P  276  234    C          Coil   -128.94   -178.53       6.8      XXXX
+ASG  GLN P  277  235    T          Turn   -130.30    105.02      66.7      XXXX
+ASG  LYS P  278  236    T          Turn    -26.24    -45.76     119.0      XXXX
+ASG  ASP P  279  237    T          Turn    -72.87    -31.21     120.0      XXXX
+ASG  ASP P  280  238    T          Turn   -114.83     55.09      28.9      XXXX
+ASG  ILE P  281  239    E        Strand   -145.25    145.74       4.9      XXXX
+ASG  GLN P  282  240    E        Strand   -137.34    158.86      30.2      XXXX
+ASG  ILE P  283  241    E        Strand   -121.47    106.61       0.5      XXXX
+ASG  ARG P  284  242    E        Strand    -97.74    124.39      27.3      XXXX
+ASG  PHE P  285  243    E        Strand   -102.06    140.79       0.0      XXXX
+ASG  TYR P  286  244    E        Strand   -162.02    158.67      16.4      XXXX
+ASG  GLU P  287  245    E        Strand   -143.40    129.42      28.9      XXXX
+ASG  GLU P  288  246    E        Strand   -103.40    117.92     135.6      XXXX
+ASG  GLU P  289  247    E        Strand    -93.27    131.95      87.2      XXXX
+ASG  GLU P  290  248    T          Turn    -27.67    -30.86     194.3      XXXX
+ASG  ASN P  291  249    T          Turn    -78.15      1.25     133.1      XXXX
+ASG  GLY P  292  250    T          Turn     94.77     -7.06      67.9      XXXX
+ASG  GLY P  293  251    E        Strand    -82.99    152.37      29.4      XXXX
+ASG  VAL P  294  252    E        Strand   -136.44    135.29      79.0      XXXX
+ASG  TRP P  295  253    E        Strand   -100.37    140.03      28.5      XXXX
+ASG  GLU P  296  254    E        Strand   -142.61    141.05      79.4      XXXX
+ASG  GLY P  297  255    E        Strand   -144.21    128.38      11.3      XXXX
+ASG  PHE P  298  256    E        Strand    -97.01    132.17      75.5      XXXX
+ASG  GLY P  299  257    C          Coil    -67.08    151.28       9.4      XXXX
+ASG  ASP P  300  258    B        Bridge   -101.08    130.09     119.2      XXXX
+ASG  PHE P  301  259    C          Coil   -163.35    157.53      34.1      XXXX
+ASG  SER P  302  260    C          Coil   -107.80    158.38      57.0      XXXX
+ASG  PRO P  303  261    G      310Helix    -46.86    -31.13      53.0      XXXX
+ASG  THR P  304  262    G      310Helix    -66.69    -30.55     124.0      XXXX
+ASG  ASP P  305  263    G      310Helix    -75.74    -11.88      38.3      XXXX
+ASG  VAL P  306  264    E        Strand    -79.79    102.67      11.0      XXXX
+ASG  HIS P  307  265    E        Strand    -76.63    108.33      17.0      XXXX
+ASG  ARG P  308  266    T          Turn     37.87     45.46     138.8      XXXX
+ASG  GLN P  309  267    T          Turn     64.92     -5.78      52.9      XXXX
+ASG  PHE P  310  268    T          Turn   -118.60      8.23      12.0      XXXX
+ASG  ALA P  311  269    E        Strand   -158.97    149.22       1.4      XXXX
+ASG  ILE P  312  270    E        Strand   -139.52    131.34       0.2      XXXX
+ASG  VAL P  313  271    E        Strand   -109.68    119.52       1.5      XXXX
+ASG  PHE P  314  272    E        Strand   -137.53    170.06       1.7      XXXX
+ASG  LYS P  315  273    E        Strand   -115.58    130.60     113.9      XXXX
+ASG  THR P  316  274    E        Strand    -52.01    145.38       7.0      XXXX
+ASG  PRO P  317  275    C          Coil    -84.68    159.35      15.6      XXXX
+ASG  LYS P  318  276    C          Coil    -69.72    147.00     120.0      XXXX
+ASG  TYR P  319  277    T          Turn    -70.02    177.78      21.3      XXXX
+ASG  LYS P  320  278    T          Turn    -70.93    -52.79     104.3      XXXX
+ASG  ASP P  321  279    T          Turn   -123.79    131.68      93.4      XXXX
+ASG  ILE P  322  280    T          Turn    -75.63    -61.55      26.3      XXXX
+ASG  ASN P  323  281    C          Coil    -72.12    101.23     146.4      XXXX
+ASG  ILE P  324  282    C          Coil   -139.56    153.77      65.5      XXXX
+ASG  THR P  325  283    C          Coil    -94.04    -58.78     135.7      XXXX
+ASG  LYS P  326  284    C          Coil    -96.09    151.66     172.8      XXXX
+ASG  PRO P  327  285    C          Coil    -65.04    160.01      74.5      XXXX
+ASG  ALA P  328  286    E        Strand   -119.96    121.18      16.6      XXXX
+ASG  SER P  329  287    E        Strand    -88.70    119.29      87.1      XXXX
+ASG  VAL P  330  288    E        Strand   -118.09   -169.07       1.7      XXXX
+ASG  PHE P  331  289    E        Strand   -127.49    150.83      85.0      XXXX
+ASG  VAL P  332  290    E        Strand   -122.70    139.63       0.0      XXXX
+ASG  GLN P  333  291    E        Strand   -166.60    153.93       8.2      XXXX
+ASG  LEU P  334  292    E        Strand    -83.06    150.92       0.2      XXXX
+ASG  ARG P  335  293    E        Strand   -144.03    133.86      45.7      XXXX
+ASG  ARG P  336  294    E        Strand    -90.64    117.29       8.6      XXXX
+ASG  LYS P  337  295    T          Turn    -50.12    -57.93     106.8      XXXX
+ASG  SER P  338  296    T          Turn    -42.01    -71.48      77.6      XXXX
+ASG  ASP P  339  297    T          Turn    -96.12     -7.57      50.7      XXXX
+ASG  LEU P  340  298    T          Turn     70.77     13.14      93.1      XXXX
+ASG  GLU P  341  299    C          Coil    -62.87    149.74      76.7      XXXX
+ASG  THR P  342  300    B        Bridge   -125.98    166.05      62.3      XXXX
+ASG  SER P  343  301    C          Coil   -100.30    161.72       3.2      XXXX
+ASG  GLU P  344  302    C          Coil    -59.09    141.51     162.8      XXXX
+ASG  PRO P  345  303    C          Coil    -67.56    152.99      45.8      XXXX
+ASG  LYS P  346  304    E        Strand   -120.14    142.61      76.4      XXXX
+ASG  PRO P  347  305    E        Strand    -68.93    148.79      86.7      XXXX
+ASG  PHE P  348  306    E        Strand   -156.69    122.03       3.8      XXXX
+ASG  LEU P  349  307    E        Strand   -101.53    114.20      63.2      XXXX
+ASG  TYR P  350  308    E        Strand    -86.21    121.35       1.3      XXXX
+ASG  TYR P  351  309    E        Strand   -111.01    154.04     111.2      XXXX
+ASG  PRO P  352  310    C          Coil    -57.72    147.85      52.6      XXXX
+ASG  GLU P  353  311    C          Coil    -41.51    360.00     147.0      XXXX
+ASG  PRO Q   43    1    C          Coil    360.00    123.98      81.9      XXXX
+ASG  TYR Q   44    2    E        Strand   -132.75    147.11     123.9      XXXX
+ASG  LEU Q   45    3    E        Strand    -95.96    139.37       8.5      XXXX
+ASG  GLN Q   46    4    E        Strand   -134.49    163.62      84.9      XXXX
+ASG  ILE Q   47    5    E        Strand   -102.81    114.01      28.7      XXXX
+ASG  LEU Q   48    6    E        Strand    -72.73    -48.53      86.6      XXXX
+ASG  GLU Q   49    7    E        Strand   -135.99    119.37      28.1      XXXX
+ASG  GLN Q   50    8    T          Turn    -67.80    161.71      52.8      XXXX
+ASG  PRO Q   51    9    B        Bridge    -84.38    150.89       2.5      XXXX
+ASG  LYS Q   52   10    C          Coil    -61.69    119.75     100.2      XXXX
+ASG  GLN Q   53   11    C          Coil    -54.38    -65.44      75.2      XXXX
+ASG  ARG Q   54   12    B        Bridge   -102.68    154.97      30.1      XXXX
+ASG  GLY Q   55   13    C          Coil    120.15    -44.87      22.3      XXXX
+ASG  PHE Q   56   14    C          Coil    -70.90    155.45      25.0      XXXX
+ASG  ARG Q   57   15    C          Coil   -123.58    117.36      84.3      XXXX
+ASG  PHE Q   58   16    C          Coil    -67.92    144.12       1.2      XXXX
+ASG  ARG Q   59   17    E        Strand   -116.15    138.05      56.7      XXXX
+ASG  TYR Q   60   18    E        Strand    -75.16    149.49     102.2      XXXX
+ASG  VAL Q   61   19    G      310Helix    -38.61    -51.65     110.0      XXXX
+ASG  ALA Q   62   20    G      310Helix    -53.62    -42.35      97.8      XXXX
+ASG  GLU Q   63   21    G      310Helix    -55.30     -4.46      51.8      XXXX
+ASG  GLY Q   64   22    C          Coil     83.39    175.41      30.7      XXXX
+ASG  PRO Q   65   23    C          Coil   -100.50    -14.44     128.1      XXXX
+ASG  SER Q   66   24    C          Coil    -82.47     34.26     121.0      XXXX
+ASG  HIS Q   67   25    C          Coil    -94.87    -33.38      96.3      XXXX
+ASG  GLY Q   68   26    C          Coil    149.47    162.00      40.7      XXXX
+ASG  GLY Q   69   27    C          Coil   -106.90    150.70      25.3      XXXX
+ASG  LEU Q   70   28    B        Bridge    -66.37    127.22       1.2      XXXX
+ASG  PRO Q   71   29    C          Coil    -88.40    177.91      36.8      XXXX
+ASG  GLY Q   72   30    B        Bridge    -96.25    179.63       3.4      XXXX
+ASG  ALA Q   73   31    C          Coil    -75.00    -21.70      62.1      XXXX
+ASG  SER Q   74   32    C          Coil    -68.15    130.48      35.6      XXXX
+ASG  SER Q   75   33    C          Coil   -100.77      5.52     121.8      XXXX
+ASG  GLU Q   76   34    T          Turn    -51.24    132.16     110.4      XXXX
+ASG  LYS Q   77   35    T          Turn    -61.37    147.31     187.5      XXXX
+ASG  ASN Q   78   36    T          Turn     55.80     40.26     160.9      XXXX
+ASG  LYS Q   79   37    T          Turn   -142.84    121.91     132.8      XXXX
+ASG  LYS Q   80   38    C          Coil    -76.35     -9.45     170.1      XXXX
+ASG  SER Q   81   39    C          Coil     24.93    110.05      17.6      XXXX
+ASG  TYR Q   82   40    C          Coil   -105.73    145.60      91.1      XXXX
+ASG  PRO Q   83   41    C          Coil    -56.14    141.29       3.4      XXXX
+ASG  GLN Q   84   42    E        Strand   -128.09    145.39      65.3      XXXX
+ASG  VAL Q   85   43    E        Strand   -123.26    161.83       3.2      XXXX
+ASG  LYS Q   86   44    E        Strand   -147.61    129.77      78.6      XXXX
+ASG  ILE Q   87   45    E        Strand    -89.88     96.26       4.6      XXXX
+ASG  CYS Q   88   46    E        Strand    -79.64    137.75      10.7      XXXX
+ASG  ASN Q   89   47    T          Turn     82.67     48.26     106.0      XXXX
+ASG  TYR Q   90   48    T          Turn      3.74    110.60     140.9      XXXX
+ASG  VAL Q   91   49    T          Turn   -129.98    175.55      42.5      XXXX
+ASG  GLY Q   92   50    T          Turn    -48.61    143.43      24.9      XXXX
+ASG  PRO Q   93   51    T          Turn    -30.11     77.97      59.6      XXXX
+ASG  ALA Q   94   52    T          Turn    -60.19    159.50       0.2      XXXX
+ASG  LYS Q   95   53    E        Strand   -110.92    104.54      51.3      XXXX
+ASG  VAL Q   96   54    E        Strand    -95.93    128.27       1.6      XXXX
+ASG  ILE Q   97   55    E        Strand   -117.78    155.28       0.0      XXXX
+ASG  VAL Q   98   56    E        Strand   -125.07    131.12       0.0      XXXX
+ASG  GLN Q   99   57    E        Strand   -129.36    146.89       3.4      XXXX
+ASG  LEU Q  100   58    E        Strand    -87.91    118.61       5.3      XXXX
+ASG  VAL Q  101   59    E        Strand   -117.16    166.24       0.0      XXXX
+ASG  THR Q  102   60    C          Coil    -78.20    169.24      15.7      XXXX
+ASG  ASN Q  103   61    C          Coil   -113.91     29.32      55.9      XXXX
+ASG  GLY Q  104   62    T          Turn    -84.76    176.46      39.5      XXXX
+ASG  LYS Q  105   63    T          Turn    -54.33    -54.45     202.6      XXXX
+ASG  ASN Q  106   64    T          Turn    -97.06    138.15     102.5      XXXX
+ASG  ILE Q  107   65    T          Turn    -72.26    144.81      54.7      XXXX
+ASG  HIS Q  108   66    C          Coil   -155.29    149.69      41.1      XXXX
+ASG  LEU Q  109   67    B        Bridge    -59.43    144.70       3.1      XXXX
+ASG  HIS Q  110   68    C          Coil    -95.71    155.93       1.3      XXXX
+ASG  ALA Q  111   69    C          Coil    -76.34    -29.36       0.0      XXXX
+ASG  HIS Q  112   70    C          Coil    -66.43    162.93       1.3      XXXX
+ASG  SER Q  113   71    E        Strand   -119.30    148.16      12.4      XXXX
+ASG  LEU Q  114   72    E        Strand    -89.60    129.40       0.8      XXXX
+ASG  VAL Q  115   73    E        Strand   -133.97    140.12      61.5      XXXX
+ASG  GLY Q  116   74    E        Strand    156.54   -153.92      43.5      XXXX
+ASG  LYS Q  117   75    T          Turn    -43.99    -72.89     139.7      XXXX
+ASG  HIS Q  118   76    T          Turn    -99.74     58.22     110.8      XXXX
+ASG  CYS Q  119   77    E        Strand   -131.07    150.28      35.3      XXXX
+ASG  GLU Q  120   78    E        Strand   -156.85    124.76     124.6      XXXX
+ASG  ASP Q  121   79    T          Turn     52.95     52.82      88.8      XXXX
+ASG  GLY Q  122   80    T          Turn     75.96    -16.63       6.2      XXXX
+ASG  ILE Q  123   81    E        Strand   -106.08    150.14       7.1      XXXX
+ASG  CYS Q  124   82    E        Strand   -110.98    129.35       1.4      XXXX
+ASG  THR Q  125   83    E        Strand   -129.23    126.29      50.9      XXXX
+ASG  VAL Q  126   84    E        Strand   -148.03    149.88      26.4      XXXX
+ASG  THR Q  127   85    E        Strand   -102.22    150.42      89.4      XXXX
+ASG  ALA Q  128   86    C          Coil   -101.26    109.06       0.4      XXXX
+ASG  GLY Q  129   87    T          Turn    -66.65    145.65      33.2      XXXX
+ASG  PRO Q  130   88    T          Turn    -48.68    -44.76      64.0      XXXX
+ASG  LYS Q  131   89    T          Turn    -88.99     29.56     189.2      XXXX
+ASG  ASP Q  132   90    T          Turn   -170.07     69.78     107.7      XXXX
+ASG  MET Q  133   91    T          Turn    -69.71     -2.88      21.4      XXXX
+ASG  VAL Q  134   92    E        Strand   -100.80    130.96      41.3      XXXX
+ASG  VAL Q  135   93    E        Strand   -129.62    110.98      16.1      XXXX
+ASG  GLY Q  136   94    E        Strand    -92.10    155.74      41.7      XXXX
+ASG  PHE Q  137   95    T          Turn   -111.99    112.17       9.8      XXXX
+ASG  ALA Q  138   96    T          Turn   -112.81    132.51      42.8      XXXX
+ASG  ASN Q  139   97    T          Turn     72.18     53.31      72.9      XXXX
+ASG  LEU Q  140   98    E        Strand   -105.08    128.36       7.0      XXXX
+ASG  GLY Q  141   99    E        Strand   -113.57    160.50      12.8      XXXX
+ASG  ILE Q  142  100    E        Strand   -119.08    112.25       3.7      XXXX
+ASG  LEU Q  143  101    E        Strand    -76.94    124.23      37.1      XXXX
+ASG  HIS Q  144  102    E        Strand    -95.22    115.70      16.8      XXXX
+ASG  VAL Q  145  103    C          Coil    -82.56    154.64      17.3      XXXX
+ASG  THR Q  146  104    C          Coil    -82.15    158.48      64.5      XXXX
+ASG  LYS Q  147  105    G      310Helix    -58.75    -45.83     174.7      XXXX
+ASG  LYS Q  148  106    G      310Helix    -64.69    -14.30     204.4      XXXX
+ASG  LYS Q  149  107    G      310Helix   -117.25     15.06     118.7      XXXX
+ASG  VAL Q  150  108    H    AlphaHelix    -59.47    -47.68       9.0      XXXX
+ASG  PHE Q  151  109    H    AlphaHelix    -60.01    -60.74      50.7      XXXX
+ASG  GLU Q  152  110    H    AlphaHelix    -57.35    -21.06     118.1      XXXX
+ASG  THR Q  153  111    H    AlphaHelix    -89.38    -40.41      31.5      XXXX
+ASG  LEU Q  154  112    H    AlphaHelix    -60.43    -45.17       0.0      XXXX
+ASG  GLU Q  155  113    H    AlphaHelix    -60.49    -45.74      48.1      XXXX
+ASG  ALA Q  156  114    H    AlphaHelix    -62.02    -36.68      51.6      XXXX
+ASG  ARG Q  157  115    H    AlphaHelix    -69.42    -37.62      36.4      XXXX
+ASG  MET Q  158  116    H    AlphaHelix    -67.75    -47.24       0.0      XXXX
+ASG  THR Q  159  117    H    AlphaHelix    -49.69    -54.04      42.1      XXXX
+ASG  GLU Q  160  118    H    AlphaHelix    -57.01    -49.90      45.7      XXXX
+ASG  ALA Q  161  119    H    AlphaHelix    -62.39    -27.04       0.8      XXXX
+ASG  CYS Q  162  120    H    AlphaHelix    -72.30    -44.44       0.0      XXXX
+ASG  ILE Q  163  121    H    AlphaHelix    -70.68    -26.18      23.1      XXXX
+ASG  ARG Q  164  122    H    AlphaHelix    -97.14    -11.55      52.0      XXXX
+ASG  GLY Q  165  123    T          Turn     71.45     28.08       0.6      XXXX
+ASG  TYR Q  166  124    T          Turn    -90.10     81.00      16.8      XXXX
+ASG  ASN Q  167  125    T          Turn     50.86     45.98       2.4      XXXX
+ASG  PRO Q  168  126    H    AlphaHelix    -64.87    -31.34       0.6      XXXX
+ASG  GLY Q  169  127    H    AlphaHelix    -63.54    -41.41      13.8      XXXX
+ASG  LEU Q  170  128    H    AlphaHelix    -71.30    -63.70      85.4      XXXX
+ASG  LEU Q  171  129    H    AlphaHelix    -72.17    -15.41       0.2      XXXX
+ASG  VAL Q  172  130    H    AlphaHelix   -122.36    -66.78      10.8      XXXX
+ASG  HIS Q  173  131    C          Coil   -155.94    132.06      53.8      XXXX
+ASG  PRO Q  174  132    G      310Helix    -54.06    -20.35      94.9      XXXX
+ASG  ASP Q  175  133    G      310Helix    -77.14     -9.88      86.6      XXXX
+ASG  LEU Q  176  134    G      310Helix   -101.20     16.14       0.0      XXXX
+ASG  ALA Q  177  135    G      310Helix    -52.98    -35.41      49.1      XXXX
+ASG  TYR Q  178  136    G      310Helix    -62.09    -34.01     108.5      XXXX
+ASG  LEU Q  179  137    G      310Helix    -64.16     -0.99       6.4      XXXX
+ASG  GLN Q  180  138    T          Turn    -59.43    130.09      55.4      XXXX
+ASG  ALA Q  181  139    T          Turn     55.37     23.83      37.1      XXXX
+ASG  GLU Q  182  140    T          Turn   -147.33    178.72     121.2      XXXX
+ASG  GLY Q  183  141    C          Coil    140.60    -42.89       8.8      XXXX
+ASG  GLY Q  184  142    T          Turn     58.03    100.66      28.6      XXXX
+ASG  GLY Q  185  143    T          Turn    -35.60     92.11      46.7      XXXX
+ASG  ASP Q  186  144    T          Turn     71.29    -44.83     118.6      XXXX
+ASG  ARG Q  187  145    T          Turn    -51.14    -51.48     218.4      XXXX
+ASG  GLN Q  188  146    T          Turn   -100.15     -7.19     145.0      XXXX
+ASG  LEU Q  189  147    T          Turn    -83.11    113.30       9.0      XXXX
+ASG  GLY Q  190  148    C          Coil    -95.45    177.70      28.4      XXXX
+ASG  ASP Q  191  149    H    AlphaHelix    -52.32    -42.97     131.0      XXXX
+ASG  ARG Q  192  150    H    AlphaHelix    -58.48    -57.82     146.4      XXXX
+ASG  GLU Q  193  151    H    AlphaHelix    -56.04    -37.18      28.3      XXXX
+ASG  LYS Q  194  152    H    AlphaHelix    -58.81    -50.23      95.1      XXXX
+ASG  GLU Q  195  153    H    AlphaHelix    -64.40    -34.48      95.8      XXXX
+ASG  LEU Q  196  154    H    AlphaHelix    -65.22    -35.85      13.6      XXXX
+ASG  ILE Q  197  155    H    AlphaHelix    -68.31    -37.35       1.2      XXXX
+ASG  ARG Q  198  156    H    AlphaHelix    -67.74    -39.11      99.6      XXXX
+ASG  GLN Q  199  157    H    AlphaHelix    -65.08    -37.59     103.6      XXXX
+ASG  ALA Q  200  158    H    AlphaHelix    -75.06    -43.58       1.4      XXXX
+ASG  ALA Q  201  159    H    AlphaHelix    -55.97    -56.88       0.0      XXXX
+ASG  LEU Q  202  160    H    AlphaHelix    -52.46    -46.43      72.6      XXXX
+ASG  GLN Q  203  161    H    AlphaHelix    -61.58    -42.25     126.2      XXXX
+ASG  GLN Q  204  162    H    AlphaHelix    -85.38    -26.11       5.7      XXXX
+ASG  THR Q  205  163    H    AlphaHelix    -62.48    -28.43      26.6      XXXX
+ASG  LYS Q  206  164    H    AlphaHelix    -69.43    -35.64     181.4      XXXX
+ASG  GLU Q  207  165    C          Coil    -81.64    -33.46     122.5      XXXX
+ASG  MET Q  208  166    C          Coil    -28.81    117.74      24.0      XXXX
+ASG  ASP Q  209  167    T          Turn    -99.62    104.88      85.1      XXXX
+ASG  LEU Q  210  168    T          Turn    -69.17     -8.50      17.2      XXXX
+ASG  SER Q  211  169    T          Turn    -93.83    -11.66      18.1      XXXX
+ASG  VAL Q  212  170    E        Strand   -140.15    141.17       4.2      XXXX
+ASG  VAL Q  213  171    E        Strand   -135.55    169.91       0.0      XXXX
+ASG  ARG Q  214  172    E        Strand   -135.19    151.81      64.1      XXXX
+ASG  LEU Q  215  173    E        Strand    -99.42    134.43       0.8      XXXX
+ASG  MET Q  216  174    E        Strand   -122.91    113.73       5.8      XXXX
+ASG  PHE Q  217  175    E        Strand    -98.82    136.16       3.2      XXXX
+ASG  THR Q  218  176    E        Strand   -130.40    129.52       0.0      XXXX
+ASG  ALA Q  219  177    E        Strand   -103.18    110.56       0.0      XXXX
+ASG  PHE Q  220  178    E        Strand    -94.91     97.23       5.8      XXXX
+ASG  LEU Q  221  179    E        Strand    -73.85    160.12      15.8      XXXX
+ASG  PRO Q  222  180    E        Strand    -84.61    139.55      43.1      XXXX
+ASG  ASP Q  223  181    C          Coil   -108.97    -85.49      92.9      XXXX
+ASG  SER Q  224  182    T          Turn    -74.81    162.81      88.2      XXXX
+ASG  THR Q  225  183    T          Turn    -46.37    108.53     150.5      XXXX
+ASG  GLY Q  226  184    T          Turn     96.31    -61.58      57.8      XXXX
+ASG  SER Q  227  185    T          Turn    -55.18    126.58      73.0      XXXX
+ASG  PHE Q  228  186    E        Strand    -97.70    114.75      79.9      XXXX
+ASG  THR Q  229  187    E        Strand   -137.10    -19.83      45.1      XXXX
+ASG  ARG Q  230  188    E        Strand   -107.53    115.28     129.8      XXXX
+ASG  ARG Q  231  189    E        Strand    -96.01    158.19      50.1      XXXX
+ASG  LEU Q  232  190    C          Coil    -88.37   -177.37      21.3      XXXX
+ASG  GLU Q  233  191    C          Coil    -68.11    125.64     140.4      XXXX
+ASG  PRO Q  234  192    C          Coil    -63.32    150.46      12.3      XXXX
+ASG  VAL Q  235  193    E        Strand   -118.43    134.25      38.2      XXXX
+ASG  VAL Q  236  194    E        Strand   -104.63    131.89      45.6      XXXX
+ASG  SER Q  237  195    E        Strand    -82.17   -174.51       0.4      XXXX
+ASG  ASP Q  238  196    E        Strand    -74.26    168.12      61.6      XXXX
+ASG  ALA Q  239  197    E        Strand    -75.14    136.88       3.7      XXXX
+ASG  ILE Q  240  198    E        Strand   -109.13    110.53       0.2      XXXX
+ASG  TYR Q  241  199    E        Strand    -94.70    129.24      51.1      XXXX
+ASG  ASP Q  242  200    T          Turn    -60.40    126.32       5.0      XXXX
+ASG  SER Q  243  201    T          Turn    -71.62    -19.68      16.8      XXXX
+ASG  LYS Q  244  202    T          Turn    -82.08     -2.69     127.1      XXXX
+ASG  ALA Q  245  203    T          Turn    -82.93    136.03       8.3      XXXX
+ASG  PRO Q  246  204    T          Turn    -52.21    -39.75      63.7      XXXX
+ASG  ASN Q  247  205    T          Turn    -88.96      2.24      68.1      XXXX
+ASG  ALA Q  248  206    T          Turn   -135.01     24.65       0.6      XXXX
+ASG  SER Q  249  207    T          Turn    -62.78    163.91      17.9      XXXX
+ASG  ASN Q  250  208    C          Coil    -76.32    129.45      77.0      XXXX
+ASG  LEU Q  251  209    C          Coil    -93.72    117.52      19.7      XXXX
+ASG  LYS Q  252  210    C          Coil   -150.76    130.53     110.7      XXXX
+ASG  ILE Q  253  211    E        Strand    -91.41    112.36       4.8      XXXX
+ASG  VAL Q  254  212    E        Strand    -73.69    -46.26      56.4      XXXX
+ASG  ARG Q  255  213    E        Strand   -165.81    144.62      69.3      XXXX
+ASG  MET Q  256  214    E        Strand   -112.56    157.41      18.3      XXXX
+ASG  ASP Q  257  215    T          Turn    -68.53    -62.50      36.0      XXXX
+ASG  ARG Q  258  216    T          Turn   -118.30    137.89     117.1      XXXX
+ASG  THR Q  259  217    T          Turn   -103.74      6.80      98.4      XXXX
+ASG  ALA Q  260  218    E        Strand   -149.62    161.06      24.5      XXXX
+ASG  GLY Q  261  219    E        Strand   -164.45    156.70       0.4      XXXX
+ASG  CYS Q  262  220    E        Strand    -65.09    139.71      20.8      XXXX
+ASG  VAL Q  263  221    T          Turn    -51.06    -25.46       3.0      XXXX
+ASG  THR Q  264  222    T          Turn    -76.61    -18.01      61.4      XXXX
+ASG  GLY Q  265  223    T          Turn     86.77   -162.77      10.1      XXXX
+ASG  GLY Q  266  224    C          Coil     84.91    -13.57      50.6      XXXX
+ASG  GLU Q  267  225    E        Strand    -67.67    131.44      49.7      XXXX
+ASG  GLU Q  268  226    E        Strand    -81.20    121.13      68.7      XXXX
+ASG  ILE Q  269  227    E        Strand   -122.25    136.59       0.2      XXXX
+ASG  TYR Q  270  228    E        Strand    -99.96    109.19       7.6      XXXX
+ASG  LEU Q  271  229    E        Strand   -105.16    126.13       0.7      XXXX
+ASG  LEU Q  272  230    E        Strand    -97.99    137.15       1.4      XXXX
+ASG  CYS Q  273  231    E        Strand   -147.28   -179.89       0.0      XXXX
+ASG  ASP Q  274  232    C          Coil    -83.29    165.86      36.4      XXXX
+ASG  LYS Q  275  233    C          Coil    -43.47    120.96      81.7      XXXX
+ASG  VAL Q  276  234    C          Coil   -128.94   -178.53       7.3      XXXX
+ASG  GLN Q  277  235    T          Turn   -130.30    105.02      68.4      XXXX
+ASG  LYS Q  278  236    T          Turn    -26.24    -45.76     118.1      XXXX
+ASG  ASP Q  279  237    T          Turn    -72.87    -31.21     120.1      XXXX
+ASG  ASP Q  280  238    T          Turn   -114.83     55.09      28.5      XXXX
+ASG  ILE Q  281  239    E        Strand   -145.25    145.74       4.8      XXXX
+ASG  GLN Q  282  240    E        Strand   -137.34    158.86      30.0      XXXX
+ASG  ILE Q  283  241    E        Strand   -121.47    106.61       0.7      XXXX
+ASG  ARG Q  284  242    E        Strand    -97.74    124.39      27.5      XXXX
+ASG  PHE Q  285  243    E        Strand   -102.06    140.79       0.0      XXXX
+ASG  TYR Q  286  244    E        Strand   -162.02    158.67      16.6      XXXX
+ASG  GLU Q  287  245    E        Strand   -143.40    129.42      28.5      XXXX
+ASG  GLU Q  288  246    E        Strand   -103.40    117.92     135.1      XXXX
+ASG  GLU Q  289  247    E        Strand    -93.27    131.95      87.0      XXXX
+ASG  GLU Q  290  248    T          Turn    -27.67    -30.86     193.7      XXXX
+ASG  ASN Q  291  249    T          Turn    -78.15      1.25     133.2      XXXX
+ASG  GLY Q  292  250    T          Turn     94.77     -7.06      67.2      XXXX
+ASG  GLY Q  293  251    E        Strand    -82.99    152.37      30.1      XXXX
+ASG  VAL Q  294  252    E        Strand   -136.44    135.29      78.0      XXXX
+ASG  TRP Q  295  253    E        Strand   -100.37    140.03      27.7      XXXX
+ASG  GLU Q  296  254    E        Strand   -142.61    141.05      79.9      XXXX
+ASG  GLY Q  297  255    E        Strand   -144.21    128.38      10.7      XXXX
+ASG  PHE Q  298  256    E        Strand    -97.01    132.17      75.4      XXXX
+ASG  GLY Q  299  257    C          Coil    -67.08    151.28       8.9      XXXX
+ASG  ASP Q  300  258    B        Bridge   -101.08    130.09     120.0      XXXX
+ASG  PHE Q  301  259    C          Coil   -163.35    157.53      33.3      XXXX
+ASG  SER Q  302  260    C          Coil   -107.80    158.38      57.0      XXXX
+ASG  PRO Q  303  261    G      310Helix    -46.86    -31.13      53.2      XXXX
+ASG  THR Q  304  262    G      310Helix    -66.69    -30.55     121.9      XXXX
+ASG  ASP Q  305  263    G      310Helix    -75.74    -11.88      39.0      XXXX
+ASG  VAL Q  306  264    E        Strand    -79.79    102.67      10.5      XXXX
+ASG  HIS Q  307  265    E        Strand    -76.63    108.33      17.0      XXXX
+ASG  ARG Q  308  266    T          Turn     37.87     45.46     139.8      XXXX
+ASG  GLN Q  309  267    T          Turn     64.92     -5.78      53.7      XXXX
+ASG  PHE Q  310  268    T          Turn   -118.60      8.23      12.0      XXXX
+ASG  ALA Q  311  269    E        Strand   -158.97    149.22       1.6      XXXX
+ASG  ILE Q  312  270    E        Strand   -139.52    131.34       0.3      XXXX
+ASG  VAL Q  313  271    E        Strand   -109.68    119.52       1.4      XXXX
+ASG  PHE Q  314  272    E        Strand   -137.53    170.06       1.7      XXXX
+ASG  LYS Q  315  273    E        Strand   -115.58    130.60     113.7      XXXX
+ASG  THR Q  316  274    E        Strand    -52.01    145.38       7.0      XXXX
+ASG  PRO Q  317  275    C          Coil    -84.68    159.35      16.4      XXXX
+ASG  LYS Q  318  276    C          Coil    -69.72    147.00     119.4      XXXX
+ASG  TYR Q  319  277    T          Turn    -70.02    177.78      20.6      XXXX
+ASG  LYS Q  320  278    T          Turn    -70.93    -52.79     104.9      XXXX
+ASG  ASP Q  321  279    T          Turn   -123.79    131.68      91.0      XXXX
+ASG  ILE Q  322  280    T          Turn    -75.63    -61.55      26.7      XXXX
+ASG  ASN Q  323  281    C          Coil    -72.12    101.23     146.3      XXXX
+ASG  ILE Q  324  282    C          Coil   -139.56    153.77      65.4      XXXX
+ASG  THR Q  325  283    C          Coil    -94.04    -58.78     136.7      XXXX
+ASG  LYS Q  326  284    C          Coil    -96.09    151.66     173.0      XXXX
+ASG  PRO Q  327  285    C          Coil    -65.04    160.01      76.1      XXXX
+ASG  ALA Q  328  286    E        Strand   -119.96    121.18      18.0      XXXX
+ASG  SER Q  329  287    E        Strand    -88.70    119.29      87.5      XXXX
+ASG  VAL Q  330  288    E        Strand   -118.09   -169.07       1.9      XXXX
+ASG  PHE Q  331  289    E        Strand   -127.49    150.83      86.6      XXXX
+ASG  VAL Q  332  290    E        Strand   -122.70    139.63       0.2      XXXX
+ASG  GLN Q  333  291    E        Strand   -166.60    153.93       8.6      XXXX
+ASG  LEU Q  334  292    E        Strand    -83.06    150.92       0.2      XXXX
+ASG  ARG Q  335  293    E        Strand   -144.03    133.86      46.7      XXXX
+ASG  ARG Q  336  294    E        Strand    -90.64    117.29       9.0      XXXX
+ASG  LYS Q  337  295    T          Turn    -50.12    -57.93     107.5      XXXX
+ASG  SER Q  338  296    T          Turn    -42.01    -71.48      77.7      XXXX
+ASG  ASP Q  339  297    T          Turn    -96.12     -7.57      49.2      XXXX
+ASG  LEU Q  340  298    T          Turn     70.77     13.14      94.6      XXXX
+ASG  GLU Q  341  299    C          Coil    -62.87    149.74      76.3      XXXX
+ASG  THR Q  342  300    B        Bridge   -125.98    166.05      62.5      XXXX
+ASG  SER Q  343  301    C          Coil   -100.30    161.72       3.6      XXXX
+ASG  GLU Q  344  302    C          Coil    -59.09    141.51     162.2      XXXX
+ASG  PRO Q  345  303    C          Coil    -67.56    152.99      46.6      XXXX
+ASG  LYS Q  346  304    E        Strand   -120.14    142.61      75.6      XXXX
+ASG  PRO Q  347  305    E        Strand    -68.93    148.79      87.4      XXXX
+ASG  PHE Q  348  306    E        Strand   -156.69    122.03       4.0      XXXX
+ASG  LEU Q  349  307    E        Strand   -101.53    114.20      62.8      XXXX
+ASG  TYR Q  350  308    E        Strand    -86.21    121.35       1.1      XXXX
+ASG  TYR Q  351  309    E        Strand   -111.01    154.04     110.6      XXXX
+ASG  PRO Q  352  310    C          Coil    -57.72    147.85      52.5      XXXX
+ASG  GLU Q  353  311    C          Coil    -41.51    360.00     149.1      XXXX

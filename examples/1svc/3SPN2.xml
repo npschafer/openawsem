@@ -1,0 +1,46 @@
+<ForceField>
+  <AtomTypes>
+    <!-- DNA particles -->
+    <Type name="P" class="Phosphate" element="P" mass="94.9696"/>
+    <Type name="S" class="Sugar" element="H" mass="83.1104"/>
+    <Type name="Ab" class="Base" element="N" mass="134.1220"/>
+    <Type name="Tb" class="Base" element="S" mass="125.1078"/>
+    <Type name="Gb" class="Base" element="C" mass="150.1214"/>
+    <Type name="Cb" class="Base" element="O" mass="110.0964"/>
+    <!-- Ion particles -->
+    <Type name="Na" class="Ion" element="Mg" mass="0"/>
+    <Type name="Mg" class="Ion" element="Fe" mass="0"/>
+    <Type name="Ca" class="Ion" element="C" mass="0"/>
+  </AtomTypes>
+  <Residues>
+    <Residue name="DA">
+        <AllowPatch name="Initial"/>
+        <Atom name="P"  type="P"/>
+        <Atom name="S"  type="S"/>
+        <Atom name="A"  type="Ab"/>
+    </Residue>
+    <Residue name="DC">
+        <AllowPatch name="Initial"/>
+        <Atom name="P"  type="P"/>
+        <Atom name="S"  type="S"/>
+        <Atom name="C"  type="Cb"/>    
+    </Residue>
+    <Residue name="DT">
+        <AllowPatch name="Initial"/>
+        <Atom name="P"  type="P"/>
+        <Atom name="S"  type="S"/>
+        <Atom name="T"  type="Tb"/>
+    </Residue>
+    <Residue name="DG">
+        <AllowPatch name="Initial"/>
+        <Atom name="P"  type="P"/>
+        <Atom name="S"  type="S"/>
+        <Atom name="G"  type="Gb"/>
+    </Residue>
+  </Residues>
+  <Patches>
+      <Patch name="Initial">
+          <RemoveAtom name="P"/>
+      </Patch>
+  </Patches>
+</ForceField>

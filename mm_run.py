@@ -70,6 +70,7 @@ if chain == "-1":
 if args.to != "./":
     # os.system(f"mkdir -p {args.to}")
     os.makedirs(args.to, exist_ok=True)
+    os.system(f"cp params.py {args.to}/params.py")
     # os.system(f"cp {pdb} {args.to}/{pdb}")
     # pdb = os.path.join(args.to, pdb)
 

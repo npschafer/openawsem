@@ -24,6 +24,6 @@ args = parser.parse_args()
 movieFile = args.openmm
 
 seq_dic = get_seq_dic(fasta=args.fasta)
-convert_openMM_to_standard_pdb(fileName=movieFile, seq_dic=seq_dic, back=False)
+convert_openMM_to_standard_pdb(fileName=movieFile, seq_dic=seq_dic, back=True)
 
 os.system("cp ~/openmmawsem/helperFunctions/complete_2xov.tcl .")

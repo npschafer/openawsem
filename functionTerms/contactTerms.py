@@ -165,40 +165,64 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
         # contact.addComputedValue("alphaMembrane", f"z", CustomGBForce.SingleParticle)
         # contact.addComputedValue("isInMembrane", f"z", CustomGBForce.SingleParticle)
         # contact.addComputedValue("isInMembrane", f"step({z_m}-abs(z))", CustomGBForce.SingleParticle)
-        # mediated term
-        contact.addEnergyTerm("isCb1*isCb2*((1-alphaMembrane1*alphaMembrane2)*water_part+alphaMembrane1*alphaMembrane2*membrane_part);\
-                                water_part=-res_table(0, resId1, resId2)*k_contact*thetaII*\
-                                (sigma_water*water_gamma_ijm(0, resName1, resName2)+\
-                                sigma_protein*protein_gamma_ijm(0, resName1, resName2));\
-                                membrane_part=-res_table(1, resId1, resId2)*k_contact*thetaII*\
-                                (sigma_water*water_gamma_ijm(1, resName1, resName2)+\
-                                sigma_protein*protein_gamma_ijm(1, resName1, resName2));\
-                                sigma_protein=1-sigma_water;\
-                                thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
-                                sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
-                                CustomGBForce.ParticlePair)
-        # direct term
+
+        # mediated and direct term (write separately may lead to bug)
         contact.addEnergyTerm("isCb1*isCb2*((1-alphaMembrane1*alphaMembrane2)*water_part+alphaMembrane1*alphaMembrane2*membrane_part);\
                                 water_part=-res_table(0, resId1, resId2)*k_contact*\
-                                gamma_ijm(0, resName1, resName2)*theta;\
+                                (gamma_ijm(0, resName1, resName2)*theta+thetaII*(sigma_water*water_gamma_ijm(0, resName1, resName2)+\
+                                sigma_protein*protein_gamma_ijm(0, resName1, resName2)));\
                                 membrane_part=-res_table(1, resId1, resId2)*k_contact*\
-                                gamma_ijm(1, resName1, resName2)*theta;\
-                                theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))",
-                                CustomGBForce.ParticlePair)
-    else:
-        # mediated term
-        contact.addEnergyTerm(f"-isCb1*isCb2*res_table({inMembrane}, resId1, resId2)*k_contact*thetaII*\
-                                (sigma_water*water_gamma_ijm({inMembrane}, resName1, resName2)+\
-                                sigma_protein*protein_gamma_ijm({inMembrane}, resName1, resName2));\
+                                (gamma_ijm(1, resName1, resName2)*theta+thetaII*(sigma_water*water_gamma_ijm(1, resName1, resName2)+\
+                                sigma_protein*protein_gamma_ijm(1, resName1, resName2)));\
                                 sigma_protein=1-sigma_water;\
+                                theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)));\
                                 thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
                                 sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
                                 CustomGBForce.ParticlePair)
-        # direct term
-        contact.addEnergyTerm(f"-isCb1*isCb2*res_table({inMembrane}, resId1, resId2)*k_contact*\
-                                gamma_ijm({inMembrane}, resName1, resName2)*theta;\
-                                theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))",
+        # # mediated term
+        # contact.addEnergyTerm("isCb1*isCb2*((1-alphaMembrane1*alphaMembrane2)*water_part+alphaMembrane1*alphaMembrane2*membrane_part);\
+        #                         water_part=-res_table(0, resId1, resId2)*k_contact*thetaII*\
+        #                         (sigma_water*water_gamma_ijm(0, resName1, resName2)+\
+        #                         sigma_protein*protein_gamma_ijm(0, resName1, resName2));\
+        #                         membrane_part=-res_table(1, resId1, resId2)*k_contact*thetaII*\
+        #                         (sigma_water*water_gamma_ijm(1, resName1, resName2)+\
+        #                         sigma_protein*protein_gamma_ijm(1, resName1, resName2));\
+        #                         sigma_protein=1-sigma_water;\
+        #                         thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
+        #                         sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
+        #                         CustomGBForce.ParticlePair)
+        # # direct term
+        # contact.addEnergyTerm("isCb1*isCb2*((1-alphaMembrane1*alphaMembrane2)*water_part+alphaMembrane1*alphaMembrane2*membrane_part);\
+        #                         water_part=-res_table(0, resId1, resId2)*k_contact*\
+        #                         gamma_ijm(0, resName1, resName2)*theta;\
+        #                         membrane_part=-res_table(1, resId1, resId2)*k_contact*\
+        #                         gamma_ijm(1, resName1, resName2)*theta;\
+        #                         theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))",
+        #                         CustomGBForce.ParticlePair)
+    else:
+        # mediated and direct term (write separately may lead to bug)
+        contact.addEnergyTerm(f"-isCb1*isCb2*res_table({inMembrane}, resId1, resId2)*k_contact*(gamma_ijm({inMembrane}, resName1, resName2)*theta + \
+                                thetaII*(sigma_water*water_gamma_ijm({inMembrane}, resName1, resName2)+\
+                                sigma_protein*protein_gamma_ijm({inMembrane}, resName1, resName2)));\
+                                sigma_protein=1-sigma_water;\
+                                theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)));\
+                                thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
+                                sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
                                 CustomGBForce.ParticlePair)
+        # # mediated term
+        # contact.addEnergyTerm(f"-isCb1*isCb2*res_table({inMembrane}, resId1, resId2)*k_contact*thetaII*\
+        #                         (sigma_water*water_gamma_ijm({inMembrane}, resName1, resName2)+\
+        #                         sigma_protein*protein_gamma_ijm({inMembrane}, resName1, resName2));\
+        #                         sigma_protein=1-sigma_water;\
+        #                         thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
+        #                         sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
+        #                         CustomGBForce.ParticlePair)
+        # # direct term
+        # contact.addEnergyTerm(f"-isCb1*isCb2*res_table({inMembrane}, resId1, resId2)*k_contact*\
+        #                         gamma_ijm({inMembrane}, resName1, resName2)*theta;\
+        #                         theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))",
+        #                         CustomGBForce.ParticlePair)
+
 
     # burial term
     for i in range(3):

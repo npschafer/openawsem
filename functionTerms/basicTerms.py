@@ -61,7 +61,7 @@ def chi_term(oa, k_chi=251.04, chi0=-0.71):
     chi.setForceGroup(13)
     return chi
 
-def excl_term(oa, k_excl=8368, r_excl=0.35, periodic= True):
+def excl_term(oa, k_excl=8368, r_excl=0.35, periodic=False):
     # add excluded volume
     # Still need to add element specific parameters
     # 8368 = 20 * 4.184 * 100 kJ/nm^2, converted from default value in LAMMPS AWSEM
@@ -86,7 +86,7 @@ def excl_term(oa, k_excl=8368, r_excl=0.35, periodic= True):
     else:
         excl.setNonbondedMethod(excl.CutoffNonPeriodic)
 
-    excl.setNonbondedMethod(excl.CutoffNonPeriodic)
+    # excl.setNonbondedMethod(excl.CutoffNonPeriodic)
     excl.createExclusionsFromBonds(oa.bonds, 1)
     excl.setForceGroup(14)
     return excl

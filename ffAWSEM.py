@@ -157,6 +157,25 @@ class Protein(object):
         pass
 
 
+def addNonBondedExclusions(oa,force):
+    cb_fixed = [x if x > 0 else y for x, y in zip(oa.cb, oa.ca)]
+    none_cb_fixed = [i for i in range(oa.natoms) if i not in cb_fixed]
+    for e1 in none_cb_fixed:
+        for e2 in none_cb_fixed:
+            if e1 > e2:
+                continue
+            force.addExclusion(e1, e2)
+    for e1 in none_cb_fixed:
+        for e2 in cb_fixed:
+            force.addExclusion(e1, e2)
+    for e1 in none_cb_fixed:
+        for e2 in none_cb_fixed:
+            if e1 > e2:
+                continue
+            force.addExclusion(e1, e2)
+    for e1 in none_cb_fixed:
+        for e2 in cb_fixed:
+            force.addExclusion(e1, e2)
 def Forces():
     pass
 

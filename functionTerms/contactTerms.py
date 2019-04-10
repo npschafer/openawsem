@@ -15,6 +15,7 @@ def read_gamma(gammaFile):
     gamma_mediated = data[210:]
     return gamma_direct, gamma_mediated
 
+
 def inWhichChain(residueId, chain_ends):
     chain_table = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     for i, end_of_chain_resId in enumerate(chain_ends):
@@ -23,7 +24,8 @@ def inWhichChain(residueId, chain_ends):
         else:
             return chain_table[i]
 
-def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0, k_relative_mem=1.0):
+
+def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0, k_relative_mem=1.0, periodic=True):
     k_contact *= oa.k_awsem
     # combine direct, burial, mediated.
     # default membrane thickness 1.5 nm
@@ -245,7 +247,10 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
     #         contact.addExclusion(e1, e2)
 
     # contact.setCutoffDistance(1.1)
-    contact.setNonbondedMethod(CustomGBForce.CutoffNonPeriodic)
+    if periodic:
+        contact.setNonbondedMethod(contact.CutoffPeriodic)
+    else:
+        contact.setNonbondedMethod(contact.CutoffNonPeriodic)
     print("Contact cutoff ", contact.getCutoffDistance())
     print("NonbondedMethod: ", contact.getNonbondedMethod())
     contact.setForceGroup(18)

@@ -201,8 +201,8 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
         #                         CustomGBForce.ParticlePair)
     else:
         # mediated and direct term (write separately may lead to bug)
-        contact.addEnergyTerm(f"-isCb1*isCb2*res_table({inMembrane}, resId1, resId2)*k_contact*(gamma_ijm({inMembrane}, resName1, resName2)*theta + \
-                                thetaII*(sigma_water*water_gamma_ijm({inMembrane}, resName1, resName2)+\
+        contact.addEnergyTerm(f"-isCb1*isCb2*res_table({inMembrane}, resId1, resId2)*k_contact*\
+                                (gamma_ijm({inMembrane}, resName1, resName2)*theta+thetaII*(sigma_water*water_gamma_ijm({inMembrane}, resName1, resName2)+\
                                 sigma_protein*protein_gamma_ijm({inMembrane}, resName1, resName2)));\
                                 sigma_protein=1-sigma_water;\
                                 theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)));\

@@ -25,7 +25,7 @@ def inWhichChain(residueId, chain_ends):
             return chain_table[i]
 
 
-def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0, k_relative_mem=1.0, periodic=False):
+def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0, k_relative_mem=1.0, periodic=True):
     k_contact *= oa.k_awsem
     # combine direct, burial, mediated.
     # default membrane thickness 1.5 nm

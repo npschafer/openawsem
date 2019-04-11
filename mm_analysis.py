@@ -6,10 +6,11 @@ from time import sleep
 import subprocess
 import fileinput
 import platform
+import importlib.util
 
 try:
     OPENAWSEM_LOCATION = os.environ["OPENAWSEM_LOCATION"]
-    sys.path.insert(0, OPENAWSEM_LOCATION)
+    sys.path.append(OPENAWSEM_LOCATION)
     # print(OPENAWSEM_LOCATION)
 except KeyError:
     print("Please set the environment variable name OPENAWSEM_LOCATION.\n Example: export OPENAWSEM_LOCATION='YOUR_OPENAWSEM_LOCATION'")
@@ -32,6 +33,7 @@ parser.add_argument("-c", "--chain", type=str, default="-1")
 parser.add_argument("--thread", type=int, default=2, help="default is using 2 CPUs, -1 is using all")
 parser.add_argument("-p", "--platform", type=str, default="CPU", help="Could be OpenCL, CUDA and CPU")
 parser.add_argument("-t", "--trajectory", type=str, default="./movie.pdb")
+parser.add_argument("--params", type=str, default=None)
 args = parser.parse_args()
 
 if (args.debug):
@@ -73,8 +75,20 @@ elif fileType == "dcd":
     # may use iterload if loading still too slow
 else:
     print(f"Unknown fileType {fileType}")
-
 # pdb_trajectory = read_trajectory_pdb_positions(args.trajectory)
+
+
+# import args.params as params
+# default is the params.py under the same folder of trajectory file
+if args.params is None:
+    location = os.path.dirname(args.trajectory)
+    params_location = os.path.join(location, "params.py")
+else:
+    params_location = args.params
+spec = importlib.util.spec_from_file_location("params", params_location)
+params = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(params)
+
 
 oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filename=f"{OPENAWSEM_LOCATION}/awsem.xml")  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 
@@ -92,11 +106,11 @@ forces = [
     con_term(oa),
     chain_term(oa),
     chi_term(oa),
-    excl_term(oa),
+    excl_term(oa, periodic=params.periodic),
     rama_term(oa),
     rama_proline_term(oa),
     rama_ssweight_term(oa),
-    contact_term(oa, z_dependent=False),
+    contact_term(oa, z_dependent=False, periodic=params.periodic),
     beta_term_1(oa),
     beta_term_2(oa),
     beta_term_3(oa),

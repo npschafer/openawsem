@@ -9,11 +9,11 @@ import platform
 from datetime import datetime
 from time import sleep
 import fileinput
-import params
+import importlib.util
 
 try:
     OPENAWSEM_LOCATION = os.environ["OPENAWSEM_LOCATION"]
-    sys.path.insert(0, OPENAWSEM_LOCATION)
+    sys.path.append(OPENAWSEM_LOCATION)
     # print(OPENAWSEM_LOCATION)
 except KeyError:
     print("Please set the environment variable name OPENAWSEM_LOCATION.\n Example: export OPENAWSEM_LOCATION='YOUR_OPENAWSEM_LOCATION'")
@@ -38,6 +38,7 @@ parser.add_argument("-s", "--steps", type=float, default=1e5, help="step size")
 parser.add_argument("--simulation_mode", type=int, default=0,
                 help="default 0: constant temperature,\
                         1: temperature annealing")
+parser.add_argument("--params", type=str, default="params.py")
 args = parser.parse_args()
 
 
@@ -70,9 +71,14 @@ if chain == "-1":
 if args.to != "./":
     # os.system(f"mkdir -p {args.to}")
     os.makedirs(args.to, exist_ok=True)
-    os.system(f"cp params.py {args.to}/params.py")
+    os.system(f"cp {args.params} {args.to}/params.py")
     # os.system(f"cp {pdb} {args.to}/{pdb}")
     # pdb = os.path.join(args.to, pdb)
+
+# import args.params as params
+spec = importlib.util.spec_from_file_location("params", args.params)
+params = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(params)
 
 input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
 
@@ -81,25 +87,25 @@ oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filena
 
 # apply forces
 forces = [
-    q_value(oa, "crystal_structure-cleaned.pdb"),
+    # q_value(oa, "crystal_structure-cleaned.pdb"),
     con_term(oa),
     chain_term(oa),
     chi_term(oa),
-    excl_term(oa),
+    excl_term(oa, periodic=params.periodic),
     rama_term(oa),
     rama_proline_term(oa),
     rama_ssweight_term(oa),
-    contact_term(oa, z_dependent=False),
+    contact_term(oa, k_contact=params.k_contact, z_dependent=params.z_dependent, inMembrane=params.inMembrane,
+                    k_relative_mem=params.k_relative_mem, periodic=params.periodic),
     beta_term_1(oa),
     beta_term_2(oa),
     beta_term_3(oa),
     pap_term_1(oa),
     pap_term_2(oa),
-    # pap_term_old(oa),
-    # fragment_memory_term(oa, frag_location_pre="./"),
+    fragment_memory_term(oa, frag_location_pre="./"),
     # er_term(oa),
     # tbm_q_term(oa, k_tbm_q=2000),
-    # membrane_term(oa, k_membrane=2),
+    membrane_term(oa, k_membrane=params.k_membrane, membrane_center=params.membrane_center),
 ]
 oa.addForces(forces)
 

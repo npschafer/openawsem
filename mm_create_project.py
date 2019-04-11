@@ -33,26 +33,32 @@ else:
     do = os.system
     cd = os.chdir
 
-# Remove the pdb extension from the protein if it is there.
-if len(args.protein) > 4 and args.protein[-4:] == '.pdb':
-    name = args.protein[:-4]
-else:
-    name = args.protein
-pdb = f"{name}.pdb"
-chain = args.chain.upper()
-
 # Log the command to a file
 with open('create_project_commandline_args.txt', 'w') as f:
     f.write(' '.join(sys.argv))
     f.write('\n')
 
-# If the file does not exist download it from the pdb
-if not os.path.exists(f"crystal_structure.pdb"):
+# if you provide the pdb then we will use it for the project(move to folder named original_pdbs to prevent from overwritten), otherwise we download it online.
+if args.protein[-4:] == '.pdb':
+    if not os.path.exists(args.protein):
+        print("ERROR: the pdb you specified is not exist")
+        exit()
+    name = os.path.basename(args.protein)[:-4]
+    pdb = os.path.basename(args.protein)
+    do("mkdir -p original_pdbs")
+    do(f"cp {args.protein} original_pdbs/")
+else:
+    name = args.protein
+    pdb = f"{name}.pdb"
     pdb_list = [name]
     helperFunctions.myFunctions.downloadPdb(pdb_list)
-    helperFunctions.myFunctions.cleanPdb(pdb_list, chain="-1", toFolder="cleaned_pdbs")
+
+# If the file does not exist download it from the pdb
+if not os.path.exists(f"crystal_structure.pdb"):
+    helperFunctions.myFunctions.cleanPdb([name], chain="-1", toFolder="cleaned_pdbs")
     do(f"cp cleaned_pdbs/{pdb} crystal_structure.pdb")
 
+chain = args.chain.upper()
 # If the chain is not specified then select all the chains
 if chain == "-1":
     chain = helperFunctions.myFunctions.getAllChains("crystal_structure.pdb")

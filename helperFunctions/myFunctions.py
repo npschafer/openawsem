@@ -425,6 +425,7 @@ def read_variable_folder(location, match="*_", **kwargs):
 
 
 def downloadPdb(pdb_list, membrane_protein=False):
+    print("Download from server")
     os.system("mkdir -p original_pdbs")
     for pdb_id in pdb_list:
         pdb = f"{pdb_id.lower()[:4]}"
@@ -443,7 +444,7 @@ def downloadPdb(pdb_list, membrane_protein=False):
 
 
 
-def cleanPdb(pdb_list, chain=None, fromFolder=None, toFolder="cleaned_pdbs", formatName=False, verbose=False, removeTwoEndsMissingResidues=True):
+def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatName=False, verbose=False, removeTwoEndsMissingResidues=True):
     os.system(f"mkdir -p {toFolder}")
     for pdb_id in pdb_list:
         # print(chain)
@@ -455,12 +456,12 @@ def cleanPdb(pdb_list, chain=None, fromFolder=None, toFolder="cleaned_pdbs", for
         else:
             pdb = pdb_id
         pdbFile = pdb + ".pdb"
-        if fromFolder is None:
+        if source is None:
             fromFile = os.path.join("original_pdbs", pdbFile)
-        elif fromFolder[:4] == ".pdb":
-            fromFile = fromFolder
+        elif source[-4:] == ".pdb":
+            fromFile = source
         else:
-            fromFile = os.path.join(fromFolder, pdbFile)
+            fromFile = os.path.join(source, pdbFile)
         if chain is None:  # None mean deafult is chain A unless specified.
             if len(pdb_id) >= 5:
                 Chosen_chain = pdb_id[4]

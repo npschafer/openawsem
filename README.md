@@ -43,6 +43,10 @@ source activate openmm
 ```
 python YOUR_OPENAWSEM_LOCATION/mm_create_project.py 1r69 --frag
 ```
+* Or if you already have 1r69.pdb:
+```
+python YOUR_OPENAWSEM_LOCATION/mm_create_project.py 1r69.pdb --frag
+```
 * Run the simulation:
 ```
 python mm_run.py 1r69

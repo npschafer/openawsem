@@ -41,6 +41,7 @@ openawsem_location = os.environ.get("OPENAWSEM_LOCATION")
 pdbDir = openawsem_location + "/PDBs/"
 indexDir = openawsem_location + "/Indices/"
 fLibDir = "./fraglib/"
+fLibDir = openawsem_location + "/Gros/"
 pdbSeqres = openawsem_location + "/pdb_seqres.txt"
 if not os.path.exists(indexDir):
     os.makedirs(indexDir)

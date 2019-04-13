@@ -201,6 +201,7 @@ for record in SeqIO.parse(handle, "fasta"):
             failed_pdb[pdbID] = 1
             print(":::Cannot build PDB for PDB ID, failed to download:" + pdbID.upper())
 
+
         # exit()
 
     # blast the whole sequence to identify homologs Evalue 0.005

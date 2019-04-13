@@ -106,6 +106,7 @@ forces = [
     # er_term(oa),
     # tbm_q_term(oa, k_tbm_q=2000),
     membrane_term(oa, k_membrane=params.k_membrane, membrane_center=params.membrane_center),
+    # rg_bias_term(oa, k_rg=params.k_rg, rg0=params.rg0)
 ]
 oa.addForces(forces)
 

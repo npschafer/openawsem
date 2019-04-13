@@ -10,8 +10,9 @@ membrane_center = 0 * angstrom_in_nm
 periodic = False
 z_dependent = True
 inMembrane = False
-
+rg0 = 40 * angstrom_in_nm
+k_rg = 200 * kcal_in_kj   # per nm^2
 
 # You change to
 z_dependent = False
-inMembrane = True
+inMembrane = False

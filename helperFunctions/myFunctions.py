@@ -582,6 +582,21 @@ def convert_openMM_to_standard_pdb(fileName="last_frame.pdb", seq_dic=None, back
                 print(line, end='')
 
 
+def relocate(location):
+    # location = "/Users/weilu/Research/server/april_2019/iterative_optimization_new_set_with_frag/all_simulations/1fc2/1fc2"
+    fileLocation = location + "/frags.mem"
+    # pre = location + "/../"
+    pre = location
+    os.system(f"mkdir -p {pre}/fraglib")
+    a = pd.read_csv(fileLocation, skiprows=4, sep=" ", names=["location", "i", "j", "sep", "w"])
+    b = a["location"].unique()
+    for l in b:
+        out = os.system(f"cp {l} {pre}/fraglib/")
+        if out != 0:
+            print(f"!!Problem!!, {l}")
+
+def replace(TARGET, FROM, TO):
+    os.system("sed -i.bak 's@{}@{}@g' {}".format(FROM,TO,TARGET))
 
 
 

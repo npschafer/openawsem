@@ -93,11 +93,14 @@ spec.loader.exec_module(params)
 oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filename=f"{OPENAWSEM_LOCATION}/awsem.xml")  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 
 # apply forces
-# forceGroupTable_Rev = {11:"Con", 12:"Chain", 13:"Chi", 14:"Excluded", 15:"Rama", 16:"Direct",
-#                   17:"Burial", 18:"Mediated", 19:"Fragment"}
 forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
                     "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "beta_2":24,"beta_3":25,"pap":26, "Total":list(range(11, 27)),
-                    "Water":[16, 18], "Beta":[23, 24, 25], "Pap":26, "Q":1}
+                    "Water":[16, 18], "Beta":[23, 24, 25], "Pap":26, "Rg_Bias":27, "Q":1, "Rg":2}
+# forceGroupTable_Rev = {11:"Con", 12:"Chain", 13:"Chi", 14:"Excluded", 15:"Rama", 16:"Direct",
+#                   17:"Burial", 18:"Mediated", 19:"Fragment"}
+# forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
+#                     "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "beta_2":24,"beta_3":25,"pap":26, "Total":list(range(11, 27)),
+#                     "Water":[16, 18], "Beta":[23, 24, 25], "Pap":26, "Q":1}
 # forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
 #                    "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "Total":list(range(11, 26)),
 #                    "Water":[16, 18], "beta":[23, 24, 25], "Q":1}
@@ -110,18 +113,21 @@ forces = [
     rama_term(oa),
     rama_proline_term(oa),
     rama_ssweight_term(oa),
-    contact_term(oa, z_dependent=False, periodic=params.periodic),
+    contact_term(oa, k_contact=params.k_contact, z_dependent=params.z_dependent, inMembrane=params.inMembrane,
+                    k_relative_mem=params.k_relative_mem, periodic=params.periodic),
     beta_term_1(oa),
     beta_term_2(oa),
     beta_term_3(oa),
     pap_term_1(oa),
     pap_term_2(oa),
-    # pap_term_old(oa),
-    # fragment_memory_term(oa, frag_location_pre="./"),
+    fragment_memory_term(oa, frag_location_pre="./"),
     # er_term(oa),
     # tbm_q_term(oa, k_tbm_q=2000),
-    # membrane_term(oa, k_membrane=params.k_membrane),
+    membrane_term(oa, k_membrane=params.k_membrane, membrane_center=params.membrane_center),
+    # rg_bias_term(oa, k_rg=params.k_rg, rg0=params.rg0),
+    # rg_bias_term(oa, k_rg=params.k_rg, rg0=params.rg0, atomGroup=[1])
 ]
+
 oa.addForcesWithDefaultForceGroup(forces)
 
 # start simulation
@@ -130,7 +136,8 @@ collision_rate = 5.0 / picoseconds
 integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 2*femtoseconds)
 simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
 
-showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane", "Beta", "Pap", "Total"]
+showEnergy = ["Q", "Rg", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane", "Beta", "Pap", "Rg_Bias", "Total"]
+# showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane", "Beta", "Pap", "Total"]
 # showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane", "Total"]
 # showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q","beta_1", "Total"]
 # showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q","beta_1","beta_2","beta_3","pap", "Total"]
@@ -149,7 +156,7 @@ for step in range(len(pdb_trajectory)):
         else:
             g = {forceGroupTable[term]}
         state = simulation.context.getState(getEnergy=True, groups=g)
-        if term == "Q":
+        if term == "Q" or term == "Rg":
             termEnergy = state.getPotentialEnergy().value_in_unit(kilojoule_per_mole)
         else:
             termEnergy = state.getPotentialEnergy().value_in_unit(kilocalories_per_mole)

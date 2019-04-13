@@ -105,7 +105,8 @@ if args.frag:
     do(f"python {__location__}/helperFunctions/MultCha_prepFrags_index.py \
     cullpdb_pc80_res3.0_R1.0_d160504_chains29712 %s.fasta 20 1 9 > logfile" % name)
     helperFunctions.myFunctions.check_and_correct_fragment_memory("frags.mem")
-
+    helperFunctions.myFunctions.relocate("./")
+    helperFunctions.myFunctions.replace(f"frags.mem", f"{__location__}/Gros/", "./fraglib/")
 do(f"cp {__location__}/mm_run.py .")
 do(f"cp {__location__}/mm_analysis.py .")
 do(f"cp {__location__}/params.py .")

@@ -92,7 +92,7 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_location_pre="./",
         frag_file_list = []
     else:
         print(f"Fragment table file is not found. Reading fragments files.")
-        frag_file_list = pd.read_table(frag_file_list_file, skiprows=4, sep="\s+", names=["location", "target_start", "fragment_start", "frag_len", "weight"])
+        frag_file_list = pd.read_csv(frag_file_list_file, skiprows=4, sep="\s+", names=["location", "target_start", "fragment_start", "frag_len", "weight"])
         interaction_list = set()
     for frag_index in range(len(frag_file_list)):
         location = frag_file_list["location"].iloc[frag_index]
@@ -101,7 +101,7 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_location_pre="./",
         weight = frag_file_list["weight"].iloc[frag_index]
         target_start = frag_file_list["target_start"].iloc[frag_index] # residue id
         fragment_start = frag_file_list["fragment_start"].iloc[frag_index] # residue id
-        frag = pd.read_table(frag_name, skiprows=2, sep="\s+", header=None, names=["Res_id", "Res", "Type", "i", "x", "y", "z"])
+        frag = pd.read_csv(frag_name, skiprows=2, sep="\s+", header=None, names=["Res_id", "Res", "Type", "i", "x", "y", "z"])
         frag = frag.query(f"Res_id >= {fragment_start} and Res_id < {fragment_start+frag_len} and (Type == 'CA' or Type == 'CB')")
         w_m = weight
         gamma_ij = 1

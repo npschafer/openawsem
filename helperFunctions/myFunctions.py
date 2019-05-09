@@ -74,6 +74,9 @@ def duplicate_pdb(From, To, offset_x=0, offset_y=0, offset_z=0, new_chain="B"):
         with open(From, "r") as f:
             for line in f:
                 tmp = list(line)
+                if len(tmp) < 26:
+                    out.write(line)
+                    continue
                 atom = line[0:4]
                 atomSerialNumber = line[6:11]
                 atomName = line[12:16]
@@ -82,7 +85,7 @@ def duplicate_pdb(From, To, offset_x=0, offset_y=0, offset_z=0, new_chain="B"):
                 residueNumber = line[22:26]
                 # change chain A to B
                 # new_chain = "B"
-                tmp[21] = new_chain
+
                 if atom == "ATOM":
                     x = float(line[30:38])
                     y = float(line[38:46])
@@ -93,7 +96,7 @@ def duplicate_pdb(From, To, offset_x=0, offset_y=0, offset_z=0, new_chain="B"):
                     new_y = y + offset_y
                     new_z = z + offset_z
 
-
+                    tmp[21] = new_chain
                     tmp[30:38] = "{:8.3f}".format(new_x)
                     tmp[38:46] = "{:8.3f}".format(new_y)
                     tmp[46:54] = "{:8.3f}".format(new_z)
@@ -351,12 +354,35 @@ def check_and_correct_fragment_memory(fragFile="fragsLAMW.mem"):
                 with open(gro, "r") as one:
                     next(one)
                     next(one)
-                    all_residues = set()
+                    all_residues = []
                     for atom in one:
-                        residue, *_ = atom.split()
-                        # print(residue)
-                        all_residues.add(int(residue))
+                        residue, resType, atomType, *_ = atom.split()
+                        # print(residue, resType, atomType)
+                        if atomType == "CA":
+                            all_residues.append(int(residue))
+                    all_residues = np.array(all_residues)
                     for test in range(int(i), int(i)+int(n)):
+                        if (test == all_residues).sum() > 1:
+                            # In rare case, one res id may have two different possible residues.
+                            # on example, pdb 3vpg. chain A, res id 220.
+                            # ATOM   1467  N   ARG A 220A      9.151 -20.984  46.737  1.00 31.30           N
+                            # ATOM   1468  CA  ARG A 220A      9.120 -19.710  46.027  1.00 31.52           C
+                            # ATOM   1469  C   ARG A 220A      9.768 -19.832  44.650  1.00 33.58           C
+                            # ATOM   1470  O   ARG A 220A     10.552 -18.973  44.240  1.00 28.91           O
+                            # ATOM   1471  CB  ARG A 220A      9.853 -18.641  46.847  1.00 31.58           C
+                            # ATOM   1472  CG  ARG A 220A      9.181 -18.295  48.168  1.00 33.55           C
+                            # ATOM   1473  CD  ARG A 220A      7.834 -17.651  47.916  1.00 34.70           C
+                            # ATOM   1474  NE  ARG A 220A      7.959 -16.526  46.994  1.00 43.05           N
+                            # ATOM   1475  CZ  ARG A 220A      6.931 -15.906  46.425  1.00 46.69           C
+                            # ATOM   1476  NH1 ARG A 220A      5.691 -16.300  46.683  1.00 39.12           N
+                            # ATOM   1477  NH2 ARG A 220A      7.144 -14.898  45.590  1.00 41.15           N
+                            # ATOM   1478  N   ALA A 220B      9.429 -20.901  43.936  1.00 33.78           N
+                            # ATOM   1479  CA  ALA A 220B      9.979 -21.153  42.608  1.00 32.13           C
+                            # ATOM   1480  C   ALA A 220B      9.944 -19.933  41.692  1.00 30.71           C
+                            # ATOM   1481  O   ALA A 220B      9.050 -19.088  41.787  1.00 28.56           O
+                            # ATOM   1482  CB  ALA A 220B      9.234 -22.310  41.951  1.00 35.20           C
+                            print("ATTENTION", gro, i, n, "duplicate:",test)
+                            delete = True
                         if test not in all_residues:
                             print("ATTENTION", gro, i, n, "missing:",test)
                             delete = True
@@ -444,7 +470,7 @@ def downloadPdb(pdb_list, membrane_protein=False):
 
 
 
-def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatName=False, verbose=False, removeTwoEndsMissingResidues=True):
+def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatName=False, verbose=False, removeTwoEndsMissingResidues=True, addMissingResidues=True):
     os.system(f"mkdir -p {toFolder}")
     for pdb_id in pdb_list:
         # print(chain)
@@ -462,6 +488,12 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
             fromFile = source
         else:
             fromFile = os.path.join(source, pdbFile)
+
+        # clean pdb
+        fixer = PDBFixer(filename=fromFile)
+        # remove unwanted chains
+        chains = list(fixer.topology.chains())
+        print(chains)
         if chain is None:  # None mean deafult is chain A unless specified.
             if len(pdb_id) >= 5:
                 Chosen_chain = pdb_id[4]
@@ -472,12 +504,10 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
         elif chain == "-1" or chain == -1:
             Chosen_chain = getAllChains(fromFile)
             print(f"Chains: {Chosen_chain}")
+        elif chain == "first":
+            Chosen_chain = chains[0].id
         else:
             Chosen_chain = chain
-        # clean pdb
-        fixer = PDBFixer(filename=fromFile)
-        # remove unwanted chains
-        chains = list(fixer.topology.chains())
 
         chains_to_remove = [i for i, x in enumerate(chains) if x.id not in Chosen_chain]
         fixer.removeChains(chains_to_remove)
@@ -488,17 +518,24 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
         keys = fixer.missingResidues.keys()
         if verbose:
             print("missing residues: ", keys)
-        if removeTwoEndsMissingResidues:
+        if not addMissingResidues:
             for key in list(keys):
-                chain_tmp = chains[key[0]]
-                if key[1] == 0 or key[1] == len(list(chain_tmp.residues())):
-                    del fixer.missingResidues[key]
+                del fixer.missingResidues[key]
+        else:
+            if removeTwoEndsMissingResidues:
+                for key in list(keys):
+                    chain_tmp = chains[key[0]]
+                    if key[1] == 0 or key[1] == len(list(chain_tmp.residues())):
+                        del fixer.missingResidues[key]
 
         fixer.findNonstandardResidues()
         fixer.replaceNonstandardResidues()
         fixer.removeHeterogens(keepWater=False)
         fixer.findMissingAtoms()
-        fixer.addMissingAtoms()
+        try:
+            fixer.addMissingAtoms()
+        except:
+            continue
         fixer.addMissingHydrogens(7.0)
         PDBFile.writeFile(fixer.topology, fixer.positions, open(os.path.join(toFolder, pdbFile), 'w'))
 
@@ -521,7 +558,8 @@ def add_chain_to_pymol_pdb(location):
             for line in f:
                 info = list(line)
                 if len(info) > 21:
-                    info[21] = "A"
+                    if line[:4] == "ATOM":
+                        info[21] = "A"
                 out.write("".join(info))
     os.system(f"mv tmp {location}")
 
@@ -582,16 +620,29 @@ def convert_openMM_to_standard_pdb(fileName="last_frame.pdb", seq_dic=None, back
                 print(line, end='')
 
 
-def relocate(location):
+# def relocate(location):
+#     # location = "/Users/weilu/Research/server/april_2019/iterative_optimization_new_set_with_frag/all_simulations/1fc2/1fc2"
+#     fileLocation = location + "/frags.mem"
+#     # pre = location + "/../"
+#     pre = location
+#     os.system(f"mkdir -p {pre}/fraglib")
+#     a = pd.read_csv(fileLocation, skiprows=4, sep=" ", names=["location", "i", "j", "sep", "w"])
+#     b = a["location"].unique()
+#     for l in b:
+#         out = os.system(f"cp {l} {pre}/fraglib/")
+#         if out != 0:
+#             print(f"!!Problem!!, {l}")
+
+def relocate(fileLocation="frags.mem", toLocation="fraglib"):
     # location = "/Users/weilu/Research/server/april_2019/iterative_optimization_new_set_with_frag/all_simulations/1fc2/1fc2"
-    fileLocation = location + "/frags.mem"
-    # pre = location + "/../"
-    pre = location
-    os.system(f"mkdir -p {pre}/fraglib")
+    # fileLocation = location + "/frags.mem"
+    # toLocation
+    print(os.getcwd())
+    os.system(f"mkdir -p {toLocation}")
     a = pd.read_csv(fileLocation, skiprows=4, sep=" ", names=["location", "i", "j", "sep", "w"])
     b = a["location"].unique()
     for l in b:
-        out = os.system(f"cp {l} {pre}/fraglib/")
+        out = os.system(f"cp {l} {toLocation}/")
         if out != 0:
             print(f"!!Problem!!, {l}")
 
@@ -601,5 +652,8 @@ def replace(TARGET, FROM, TO):
 
 
 
-
-
+def get_PDB_length(pdbFileLocation):
+    from Bio.PDB.PDBParser import PDBParser
+    # pdbFileLocation = '/Users/weilu/Research/database/chosen/T0869-D1.pdb'
+    structure = PDBParser().get_structure("a", pdbFileLocation)
+    return len(list(structure.get_residues()))

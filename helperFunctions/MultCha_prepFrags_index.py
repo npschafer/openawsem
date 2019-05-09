@@ -16,6 +16,7 @@ from IndexPdb import *
 from Pdb2GroLib import *
 from Bio import SeqIO
 from Bio.PDB.PDBParser import PDBParser
+import subprocess
 
 if len(sys.argv) != 6:
     print("\n######################################################################")
@@ -281,9 +282,10 @@ for record in SeqIO.parse(handle, "fasta"):
                 fastaFile = pdbID + '_' + chainID.upper()
                 exeline = "grep -A1 " + fastaFile + " " + pdbSeqres + " > ./tmp.fasta"
                 print("generating fastaFile: ", fastaFile)
-                os.popen(exeline)
-
-                if os.path.getsize('tmp.fasta') > 0:
+                # p = os.popen(exeline)
+                subprocess.Popen(exeline, shell=True).wait()
+                # p_status = p.wait()
+                if os.path.getsize('./tmp.fasta') > 0:
                     writeIndexFile(fastFile, pdbFile,
                                    indexFile, chainID.upper())
                     print("Writing indexFile: ", indexFile)

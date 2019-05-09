@@ -35,7 +35,7 @@ parser.add_argument("-c", "--chain", type=str, default="-1")
 parser.add_argument("-t", "--thread", type=int, default=-1, help="default is using all that is available")
 parser.add_argument("-p", "--platform", type=str, default="OpenCL")
 parser.add_argument("-s", "--steps", type=float, default=1e5, help="step size")
-parser.add_argument("--simulation_mode", type=int, default=0,
+parser.add_argument("-m", "--simulation_mode", type=int, default=0,
                 help="default 0: constant temperature,\
                         1: temperature annealing")
 parser.add_argument("--params", type=str, default="params.py")
@@ -105,7 +105,7 @@ forces = [
     fragment_memory_term(oa, frag_location_pre="./"),
     # er_term(oa),
     # tbm_q_term(oa, k_tbm_q=2000),
-    membrane_term(oa, k_membrane=params.k_membrane, membrane_center=params.membrane_center),
+    # membrane_term(oa, k_membrane=params.k_membrane, membrane_center=params.membrane_center),
     # rg_bias_term(oa, k_rg=params.k_rg, rg0=params.rg0)
 ]
 oa.addForces(forces)
@@ -143,7 +143,7 @@ start_time = time.time()
 if args.simulation_mode == 0:
     simulation.step(int(args.steps))
 elif args.simulation_mode == 1:
-    for i in range(100):
+    for i in range(150):
         integrator.setTemperature(3*(200-i)*kelvin)
         simulation.step(10000)
 

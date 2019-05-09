@@ -34,6 +34,7 @@ parser.add_argument("--thread", type=int, default=2, help="default is using 2 CP
 parser.add_argument("-p", "--platform", type=str, default="CPU", help="Could be OpenCL, CUDA and CPU")
 parser.add_argument("-t", "--trajectory", type=str, default="./movie.pdb")
 parser.add_argument("--params", type=str, default=None)
+parser.add_argument("-o", "--output", type=str, default=None, help="The location of file that show your energy and Q infomation.")
 args = parser.parse_args()
 
 if (args.debug):
@@ -56,7 +57,7 @@ if simulation_platform == "CPU":
 
 
 # print(args)
-with open('analysis_commandline_args.txt', 'w') as f:
+with open('analysis_commandline_args.txt', 'a') as f:
     f.write(' '.join(sys.argv))
     f.write('\n')
 
@@ -123,7 +124,7 @@ forces = [
     fragment_memory_term(oa, frag_location_pre="./"),
     # er_term(oa),
     # tbm_q_term(oa, k_tbm_q=2000),
-    membrane_term(oa, k_membrane=params.k_membrane, membrane_center=params.membrane_center),
+    # membrane_term(oa, k_membrane=params.k_membrane, membrane_center=params.membrane_center),
     # rg_bias_term(oa, k_rg=params.k_rg, rg0=params.rg0),
     # rg_bias_term(oa, k_rg=params.k_rg, rg0=params.rg0, atomGroup=[1])
 ]
@@ -142,25 +143,34 @@ showEnergy = ["Q", "Rg", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "
 # showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q","beta_1", "Total"]
 # showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q","beta_1","beta_2","beta_3","pap", "Total"]
 # print("Steps", *showEnergy)
-print(" ".join(["{0:<8s}".format(i) for i in ["Steps"] + showEnergy]))
-# for step, pdb in enumerate(pdb_trajectory):
-#     simulation.context.setPositions(pdb.positions)
-for step in range(len(pdb_trajectory)):
-    simulation.context.setPositions(pdb_trajectory.openmm_positions(step))
-    e = []
-    for term in showEnergy:
-        if type(forceGroupTable[term]) == list:
-            g = set(forceGroupTable[term])
-        elif forceGroupTable[term] == -1:
-            g = -1
-        else:
-            g = {forceGroupTable[term]}
-        state = simulation.context.getState(getEnergy=True, groups=g)
-        if term == "Q" or term == "Rg":
-            termEnergy = state.getPotentialEnergy().value_in_unit(kilojoule_per_mole)
-        else:
-            termEnergy = state.getPotentialEnergy().value_in_unit(kilocalories_per_mole)
-        e.append(termEnergy)
-#     print(*e)
-    print(" ".join([f"{step:<8}"] + ["{0:<8.2f}".format(i) for i in e]))
-#         print(forceGroupTable[term], state.getPotentialEnergy().value_in_unit(kilocalories_per_mole))
+if args.output is None:
+    outFile = os.path.dirname(args.trajectory) + "/info.dat"
+else:
+    outFile = args.output
+with open(outFile, "w") as out:
+    line = " ".join(["{0:<8s}".format(i) for i in ["Steps"] + showEnergy])
+    print(line)
+    out.write(line+"\n")
+    # for step, pdb in enumerate(pdb_trajectory):
+    #     simulation.context.setPositions(pdb.positions)
+    for step in range(len(pdb_trajectory)):
+        simulation.context.setPositions(pdb_trajectory.openmm_positions(step))
+        e = []
+        for term in showEnergy:
+            if type(forceGroupTable[term]) == list:
+                g = set(forceGroupTable[term])
+            elif forceGroupTable[term] == -1:
+                g = -1
+            else:
+                g = {forceGroupTable[term]}
+            state = simulation.context.getState(getEnergy=True, groups=g)
+            if term == "Q" or term == "Rg":
+                termEnergy = state.getPotentialEnergy().value_in_unit(kilojoule_per_mole)
+            else:
+                termEnergy = state.getPotentialEnergy().value_in_unit(kilocalories_per_mole)
+            e.append(termEnergy)
+    #     print(*e)
+        line = " ".join([f"{step:<8}"] + ["{0:<8.2f}".format(i) for i in e])
+        print(line)
+        out.write(line+"\n")
+    #         print(forceGroupTable[term], state.getPotentialEnergy().value_in_unit(kilocalories_per_mole))

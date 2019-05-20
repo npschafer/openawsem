@@ -450,22 +450,23 @@ def read_variable_folder(location, match="*_", **kwargs):
     data.reset_index(drop=True).to_feather(name)
 
 
-def downloadPdb(pdb_list, membrane_protein=False):
+def downloadPdb(pdb_list, membrane_protein=False, location="original_pdbs/"):
     print("Download from server")
-    os.system("mkdir -p original_pdbs")
+    os.system(f"mkdir -p {location}")
     for pdb_id in pdb_list:
         pdb = f"{pdb_id.lower()[:4]}"
         pdbFile = pdb+".pdb"
-        if not os.path.isfile("original_pdbs/"+pdbFile):
+        fileLocation = os.path.join(location, pdbFile)
+        if not os.path.isfile(fileLocation):
             if membrane_protein:
                 # os.system(f"wget http://pdbtm.enzim.hu/data/database/fn/{pdbFile}.gz")
                 # os.system(f"gunzip {pdbFile}.gz")
                 os.system(f"wget https://opm-assets.storage.googleapis.com/pdb/{pdbFile}")
-                os.system(f"mv {pdbFile} original_pdbs/{pdbFile}")
+                os.system(f"mv {pdbFile} {fileLocation}")
             else:
                 pdbl = PDBList()
                 name = pdbl.retrieve_pdb_file(pdb, pdir='.', file_format='pdb')
-                os.system(f"mv {name} original_pdbs/{pdbFile}")
+                os.system(f"mv {name} {fileLocation}")
             os.system("rm -r obsolete")
 
 
@@ -657,3 +658,29 @@ def get_PDB_length(pdbFileLocation):
     # pdbFileLocation = '/Users/weilu/Research/database/chosen/T0869-D1.pdb'
     structure = PDBParser().get_structure("a", pdbFileLocation)
     return len(list(structure.get_residues()))
+
+def pdbToFasta(pdb, pdbLocation, fastaFile, chains="A"):
+    import textwrap
+    from Bio.PDB.PDBParser import PDBParser
+    from Bio.PDB.Polypeptide import three_to_one
+    # pdb = "1r69"
+    # pdbLocation = "/Users/weilu/Research/server/may_2019/family_fold/1r69.pdb"
+    # chains = "A"
+    # fastaFile = "/Users/weilu/Research/server/may_2019/family_fold/1r69.fasta"
+    s = PDBParser().get_structure("X", pdbLocation)
+    m = s[0]  # model 0
+    seq = ""
+    with open(fastaFile, "w") as out:
+        for chain in chains:
+            out.write(f">{pdb.upper()}:{chain.upper()}|PDBID|CHAIN|SEQUENCE\n")
+            c = m[chain]
+            chain_seq = ""
+            for residue in c:
+                is_regular_res = residue.has_id('CA') and residue.has_id('O')
+                res_id = residue.get_id()[0]
+                if (res_id==' ' or res_id=='H_MSE' or res_id=='H_M3L' or res_id=='H_CAS') and is_regular_res:
+                    residue_name = residue.get_resname()
+                    chain_seq += three_to_one(residue_name)
+            out.write("\n".join(textwrap.wrap(chain_seq, width=80))+"\n")
+            seq += chain_seq
+    return seq

@@ -144,7 +144,7 @@ showEnergy = ["Q", "Rg", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "
 # showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane","ER","TBM_Q","beta_1","beta_2","beta_3","pap", "Total"]
 # print("Steps", *showEnergy)
 if args.output is None:
-    outFile = os.path.dirname(args.trajectory) + "/info.dat"
+    outFile = os.path.join(os.path.dirname(args.trajectory), "info.dat")
 else:
     outFile = args.output
 with open(outFile, "w") as out:

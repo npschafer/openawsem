@@ -82,7 +82,7 @@ spec.loader.exec_module(params)
 
 input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
 
-reporter_frequency = 10000
+
 oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml")  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 
 # apply forces
@@ -114,6 +114,7 @@ oa.addForces(forces)
 collision_rate = 5.0 / picoseconds
 checkpoint_file = "restart"
 checkpoint_reporter_frequency = 10000
+reporter_frequency = 10000
 
 # output the native and the structure after minimization
 integrator = CustomIntegrator(0.001)

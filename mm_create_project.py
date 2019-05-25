@@ -87,11 +87,17 @@ os.system(f"cp {__location__}/parameters/membrane_gamma.dat .")
 os.system(f"cp {__location__}/parameters/anti_* .")
 os.system(f"cp {__location__}/parameters/para_* .")
 
-do(f"python {__location__}/helperFunctions/Pdb2Gro.py crystal_structure.pdb amh-go.gro")
+do(f"python {__location__}/helperFunctions/Pdb2Gro.py crystal_structure.pdb {name}.gro")
 
 ## ssweight
 do("stride crystal_structure.pdb > ssweight.stride")
 do(f"python {__location__}/helperFunctions/stride2ssweight.py > ssweight")
+protein_length = helperFunctions.myFunctions.getFromTerminal("wc ssweight").split()[0]
+print(f"protein: {name}, length: {protein_length}")
+
+with open("single_frags.mem", "w") as out:
+    out.write("[Target]\nquery\n\n[Memories]\n")
+    out.write(f"{name}.gro 1 1 {protein_length} 20\n")
 
 # below used for zim and zimPosition file
 if args.membrane or args.hybrid:
@@ -109,6 +115,8 @@ if args.frag:
     helperFunctions.myFunctions.relocate(fileLocation="frags.mem", toLocation="fraglib")
     # print(f"{__location__}//Gros/")
     helperFunctions.myFunctions.replace(f"frags.mem", f"{__location__}//Gros/", "./fraglib/")
+    do("cp frags.mem frag_memory.mem")
+
 do(f"cp {__location__}/mm_run.py .")
 do(f"cp {__location__}/mm_analysis.py .")
 do(f"cp {__location__}/params.py .")

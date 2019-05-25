@@ -146,6 +146,39 @@ def get_Lambda_3(i, j, p_par, p_anti, p_antihb, p_antinhb, p_parhb, a):
     return Lambda
 
 
+# def beta_term_1(oa, k_beta=4.184):
+#     print("beta_1 term ON")
+#     nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
+#     # print(lambda_1)
+#     r_ON = .298
+#     sigma_NO = .068
+#     r_OH = .206
+#     sigma_HO = .076
+
+#     lambda_1 = np.zeros((nres, nres))
+#     for i in range(nres):
+#         for j in range(nres):
+#             lambda_1[i][j] = get_lambda_by_index(i, j, 0)
+#     theta_ij = f"exp(-(r_Oi_Nj-{r_ON})^2/(2*{sigma_NO}^2)-(r_Oi_Hj-{r_OH})^2/(2*{sigma_HO}^2))"
+#     beta_string_1 = f"-{k_beta}*lambda_1(res_i,res_j)*theta_ij;theta_ij={theta_ij};r_Oi_Nj=distance(a1,d1);r_Oi_Hj=distance(a1,d2);"
+#     beta_1 = CustomHbondForce(beta_string_1)
+#     beta_1.addPerDonorParameter("res_i")
+#     beta_1.addPerAcceptorParameter("res_j")
+#     beta_1.addTabulatedFunction("lambda_1", Discrete2DFunction(nres, nres, lambda_1.T.flatten()))
+#     # print(lambda_1)
+#     # print(len(oa.o), nres)
+#     for i in range(nres):
+#         if oa.o[i]!= -1:
+#             beta_1.addAcceptor(oa.o[i], -1, -1, [i])
+#         if oa.n[i]!=-1 and oa.h[i]!=-1:
+#             beta_1.addDonor(oa.n[i], oa.h[i], -1, [i])
+#     beta_1.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
+#     beta_1.setCutoffDistance(1.0)
+#     beta_1.setForceGroup(23)
+#     # beta_2.setForceGroup(24)
+#     # beta_3.setForceGroup(25)
+#     return beta_1
+
 def beta_term_1(oa, k_beta=4.184):
     print("beta_1 term ON")
     nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
@@ -160,7 +193,12 @@ def beta_term_1(oa, k_beta=4.184):
         for j in range(nres):
             lambda_1[i][j] = get_lambda_by_index(i, j, 0)
     theta_ij = f"exp(-(r_Oi_Nj-{r_ON})^2/(2*{sigma_NO}^2)-(r_Oi_Hj-{r_OH})^2/(2*{sigma_HO}^2))"
-    beta_string_1 = f"-{k_beta}*lambda_1(res_i,res_j)*theta_ij;theta_ij={theta_ij};r_Oi_Nj=distance(a1,d1);r_Oi_Hj=distance(a1,d2);"
+    mu_1 = 10  # nm^-1
+    # mu_2 = 5   # nm^-1
+    rcHB = 1.2  # in nm
+    # v1i ensures the hydrogen bonding does not occur when five residue segment is shorter than 12 A
+    v1i = f"0.5*(1+tanh({mu_1}*(distance(a2,a3)-{rcHB})))"
+    beta_string_1 = f"-{k_beta}*lambda_1(res_i,res_j)*theta_ij*v1i;theta_ij={theta_ij};v1i={v1i};r_Oi_Nj=distance(a1,d1);r_Oi_Hj=distance(a1,d2);"
     beta_1 = CustomHbondForce(beta_string_1)
     beta_1.addPerDonorParameter("res_i")
     beta_1.addPerAcceptorParameter("res_j")
@@ -169,7 +207,9 @@ def beta_term_1(oa, k_beta=4.184):
     # print(len(oa.o), nres)
     for i in range(nres):
         if oa.o[i]!= -1:
-            beta_1.addAcceptor(oa.o[i], -1, -1, [i])
+            ca_i_minus_2 = oa.ca[0] if i <= 2 else oa.ca[i-2]
+            ca_i_plus_2 = oa.ca[-1] if i+2 >= nres else oa.ca[i+2]
+            beta_1.addAcceptor(oa.o[i], ca_i_minus_2, ca_i_plus_2, [i])
         if oa.n[i]!=-1 and oa.h[i]!=-1:
             beta_1.addDonor(oa.n[i], oa.h[i], -1, [i])
     beta_1.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)

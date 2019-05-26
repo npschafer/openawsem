@@ -73,11 +73,12 @@ openmmawsem.getSeqFromCleanPdb(input_pdb_filename, chains=chain, writeFastaFile=
 do(f"cp crystal_structure.fasta {name}.fasta")
 
 if args.extended:
-    do(f"python3 {__location__}/helperFunctions/fasta2pdb.py " + name)
-    helperFunctions.myFunctions.add_chain_to_pymol_pdb(pdb)  # only work for one chain only now
-else:
-    do(f"cp crystal_structure.pdb {pdb}")
+    do(f"python3 {__location__}/helperFunctions/fasta2pdb.py extended -f {name}.fasta")
+    helperFunctions.myFunctions.add_chain_to_pymol_pdb("extended.pdb")  # only work for one chain only now
+    input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb("extended.pdb", "A")
+    openmmawsem.ensure_atom_order(input_pdb_filename)
 
+do(f"cp crystal_structure.pdb {pdb}")
 input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb(pdb, chain)
 openmmawsem.ensure_atom_order(input_pdb_filename)
 

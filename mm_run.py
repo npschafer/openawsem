@@ -102,7 +102,7 @@ forces = [
     beta_term_3(oa),
     pap_term_1(oa),
     pap_term_2(oa),
-    fragment_memory_term(oa, frag_location_pre="./"),
+    fragment_memory_term(oa, frag_file_list_file="./frag.mem", UseSavedFragTable=True),
     # er_term(oa),
     # tbm_q_term(oa, k_tbm_q=2000),
     # membrane_term(oa, k_membrane=params.k_membrane, membrane_center=params.membrane_center),

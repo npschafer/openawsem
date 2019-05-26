@@ -60,8 +60,8 @@ def tbm_q_term(oa, k_tbm_q, tbm_q_min_seq_sep=2, tbm_q_cutoff=0.2*nanometers, tb
 
 
 
-def fragment_memory_term(oa, k_fm=0.04184, frag_location_pre="./",
-                    min_seq_sep=3, max_seq_sep=9, fm_well_width=0.1):
+def fragment_memory_term(oa, k_fm=0.04184, frag_file_list_file="./frag.mem", npy_frag_table="./frag_table.npy",
+                    min_seq_sep=3, max_seq_sep=9, fm_well_width=0.1, UseSavedFragTable=True):
     # 0.8368 = 0.01 * 4.184 # in kJ/mol, converted from default value in LAMMPS AWSEM
     k_fm *= oa.k_awsem
     frag_table_rmin = 0
@@ -82,11 +82,13 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_location_pre="./",
     # print(oa.res_type)
     # print(oa.resi)
     # print(data_dic)
-    frag_file_list_file = frag_location_pre + "frags.mem"
-    frag_table_file = frag_location_pre + "frag_table.npy"
+    frag_location_pre = os.path.dirname(frag_file_list_file)
+    # frag_file_list_file = frag_location_pre + "frags.mem"
+    # frag_table_file = frag_location_pre + "frag_table.npy"
+    frag_table_file = npy_frag_table
 
-    if os.path.isfile(frag_table_file):
-        print(f"Reading Fragment table. from {frag_table_file}.")
+    if os.path.isfile(frag_table_file) and UseSavedFragTable:
+        print(f"Reading Fragment table from {frag_table_file}.")
         frag_table, interaction_list, interaction_pair_to_bond_index = np.load(frag_table_file)
         print(f"Fragment table loaded, number of bonds: {len(interaction_list)}")
         frag_file_list = []
@@ -96,11 +98,11 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_location_pre="./",
         interaction_list = set()
     for frag_index in range(len(frag_file_list)):
         location = frag_file_list["location"].iloc[frag_index]
-        frag_name = frag_location_pre + location
+        frag_name = os.path.join(frag_location_pre, location)
         frag_len = frag_file_list["frag_len"].iloc[frag_index]
         weight = frag_file_list["weight"].iloc[frag_index]
-        target_start = frag_file_list["target_start"].iloc[frag_index] # residue id
-        fragment_start = frag_file_list["fragment_start"].iloc[frag_index] # residue id
+        target_start = frag_file_list["target_start"].iloc[frag_index]  # residue id
+        fragment_start = frag_file_list["fragment_start"].iloc[frag_index]  # residue id
         frag = pd.read_csv(frag_name, skiprows=2, sep="\s+", header=None, names=["Res_id", "Res", "Type", "i", "x", "y", "z"])
         frag = frag.query(f"Res_id >= {fragment_start} and Res_id < {fragment_start+frag_len} and (Type == 'CA' or Type == 'CB')")
         w_m = weight
@@ -142,7 +144,7 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_location_pre="./",
 
                 raw_frag_table[correspond_target_i][i_j_sep] += w_m*gamma_ij*np.exp((r_array-rm)**2/(-2.0*sigma_ij**2))
                 interaction_list.add((correspond_target_i, correspond_target_j))
-    if not os.path.isfile(frag_table_file):
+    if (not os.path.isfile(frag_table_file)) or (not UseSavedFragTable):
         # Reduce memory usage.
         print("Saving fragment table as npy file to speed up future calculation.")
         number_of_bonds = len(interaction_list)

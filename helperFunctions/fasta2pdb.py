@@ -9,12 +9,16 @@ parser = argparse.ArgumentParser(
         the project template as fast as possible. Written by Wei Lu."
 )
 parser.add_argument("protein", help="The name of the protein")
+parser.add_argument("-f", "--fasta", default=None, help="The name of the fasta file")
 
 args = parser.parse_args()
 protein_name = args.protein.split('.')[0]
+if args.fasta is None:
+    fastaFile = protein_name+".fasta"
+else:
+    fastaFile = args.fasta
 
-
-with open(protein_name+".fasta") as input_data:
+with open(fastaFile) as input_data:
     data = ""
     for line in input_data:
         if(line[0] == ">"):

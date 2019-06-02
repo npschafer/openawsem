@@ -18,7 +18,7 @@ parser = argparse.ArgumentParser(
     description="Convert openMM output to standard Pdbs."
 )
 parser.add_argument("openmm", help="The name of the OpenAWSEM output")
-parser.add_argument("-f", "--fasta", default="./crystal_structure.fasta", help="Fasta file")
+parser.add_argument("-f", "--fasta", default="./crystal_structure.fasta", help="Default is ./crystal_structure.fasta")
 args = parser.parse_args()
 
 movieFile = args.openmm
@@ -26,7 +26,7 @@ movieFile = args.openmm
 seq_dic = get_seq_dic(fasta=args.fasta)
 convert_openMM_to_standard_pdb(fileName=movieFile, seq_dic=seq_dic, back=True)
 
-os.system("cp ~/openmmawsem/helperFunctions/complete_2xov.tcl .")
+# os.system("cp ~/openmmawsem/helperFunctions/complete_2xov.tcl .")
 
 with open(movieFile, "r") as f:
     a = f.readlines()

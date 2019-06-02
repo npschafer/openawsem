@@ -600,7 +600,7 @@ def convert_openMM_to_standard_pdb(fileName="last_frame.pdb", seq_dic=None, back
     inv_code_map = {v: k for k, v in code.items()}
     if seq_dic is None:
         seq_dic = get_seq_dic()
-    if back:
+    if back and os.path.exists(fileName+".bak"):
         backup = '.bak'
     else:
         backup = ''

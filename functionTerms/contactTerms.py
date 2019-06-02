@@ -400,6 +400,150 @@ def index_based_contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, in
     return contact
 
 
+def expand_contact_table_contact_term(oa, k_contact=4.184, periodic=False, pre=None):
+    k_contact *= oa.k_awsem
+    # combine direct, burial, mediated.
+    # default membrane thickness 1.5 nm
+
+    r_min = .45
+    r_max = .65
+    r_minII = .65
+    r_maxII = .95
+    eta = 50  # eta actually has unit of nm^-1.
+    eta_sigma = 7.0
+    rho_0 = 2.6
+    min_sequence_separation = 10  # means j-i > 9
+    min_sequence_separation_mem = 13
+    # nwell = 16
+    eta_switching = 10
+    # gamma_ijm = np.zeros((nwell, oa.nres, oa.nres))
+    # water_gamma_ijm = np.zeros((nwell, oa.nres, oa.nres))
+    # protein_gamma_ijm = np.zeros((nwell, oa.nres, oa.nres))
+
+    # read in seq data.
+    seq = oa.seq
+    # read in gamma info
+    if pre is None:
+        pre = "expand_contact"
+    f_direct = -np.load(f"{pre}/direct.npy")
+    f_water = -np.load(f"{pre}/water.npy")
+    f_protein = -np.load(f"{pre}/protein.npy")
+    f_burial = -np.load(f"{pre}/burial.npy")
+
+    # print("shape of direct", f_direct.shape, len(f_direct.T.flatten()))
+
+    burial_kappa = 4.0
+    burial_ro_min = [0.0, 3.0, 6.0]
+    burial_ro_max = [3.0, 6.0, 9.0]
+
+    # k_relative_mem = k_relative_mem  # adjust the relative strength of gamma
+    inMembrane = 0
+    contact = CustomGBForce()
+
+    # residue interaction table (step(abs(resId1-resId2)-min_sequence_separation))
+    res_table = np.zeros((2, oa.nres, oa.nres))
+    for i in range(oa.nres):
+        for j in range(oa.nres):
+            resId1 = i
+            chain1 = inWhichChain(resId1, oa.chain_ends)
+            resId2 = j
+            chain2 = inWhichChain(resId2, oa.chain_ends)
+            if abs(resId1-resId2)-min_sequence_separation >= 0 or chain1 != chain2:
+                res_table[0][i][j] = 1
+            else:
+                res_table[0][i][j] = 0
+
+    # Discrete3DFunction
+    # the tabulated values of the function f(x,y,z), ordered so that values[i+xsize*j+xsize*ysize*k] = f(i,j,k). This must be of length xsize*ysize*zsize.
+    contact.addTabulatedFunction("gamma_ijm", Discrete2DFunction(80, 80, f_direct.T.flatten()))
+    contact.addTabulatedFunction("water_gamma_ijm", Discrete2DFunction(80, 80, f_water.T.flatten()))
+    contact.addTabulatedFunction("protein_gamma_ijm", Discrete2DFunction(80, 80, f_protein.T.flatten()))
+    contact.addTabulatedFunction("burial_gamma_ij", Discrete2DFunction(3, 80, f_burial.T.flatten()))
+    contact.addTabulatedFunction("res_table", Discrete3DFunction(2, oa.nres, oa.nres, res_table.T.flatten()))
+
+    contact.addPerParticleParameter("resName_with_neighbor")
+    contact.addPerParticleParameter("resName")
+    contact.addPerParticleParameter("resId")
+    contact.addPerParticleParameter("isCb")
+    contact.addGlobalParameter("k_contact", k_contact)
+    contact.addGlobalParameter("eta", eta)
+    contact.addGlobalParameter("eta_sigma", eta_sigma)
+    contact.addGlobalParameter("rho_0", rho_0)
+    contact.addGlobalParameter("min_sequence_separation", min_sequence_separation)
+    contact.addGlobalParameter("rmin", r_min)
+    contact.addGlobalParameter("rmax", r_max)
+    contact.addGlobalParameter("rminII", r_minII)
+    contact.addGlobalParameter("rmaxII", r_maxII)
+    contact.addGlobalParameter("burial_kappa", burial_kappa)
+
+    contact.addComputedValue("rho", "isCb1*isCb2*step(abs(resId1-resId2)-2)*0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))", CustomGBForce.ParticlePair)
+
+    # replace cb with ca for GLY
+    cb_fixed = [x if x > 0 else y for x,y in zip(oa.cb,oa.ca)]
+    none_cb_fixed = [i for i in range(oa.natoms) if i not in cb_fixed]
+    # print(oa.natoms, len(oa.resi), oa.resi, seq)
+    for i in range(oa.natoms):
+        index = oa.resi[i]
+        seq_pre, seq_post = get_pre_and_post(seq, index)
+        neighborRes = get_neighbor_res_type(seq_pre, seq_post)
+        resName_with_neighbor = int(neighborRes*20 + gamma_se_map_1_letter[seq[oa.resi[i]]])
+        contact.addParticle([resName_with_neighbor, gamma_se_map_1_letter[seq[oa.resi[i]]], oa.resi[i], int(i in cb_fixed)])
+
+
+    # mediated and direct term (write separately may lead to bug)
+    contact.addEnergyTerm(f"-isCb1*isCb2*res_table({inMembrane}, resId1, resId2)*k_contact*\
+                            (gamma_ijm(resName_with_neighbor1, resName_with_neighbor2)*theta+thetaII*(sigma_water*water_gamma_ijm(resName_with_neighbor1, resName_with_neighbor2)+\
+                            sigma_protein*protein_gamma_ijm(resName_with_neighbor1, resName_with_neighbor2)));\
+                            sigma_protein=1-sigma_water;\
+                            theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)));\
+                            thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
+                            sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
+                            CustomGBForce.ParticlePair)
+    # # mediated term
+    # contact.addEnergyTerm(f"-isCb1*isCb2*res_table({inMembrane}, resId1, resId2)*k_contact*thetaII*\
+    #                         (sigma_water*water_gamma_ijm({inMembrane}, resName1, resName2)+\
+    #                         sigma_protein*protein_gamma_ijm({inMembrane}, resName1, resName2));\
+    #                         sigma_protein=1-sigma_water;\
+    #                         thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
+    #                         sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
+    #                         CustomGBForce.ParticlePair)
+    # direct term
+    # contact.addEnergyTerm(f"-isCb1*isCb2*res_table(0, resId1, resId2)*k_contact*\
+    #                         gamma_ijm(0, resId1, resId2)*theta;\
+    #                         theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))",
+    #                         CustomGBForce.ParticlePair)
+
+    # burial term
+    for i in range(3):
+        contact.addGlobalParameter(f"rho_min_{i}", burial_ro_min[i])
+        contact.addGlobalParameter(f"rho_max_{i}", burial_ro_max[i])
+    for i in range(3):
+        contact.addEnergyTerm(f"-0.5*isCb*k_contact*burial_gamma_ij({i}, resName_with_neighbor)*\
+                                    (tanh(burial_kappa*(rho-rho_min_{i}))+\
+                                    tanh(burial_kappa*(rho_max_{i}-rho)))", CustomGBForce.SingleParticle)
+
+    print("Number of atom: ", oa.natoms, "Number of residue: ", len(cb_fixed))
+    # print(len(none_cb_fixed), len(cb_fixed))
+    # for e1 in none_cb_fixed:
+    #     for e2 in none_cb_fixed:
+    #         if e1 > e2:
+    #             continue
+    #         contact.addExclusion(e1, e2)
+    # for e1 in none_cb_fixed:
+    #     for e2 in cb_fixed:
+    #         contact.addExclusion(e1, e2)
+
+    # contact.setCutoffDistance(1.1)
+    if periodic:
+        contact.setNonbondedMethod(contact.CutoffPeriodic)
+    else:
+        contact.setNonbondedMethod(contact.CutoffNonPeriodic)
+    print("Contact cutoff ", contact.getCutoffDistance())
+    print("NonbondedMethod: ", contact.getNonbondedMethod())
+    contact.setForceGroup(18)
+    return contact
+
+
 def contact_test_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5):
     contact = CustomGBForce()
     gamma_ijm = np.zeros((2, 20, 20))
@@ -409,6 +553,48 @@ def contact_test_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5):
     for i in range(oa.natoms):
         contact.addParticle()
     return contact
+
+def get_pre_and_post(seq, index):
+    n = len(seq)
+    if index == 0:
+        return seq[0], seq[1]
+    elif index == n - 1:
+        return seq[index-1], seq[index]
+    else:
+        return seq[index-1], seq[index+1]
+
+res_type_map_HP = {
+    'C': 0,
+    'M': 0,
+    'F': 0,
+    'I': 0,
+    'L': 0,
+    'V': 0,
+    'W': 0,
+    'Y': 0,
+    'A': 1,
+    'H': 1,
+    'T': 1,
+    'G': 1,
+    'P': 1,
+    'D': 1,
+    'E': 1,
+    'N': 1,
+    'Q': 1,
+    'R': 1,
+    'K': 1,
+    'S': 1
+}
+
+def get_neighbor_res_type(res_pre, res_post):
+    table = np.zeros((2,2))
+    table[0][0] = 0
+    table[0][1] = 1
+    table[1][0] = 2
+    table[1][1] = 3
+    r1 = res_type_map_HP[res_pre]
+    r2 = res_type_map_HP[res_pre]
+    return int(table[r1][r2])
 
 '''
 # for debug purpose

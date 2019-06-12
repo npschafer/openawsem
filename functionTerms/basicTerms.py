@@ -154,7 +154,7 @@ def rama_ssweight_term(oa, k_rama_ssweight=8.368, num_rama_wells=2, w=[2.0, 2.0]
     k_rama_ssweight *= oa.k_awsem
     rama_function = ''.join(["wSS%d*ssweight(%d,resId)*exp(-sigmaSS%d*(omega_phiSS%d*phi_term%d^2+omega_psiSS%d*psi_term%d^2))+" \
                             % (i, i, i, i, i, i, i) for i in range(num_rama_wells)])[:-1]
-    rama_function = '-k_rama_ssweight*(' + rama_function + ");"
+    rama_function = f'-{k_rama_ssweight}*(' + rama_function + ");"
     rama_parameters = ''.join([f"phi_term{i}=cos(phi_{i}-phi0SS{i})-1; phi_{i}=dihedral(p1, p2, p3, p4);\
                             psi_term{i}=cos(psi_{i}-psi0SS{i})-1; psi_{i}=dihedral(p2, p3, p4, p5);"\
                             for i in range(num_rama_wells)])
@@ -162,7 +162,6 @@ def rama_ssweight_term(oa, k_rama_ssweight=8.368, num_rama_wells=2, w=[2.0, 2.0]
     ramaSS = CustomCompoundBondForce(5, rama_string)
     ramaSS.addPerBondParameter("resId")
     for i in range(num_rama_wells):
-        ramaSS.addGlobalParameter(f"k_rama_ssweight", k_rama_ssweight)
         ramaSS.addGlobalParameter(f"wSS{i}", w[i])
         ramaSS.addGlobalParameter(f"sigmaSS{i}", sigma[i])
         ramaSS.addGlobalParameter(f"omega_phiSS{i}", omega_phi[i])

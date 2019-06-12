@@ -606,6 +606,8 @@ def convert_openMM_to_standard_pdb(fileName="last_frame.pdb", seq_dic=None, back
         backup = ''
     with fileinput.FileInput(fileName, inplace=True, backup=backup) as file:
         for line in file:
+            if len(line) >= 4 and line[:4] == "END\n":
+                continue
             if len(line) > 25:
                 if line[:6] == "REMARK":
                     continue
@@ -643,7 +645,8 @@ def relocate(fileLocation="frags.mem", toLocation="fraglib"):
     a = pd.read_csv(fileLocation, skiprows=4, sep=" ", names=["location", "i", "j", "sep", "w"])
     b = a["location"].unique()
     for l in b:
-        out = os.system(f"cp {l} {toLocation}/")
+        cmd = f"cp {l} {toLocation}/"
+        out = subprocess.Popen(cmd, shell=True).wait()
         if out != 0:
             print(f"!!Problem!!, {l}")
 

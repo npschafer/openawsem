@@ -21,6 +21,27 @@ def membrane_term(oa, k_membrane=4.184, k_m=2, z_m=1.5, membrane_center=0):
     membrane.setForceGroup(20)
     return membrane
 
+def membrane_preassigned_term(oa, k_membrane=4.184, k_m=20, z_m=1.5, membrane_center=0):
+    # k_m in units of nm^-1, z_m in units of nm.
+    # z_m is half of membrane thickness
+    # membrane_center is the membrane center plane shifted in z axis.
+    # add membrane forces
+    # 1 Kcal = 4.184 kJ strength by overall scaling
+    k_membrane *= oa.k_awsem
+    membrane = CustomExternalForce(f"{k_membrane}*\
+            (0.5*tanh({k_m}*((z-{membrane_center})+{z_m}))+0.5*tanh({k_m}*({z_m}-(z-{membrane_center}))))*zim-0.5")
+    membrane.addPerParticleParameter("zim")
+    # zim = np.loadtxt("zim")
+    zimPosition = np.loadtxt("zimPosition")
+    zim = [-1 if z == 2 else 1 for z in zimPosition]
+    # print(zim)
+    cb_fixed = [x if x > 0 else y for x,y in zip(oa.cb,oa.ca)]
+    for i in cb_fixed:
+        membrane.addParticle(i, [zim[oa.resi[i]]])
+        # print(oa.resi[i] , oa.seq[oa.resi[i]])
+    membrane.setForceGroup(20)
+    return membrane
+
 def rg_term(oa, convertToAngstrom=True):
     rg_square = CustomBondForce("1/normalization*r^2")
     # rg = CustomBondForce("1")
@@ -56,3 +77,18 @@ def rg_bias_term(oa, k_rg=4.184, rg0=0, atomGroup=-1):
     rg.addCollectiveVariable("rg_square", rg_square)
     rg.setForceGroup(27)
     return rg
+
+def pulling_term(oa, k_pulling=4.184, forceDirect="x", appliedToResidue=0):
+    # k_m in units of nm^-1, z_m in units of nm.
+    # z_m is half of membrane thickness
+    # membrane_center is the membrane center plane shifted in z axis.
+    # add membrane forces
+    # 1 Kcal = 4.184 kJ strength by overall scaling
+    k_pulling *= oa.k_awsem
+    pulling = CustomExternalForce(f"(-{k_pulling})*({forceDirect})")
+    for i in range(oa.natoms):
+        if oa.resi[i] == appliedToResidue:
+            pulling.addParticle(i)
+        # print(oa.resi[i] , oa.seq[oa.resi[i]])
+    pulling.setForceGroup(29)
+    return pulling

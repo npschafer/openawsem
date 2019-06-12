@@ -25,7 +25,7 @@ def inWhichChain(residueId, chain_ends):
             return chain_table[i]
 
 
-def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0, k_relative_mem=1.0, periodic=False):
+def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0, k_relative_mem=1.0, periodic=False, parametersLocation=".", burialPartOn=True):
     k_contact *= oa.k_awsem
     # combine direct, burial, mediated.
     # default membrane thickness 1.5 nm
@@ -38,7 +38,7 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
     eta_sigma = 7.0
     rho_0 = 2.6
     min_sequence_separation = 10  # means j-i > 9
-    min_sequence_separation_mem = 13
+    min_sequence_separation_mem = 10
     nwell = 2
     eta_switching = 10
     gamma_ijm = np.zeros((nwell, 20, 20))
@@ -48,12 +48,12 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
     # read in seq data.
     seq = oa.seq
     # read in gamma info
-    gamma_direct, gamma_mediated = read_gamma("gamma.dat")
+    gamma_direct, gamma_mediated = read_gamma(os.path.join(parametersLocation, "gamma.dat"))
 
     burial_kappa = 4.0
     burial_ro_min = [0.0, 3.0, 6.0]
     burial_ro_max = [3.0, 6.0, 9.0]
-    burial_gamma = np.loadtxt("burial_gamma.dat")
+    burial_gamma = np.loadtxt(os.path.join(parametersLocation, "burial_gamma.dat"))
 
     k_relative_mem = k_relative_mem  # adjust the relative strength of gamma
     inMembrane = int(inMembrane)
@@ -93,7 +93,7 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
 
 
     if z_dependent or inMembrane:
-        mem_gamma_direct, mem_gamma_mediated = read_gamma("membrane_gamma.dat")
+        mem_gamma_direct, mem_gamma_mediated = read_gamma(os.path.join(parametersLocation, "membrane_gamma.dat"))
         m = 1  # membrane environment
         count = 0
         for i in range(20):
@@ -225,15 +225,15 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
         #                         theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))",
         #                         CustomGBForce.ParticlePair)
 
-
-    # burial term
-    for i in range(3):
-        contact.addGlobalParameter(f"rho_min_{i}", burial_ro_min[i])
-        contact.addGlobalParameter(f"rho_max_{i}", burial_ro_max[i])
-    for i in range(3):
-        contact.addEnergyTerm(f"-0.5*isCb*k_contact*burial_gamma_ij(resName, {i})*\
-                                    (tanh(burial_kappa*(rho-rho_min_{i}))+\
-                                    tanh(burial_kappa*(rho_max_{i}-rho)))", CustomGBForce.SingleParticle)
+    if burialPartOn:
+        # burial term
+        for i in range(3):
+            contact.addGlobalParameter(f"rho_min_{i}", burial_ro_min[i])
+            contact.addGlobalParameter(f"rho_max_{i}", burial_ro_max[i])
+        for i in range(3):
+            contact.addEnergyTerm(f"-0.5*isCb*k_contact*burial_gamma_ij(resName, {i})*\
+                                        (tanh(burial_kappa*(rho-rho_min_{i}))+\
+                                        tanh(burial_kappa*(rho_max_{i}-rho)))", CustomGBForce.SingleParticle)
 
     print("Number of atom: ", oa.natoms, "Number of residue: ", len(cb_fixed))
     # print(len(none_cb_fixed), len(cb_fixed))
@@ -595,6 +595,189 @@ def get_neighbor_res_type(res_pre, res_post):
     r1 = res_type_map_HP[res_pre]
     r2 = res_type_map_HP[res_pre]
     return int(table[r1][r2])
+
+
+def hybrid_contact_term(oa, k_contact=4.184, z_m=1.5, membrane_center=0, periodic=False, hybrid_gamma_file="hybrid_contact_gamma.dat"):
+    k_contact *= oa.k_awsem
+    # combine direct, burial, mediated.
+    # default membrane thickness 1.5 nm
+
+    r_min = .45
+    r_max = .65
+    r_minII = .65
+    r_maxII = .95
+    eta = 50  # eta actually has unit of nm^-1.
+    eta_sigma = 7.0
+    rho_0 = 2.6
+    min_sequence_separation = 10  # means j-i > 9
+    # min_sequence_separation_mem = 10
+    nwell = 2
+    eta_switching = 10
+
+    # read in seq data.
+    seq = oa.seq
+    # read in gamma info
+    burial_kappa = 4.0
+    burial_ro_min = [0.0, 3.0, 6.0]
+    burial_ro_max = [3.0, 6.0, 9.0]
+
+    contact = CustomGBForce()
+    gamma = -np.loadtxt(hybrid_gamma_file)
+    c = 0
+    nwell = 2
+    gamma_ijm = np.zeros((nwell, 20, 20))
+    water_gamma_ijm = np.zeros((nwell, 20, 20))
+    protein_gamma_ijm = np.zeros((nwell, 20, 20))
+    burial_gamma_ij = np.zeros((20, 3))
+    membrane_burial_gamma_ij = np.zeros((20, 3))
+    for ii in range(2):
+        for jj in range(3):
+            for i in range(20):
+                for j in range(i, 20):
+                    if jj == 0:
+                        gamma_ijm[ii][i][j] = gamma[c]
+                        gamma_ijm[ii][j][i] = gamma[c]
+                    if jj == 1:
+                        protein_gamma_ijm[ii][i][j] = gamma[c]
+                        protein_gamma_ijm[ii][j][i] = gamma[c]
+                    if jj == 2:
+                        water_gamma_ijm[ii][i][j] = gamma[c]
+                        water_gamma_ijm[ii][j][i] = gamma[c]
+                    c += 1
+    for ii in range(2):
+        for i in range(3):
+            for j in range(20):
+                if ii == 0:
+                    burial_gamma_ij[j][i] = gamma[c]
+                if ii == 1:
+                    membrane_burial_gamma_ij[j][i] = gamma[c]
+                c += 1
+
+    # residue interaction table (step(abs(resId1-resId2)-min_sequence_separation))
+    for m in range(2):
+        res_table = np.zeros((nwell, oa.nres, oa.nres))
+        for i in range(oa.nres):
+            for j in range(oa.nres):
+                resId1 = i
+                chain1 = inWhichChain(resId1, oa.chain_ends)
+                resId2 = j
+                chain2 = inWhichChain(resId2, oa.chain_ends)
+                if abs(resId1-resId2)-min_sequence_separation >= 0 or chain1 != chain2:
+                    res_table[m][i][j] = 1
+                else:
+                    res_table[m][i][j] = 0
+
+
+    contact.addTabulatedFunction("gamma_ijm", Discrete3DFunction(nwell, 20, 20, gamma_ijm.T.flatten()))
+    contact.addTabulatedFunction("water_gamma_ijm", Discrete3DFunction(nwell, 20, 20, water_gamma_ijm.T.flatten()))
+    contact.addTabulatedFunction("protein_gamma_ijm", Discrete3DFunction(nwell, 20, 20, protein_gamma_ijm.T.flatten()))
+    contact.addTabulatedFunction("burial_gamma_ij", Discrete2DFunction(20, 3, burial_gamma_ij.T.flatten()))
+    contact.addTabulatedFunction("membrane_burial_gamma_ij", Discrete2DFunction(20, 3, membrane_burial_gamma_ij.T.flatten()))
+    contact.addTabulatedFunction("res_table", Discrete3DFunction(nwell, oa.nres, oa.nres, res_table.T.flatten()))
+
+    contact.addPerParticleParameter("resName")
+    contact.addPerParticleParameter("resId")
+    contact.addPerParticleParameter("isCb")
+    contact.addGlobalParameter("k_contact", k_contact)
+    contact.addGlobalParameter("eta", eta)
+    contact.addGlobalParameter("eta_sigma", eta_sigma)
+    contact.addGlobalParameter("rho_0", rho_0)
+    contact.addGlobalParameter("min_sequence_separation", min_sequence_separation)
+    contact.addGlobalParameter("rmin", r_min)
+    contact.addGlobalParameter("rmax", r_max)
+    contact.addGlobalParameter("rminII", r_minII)
+    contact.addGlobalParameter("rmaxII", r_maxII)
+    contact.addGlobalParameter("burial_kappa", burial_kappa)
+
+    contact.addComputedValue("rho", "isCb1*isCb2*step(abs(resId1-resId2)-2)*0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))", CustomGBForce.ParticlePair)
+
+    # if z_dependent:
+    #     contact.addComputedValue("isInMembrane", f"step({z_m}-abs(z))", CustomGBForce.SingleParticle)
+    # else:
+    #     contact.addComputedValue("isInMembrane", "0", CustomGBForce.SingleParticle)
+
+
+    # contact.addComputedValue("isInMembrane", "1", CustomGBForce.SingleParticle)
+    # replace cb with ca for GLY
+    cb_fixed = [x if x > 0 else y for x,y in zip(oa.cb,oa.ca)]
+    none_cb_fixed = [i for i in range(oa.natoms) if i not in cb_fixed]
+    # print(oa.natoms, len(oa.resi), oa.resi, seq)
+    for i in range(oa.natoms):
+        contact.addParticle([gamma_se_map_1_letter[seq[oa.resi[i]]], oa.resi[i], int(i in cb_fixed)])
+
+    # print(f"0.5*tanh({eta_switching}*(z+{z_m}))+0.5*tanh({eta_switching}*({z_m}-z))")
+    contact.addComputedValue("alphaMembrane", f"0.5*tanh({eta_switching}*((z-{membrane_center})+{z_m}))+0.5*tanh({eta_switching}*({z_m}-(z-{membrane_center})))", CustomGBForce.SingleParticle)
+    # contact.addComputedValue("alphaMembrane", f"z", CustomGBForce.SingleParticle)
+    # contact.addComputedValue("isInMembrane", f"z", CustomGBForce.SingleParticle)
+    # contact.addComputedValue("isInMembrane", f"step({z_m}-abs(z))", CustomGBForce.SingleParticle)
+
+    # mediated and direct term (write separately may lead to bug)
+    contact.addEnergyTerm("isCb1*isCb2*((1-alphaMembrane1*alphaMembrane2)*water_part+alphaMembrane1*alphaMembrane2*membrane_part);\
+                            water_part=-res_table(0, resId1, resId2)*k_contact*\
+                            (gamma_ijm(0, resName1, resName2)*theta+thetaII*(sigma_water*water_gamma_ijm(0, resName1, resName2)+\
+                            sigma_protein*protein_gamma_ijm(0, resName1, resName2)));\
+                            membrane_part=-res_table(1, resId1, resId2)*k_contact*\
+                            (gamma_ijm(1, resName1, resName2)*theta+thetaII*(sigma_water*water_gamma_ijm(1, resName1, resName2)+\
+                            sigma_protein*protein_gamma_ijm(1, resName1, resName2)));\
+                            sigma_protein=1-sigma_water;\
+                            theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)));\
+                            thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
+                            sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
+                            CustomGBForce.ParticlePair)
+    # # mediated term
+    # contact.addEnergyTerm("isCb1*isCb2*((1-alphaMembrane1*alphaMembrane2)*water_part+alphaMembrane1*alphaMembrane2*membrane_part);\
+    #                         water_part=-res_table(0, resId1, resId2)*k_contact*thetaII*\
+    #                         (sigma_water*water_gamma_ijm(0, resName1, resName2)+\
+    #                         sigma_protein*protein_gamma_ijm(0, resName1, resName2));\
+    #                         membrane_part=-res_table(1, resId1, resId2)*k_contact*thetaII*\
+    #                         (sigma_water*water_gamma_ijm(1, resName1, resName2)+\
+    #                         sigma_protein*protein_gamma_ijm(1, resName1, resName2));\
+    #                         sigma_protein=1-sigma_water;\
+    #                         thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
+    #                         sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
+    #                         CustomGBForce.ParticlePair)
+    # # direct term
+    # contact.addEnergyTerm("isCb1*isCb2*((1-alphaMembrane1*alphaMembrane2)*water_part+alphaMembrane1*alphaMembrane2*membrane_part);\
+    #                         water_part=-res_table(0, resId1, resId2)*k_contact*\
+    #                         gamma_ijm(0, resName1, resName2)*theta;\
+    #                         membrane_part=-res_table(1, resId1, resId2)*k_contact*\
+    #                         gamma_ijm(1, resName1, resName2)*theta;\
+    #                         theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))",
+    #                         CustomGBForce.ParticlePair)
+
+
+    # burial term
+    for i in range(3):
+        contact.addGlobalParameter(f"rho_min_{i}", burial_ro_min[i])
+        contact.addGlobalParameter(f"rho_max_{i}", burial_ro_max[i])
+    for i in range(3):
+        contact.addEnergyTerm(f"-0.5*isCb*k_contact*(1 - alphaMembrane)*burial_gamma_ij(resName, {i})*\
+                                    (tanh(burial_kappa*(rho-rho_min_{i}))+\
+                                    tanh(burial_kappa*(rho_max_{i}-rho)))", CustomGBForce.SingleParticle)
+        contact.addEnergyTerm(f"-0.5*isCb*k_contact*alphaMembrane*membrane_burial_gamma_ij(resName, {i})*\
+                                    (tanh(burial_kappa*(rho-rho_min_{i}))+\
+                                    tanh(burial_kappa*(rho_max_{i}-rho)))", CustomGBForce.SingleParticle)
+
+    print("Number of atom: ", oa.natoms, "Number of residue: ", len(cb_fixed))
+    # print(len(none_cb_fixed), len(cb_fixed))
+    # for e1 in none_cb_fixed:
+    #     for e2 in none_cb_fixed:
+    #         if e1 > e2:
+    #             continue
+    #         contact.addExclusion(e1, e2)
+    # for e1 in none_cb_fixed:
+    #     for e2 in cb_fixed:
+    #         contact.addExclusion(e1, e2)
+
+    # contact.setCutoffDistance(1.1)
+    if periodic:
+        contact.setNonbondedMethod(contact.CutoffPeriodic)
+    else:
+        contact.setNonbondedMethod(contact.CutoffNonPeriodic)
+    print("Contact cutoff ", contact.getCutoffDistance())
+    print("NonbondedMethod: ", contact.getNonbondedMethod())
+    contact.setForceGroup(18)
+    return contact
 
 '''
 # for debug purpose

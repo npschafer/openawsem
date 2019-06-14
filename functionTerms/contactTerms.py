@@ -237,14 +237,14 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
 
     print("Number of atom: ", oa.natoms, "Number of residue: ", len(cb_fixed))
     # print(len(none_cb_fixed), len(cb_fixed))
-    # for e1 in none_cb_fixed:
-    #     for e2 in none_cb_fixed:
-    #         if e1 > e2:
-    #             continue
-    #         contact.addExclusion(e1, e2)
-    # for e1 in none_cb_fixed:
-    #     for e2 in cb_fixed:
-    #         contact.addExclusion(e1, e2)
+    for e1 in none_cb_fixed:
+        for e2 in none_cb_fixed:
+            if e1 > e2:
+                continue
+            contact.addExclusion(e1, e2)
+    for e1 in none_cb_fixed:
+        for e2 in cb_fixed:
+            contact.addExclusion(e1, e2)
 
     # contact.setCutoffDistance(1.1)
     if periodic:
@@ -760,14 +760,14 @@ def hybrid_contact_term(oa, k_contact=4.184, z_m=1.5, membrane_center=0, periodi
 
     print("Number of atom: ", oa.natoms, "Number of residue: ", len(cb_fixed))
     # print(len(none_cb_fixed), len(cb_fixed))
-    # for e1 in none_cb_fixed:
-    #     for e2 in none_cb_fixed:
-    #         if e1 > e2:
-    #             continue
-    #         contact.addExclusion(e1, e2)
-    # for e1 in none_cb_fixed:
-    #     for e2 in cb_fixed:
-    #         contact.addExclusion(e1, e2)
+    for e1 in none_cb_fixed:
+        for e2 in none_cb_fixed:
+            if e1 > e2:
+                continue
+            contact.addExclusion(e1, e2)
+    for e1 in none_cb_fixed:
+        for e2 in cb_fixed:
+            contact.addExclusion(e1, e2)
 
     # contact.setCutoffDistance(1.1)
     if periodic:

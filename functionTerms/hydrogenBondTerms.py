@@ -9,14 +9,15 @@ se_map_1_letter = {'A': 0,  'P': 1,  'K': 2,  'N': 3,  'R': 4,
                    'S': 15, 'T': 16, 'Y': 17, 'V': 18, 'W': 19}
 
 def isChainStart(residueId, chain_starts, n=2):
+    # return true if residue is near chain starts.
     atBegin = False
-
     for i in range(n):
         if (residueId-i) in chain_starts:
             atBegin = True
     return atBegin
 
 def isChainEnd(residueId, chain_ends, n=2):
+    # return true if residue is near chain ends.
     atEnd = False
     for i in range(n):
         if (residueId+i) in chain_ends:
@@ -466,14 +467,85 @@ def pap_term_2(oa, k_pap=4.184):
             pap.addAcceptor(ca[i], ca[i+4], -1, [i])
         if not isChainEnd(i, oa.chain_ends, n=4):
             # pap.addDonor(ca[i], ca[i+4], -1, [i])
-            if oa.n[i] != -1:
+            if oa.n[i] != -1 and oa.n[i+4] != -1:
                 pap.addDonor(oa.n[i], oa.n[i+4], -1, [i])
 
     pap.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
     pap.setCutoffDistance(1.0)
-    #print(count)
+    # print(count)
     pap.setForceGroup(26)
     return pap
+
+def get_helical_f(oneLetterCode, inMembrane=False):
+    if inMembrane:
+        table = {"A": 0.79, "R": 0.62, "N": 0.49, "D": 0.44, "C": 0.76, "Q": 0.61, "E": 0.57, "G": 0.57, "H": 0.63, "I": 0.81,
+            "L": 0.81, "K": 0.56, "M": 0.80, "F": 0.76, "P": 0.44, "S": 0.6, "T": 0.67, "W": 0.74, "Y": 0.71, "V": 0.79}
+    else:
+        table = {"A": 0.77, "R": 0.68, "N": 0.07, "D": 0.15, "C": 0.23, "Q": 0.33, "E": 0.27, "G": 0.0, "H": 0.06, "I": 0.23,
+            "L": 0.62, "K": 0.65, "M": 0.5, "F": 0.41, "P": 0.4, "S": 0.35, "T": 0.11, "W": 0.45, "Y": 0.17, "V": 0.14}
+    return table[oneLetterCode]
+
+def helical_term(oa, k_helical=4.184, inMembrane=False):
+    # without density dependency.
+    # without z dependency for now.
+    k_helical *= oa.k_awsem
+    sigma_NO = 0.068
+    sigma_HO = 0.076
+    r_ON = 0.298
+    r_OH = 0.206
+
+    theta_ij = f"exp(-(r_Oi_Nip4-{r_ON})^2/(2*{sigma_NO}^2)-(r_Oi_Hip4-{r_OH})^2/(2*{sigma_HO}^2))"
+    helical = CustomCompoundBondForce(3, f"-{k_helical}*(fa_i+fa_ip4)*{theta_ij};\
+                                        r_Oi_Nip4=distance(p1,p2);r_Oi_Hip4=distance(p1,p3);")
+    helical.addPerBondParameter("fa_i")
+    helical.addPerBondParameter("fa_ip4")
+    for i in range(oa.nres):
+        # if not isChainEnd(i, oa.chain_ends, n=4) and oa.res_type[i+4] == "IPR":
+        #     print(oa.o[i], oa.n[i+4], oa.h[i+4])
+        if not isChainEnd(i, oa.chain_ends, n=4) and oa.res_type[i+4] != "IPR":
+            fa_i = get_helical_f(oa.seq[i], inMembrane=inMembrane)
+            fa_ip4 = get_helical_f(oa.seq[i+4], inMembrane=inMembrane)
+            helical.addBond([oa.o[i], oa.n[i+4], oa.h[i+4]], [fa_i, fa_ip4])
+
+    helical.setForceGroup(28)
+    return helical
+
+def z_dependent_helical_term(oa, k_helical=4.184, membrane_center=0*angstrom, z_m=1.5):
+    # without density dependency.
+    # without z dependency for now.
+    k_helical *= oa.k_awsem
+    sigma_NO = 0.068
+    sigma_HO = 0.076
+    r_ON = 0.298
+    r_OH = 0.206
+    eta_switching = 10
+    membrane_center = membrane_center.value_in_unit(nanometer)   # convert to nm
+
+    alpha_membrane = f"0.5*tanh({eta_switching}*((z4-{membrane_center})+{z_m}))+0.5*tanh({eta_switching}*({z_m}-(z4-{membrane_center})))"
+    theta_ij = f"exp(-(r_Oi_Nip4-{r_ON})^2/(2*{sigma_NO}^2)-(r_Oi_Hip4-{r_OH})^2/(2*{sigma_HO}^2))"
+    helical = CustomCompoundBondForce(4, f"-{k_helical}*{theta_ij}*((fa_i+fa_ip4)*(alpha_membrane)+(fa_i_membrane+fa_ip4_membrane)*(alpha_membrane));\
+                                        alpha_membrane={alpha_membrane};\
+                                        r_Oi_Nip4=distance(p1,p2);r_Oi_Hip4=distance(p1,p3);")
+    helical.addPerBondParameter("fa_i")
+    helical.addPerBondParameter("fa_ip4")
+    helical.addPerBondParameter("fa_i_membrane")
+    helical.addPerBondParameter("fa_ip4_membrane")
+    for i in range(oa.nres):
+        # if not isChainEnd(i, oa.chain_ends, n=4) and oa.res_type[i+4] == "IPR":
+        #     print(oa.o[i], oa.n[i+4], oa.h[i+4])
+        if not isChainEnd(i, oa.chain_ends, n=4) and oa.res_type[i+4] != "IPR":
+            fa_i = get_helical_f(oa.seq[i], inMembrane=False)
+            fa_ip4 = get_helical_f(oa.seq[i+4], inMembrane=False)
+            fa_i_membrane = get_helical_f(oa.seq[i], inMembrane=True)
+            fa_ip4_membrane = get_helical_f(oa.seq[i+4], inMembrane=True)
+            helical.addBond([oa.o[i], oa.n[i+4], oa.h[i+4], oa.ca[i]], [fa_i, fa_ip4, fa_i_membrane, fa_ip4_membrane])
+
+    helical.setForceGroup(28)
+    return helical
+
+
+
+
 
 def beta_term_1_old(oa, k_beta=4.184, debug=False):
 

@@ -106,12 +106,15 @@ def qc_value(oa, reference_pdb_file, min_seq_sep=10, a=0.2):
     return qvalue
 
 def partial_q_value(oa, reference_pdb_file, min_seq_sep=3, a=0.1, startResidueIndex=0, endResidueIndex=-1, forceGroup=4):
+    print(f"Including partial q value computation, start residue index: {startResidueIndex}, end residue index: {endResidueIndex}")
     # create bonds
     # structure_interactions = oa.read_reference_structure_for_q_calculation(reference_pdb_file, reference_chain_name, min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep, contact_threshold=contact_threshold)
     structure_interactions = read_reference_structure_for_qc_calculation(oa, reference_pdb_file, min_seq_sep=min_seq_sep, a=a, startResidueIndex=startResidueIndex, endResidueIndex=endResidueIndex)
     # print(len(structure_interactions))
     # print(structure_interactions)
-
+    if len(structure_interactions) == 0:
+        print("No atom found, Please check your startResidueIndex and endResidueIndex.")
+        exit()
     normalization = len(structure_interactions)
     qvalue = CustomBondForce(f"(1/{normalization})*gamma_ij*exp(-(r-r_ijN)^2/(2*sigma_ij^2))")
     qvalue.addPerBondParameter("gamma_ij")

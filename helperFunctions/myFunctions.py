@@ -581,6 +581,21 @@ def get_seq_dic(fasta="../crystal_structure.fasta"):
         seq_dic[chain] = seq
     return seq_dic
 
+
+def seq_length_from_pdb(fileLocation, chains):
+    data = []
+    parser = PDBParser()
+    structure = parser.get_structure('X', fileLocation)
+    chain_start_residue_index = 1
+    for c in structure.get_chains():
+        chain_name = c.get_id()
+        if chain_name in chains:
+            seq_len = len(list(c.get_residues()))
+            print(chain_name, seq_len)
+            data.append((chain_name, chain_start_residue_index, seq_len))
+            chain_start_residue_index += seq_len
+    return data
+
 def get_frame(file="movie.pdb", to="last_frame.pdb", frame=-1):
     # default is last frame.
     # if you want first, please set frame to 1.

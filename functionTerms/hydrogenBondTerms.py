@@ -325,12 +325,14 @@ def beta_term_3(oa, k_beta=4.184):
 
     return beta_3
 
-def pap_term_1(oa, k_pap=4.184):
+
+def pap_term_1(oa, k_pap=4.184, dis_i_to_i4=0):
     print("pap_1 term ON")
+    # dis_i_to_i4 should be in nm
     nres, ca = oa.nres, oa.ca
     # r0 = 2.0 # nm
-    r0 = 0.8 # nm
-    eta_pap = 70 # nm^-1
+    r0 = 0.8  # nm
+    eta_pap = 70  # nm^-1
     gamma_aph = 1.0
     gamma_ap = 0.4
     gamma_p = 0.4
@@ -346,9 +348,12 @@ def pap_term_1(oa, k_pap=4.184):
             gamma_1[i][j] = get_pap_gamma_APH(i, j, chain1, chain2, gamma_aph)
             gamma_2[i][j] = get_pap_gamma_AP(i, j, chain1, chain2, gamma_ap)
 
+    constraint_i_and_i4 = f"0.5*(1+tanh({eta_pap}*(distance(a1,a2)-{dis_i_to_i4})))"
+
     pap_function = f"-{k_pap}*(gamma_1(donor_idx,acceptor_idx)+gamma_2(donor_idx,acceptor_idx))\
                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a1,d1))))\
-                        *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))"
+                        *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))\
+                        *{constraint_i_and_i4}"
 
     # pap_function = f"-{k_pap}*(gamma_1(donor_idx,acceptor_idx))\
     #                     *0.5*(1+tanh({eta_pap}*({r0}-distance(a1,d1))))\
@@ -379,67 +384,12 @@ def pap_term_1(oa, k_pap=4.184):
     pap.setForceGroup(26)
     return pap
 
-
-# def pap_term_1(oa, k_pap=4.184):
-#     print("pap_1 term ON")
-#     nres, ca = oa.nres, oa.ca
-#     # r0 = 2.0 # nm
-#     r0 = 0.8 # nm
-#     eta_pap = 70 # nm^-1
-#     gamma_aph = 1.0
-#     gamma_ap = 0.4
-#     gamma_p = 0.4
-
-#     gamma_1 = np.zeros((nres, nres))
-#     gamma_2 = np.zeros((nres, nres))
-#     for i in range(nres):
-#         for j in range(nres):
-#             resId1 = i
-#             chain1 = inWhichChain(resId1, oa.chain_ends)
-#             resId2 = j
-#             chain2 = inWhichChain(resId2, oa.chain_ends)
-#             gamma_1[i][j] = get_pap_gamma_APH(i, j, chain1, chain2, gamma_aph)
-#             gamma_2[i][j] = get_pap_gamma_AP(i, j, chain1, chain2, gamma_ap)
-
-#     pap_function = f"-{k_pap}*(gamma_1(donor_idx,acceptor_idx)+gamma_2(donor_idx,acceptor_idx))\
-#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a1,d1))))\
-#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))"
-
-#     pap_function = f"-{k_pap}*(gamma_1(donor_idx,acceptor_idx))\
-#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a1,d1))))\
-#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))"
-
-#     pap_function = f"-{k_pap}*distance(a1,d1)"
-#     pap = CustomHbondForce(pap_function)
-#     pap.addPerDonorParameter("donor_idx")
-#     pap.addPerAcceptorParameter("acceptor_idx")
-#     pap.addTabulatedFunction("gamma_1", Discrete2DFunction(nres, nres, gamma_1.T.flatten()))
-#     pap.addTabulatedFunction("gamma_2", Discrete2DFunction(nres, nres, gamma_2.T.flatten()))
-#     # print(ca)
-#     # count = 0;
-#     i = 0
-#     # pap.addAcceptor(ca[0], ca[4], -1, [0])
-#     # pap.addAcceptor(ca[20], ca[8], -1, [4])
-#     # pap.addDonor(ca[20], ca[0], -1, [4])
-#     for i in range(nres):
-#         if not isChainEnd(i, oa.chain_ends, n=4):
-#             pap.addAcceptor(ca[i], ca[i+4], -1, [i])
-
-#         if i > 13 and not isChainStart(i, oa.chain_starts, n=4):
-#             pap.addDonor(ca[i], ca[i-4], -1, [i])
-
-#     pap.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
-#     pap.setCutoffDistance(1.0)
-#     # print(count)
-#     pap.setForceGroup(26)
-#     return pap
-
-def pap_term_2(oa, k_pap=4.184):
+def pap_term_2(oa, k_pap=4.184, dis_i_to_i4=0):
     print("pap_2 term ON")
     nres, ca = oa.nres, oa.ca
     # r0 = 2.0 # nm
-    r0 = 0.8 # nm
-    eta_pap = 70 # nm^-1
+    r0 = 0.8  # nm
+    eta_pap = 70  # nm^-1
     gamma_aph = 1.0
     gamma_ap = 0.4
     gamma_p = 0.4
@@ -453,9 +403,12 @@ def pap_term_2(oa, k_pap=4.184):
             chain2 = inWhichChain(resId2, oa.chain_ends)
             gamma_3[i][j] = get_pap_gamma_P(i, j, chain1, chain2, gamma_p)
 
+
+    constraint_i_and_i4 = f"0.5*(1+tanh({eta_pap}*(distance(a1,a2)-{dis_i_to_i4})))"
     pap_function = f"-{k_pap}*gamma_3(donor_idx,acceptor_idx)\
                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a1,d1))))\
-                        *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))"
+                        *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))\
+                        *{constraint_i_and_i4}"
     pap = CustomHbondForce(pap_function)
     pap.addPerDonorParameter("donor_idx")
     pap.addPerAcceptorParameter("acceptor_idx")
@@ -544,7 +497,114 @@ def z_dependent_helical_term(oa, k_helical=4.184, membrane_center=0*angstrom, z_
     return helical
 
 
+# def pap_term_1(oa, k_pap=4.184, dis_i_to_i4=-1):
+#     print("pap_1 term ON")
+#     nres, ca = oa.nres, oa.ca
+#     # r0 = 2.0 # nm
+#     r0 = 0.8 # nm
+#     eta_pap = 70 # nm^-1
+#     gamma_aph = 1.0
+#     gamma_ap = 0.4
+#     gamma_p = 0.4
 
+#     gamma_1 = np.zeros((nres, nres))
+#     gamma_2 = np.zeros((nres, nres))
+#     for i in range(nres):
+#         for j in range(nres):
+#             resId1 = i
+#             chain1 = inWhichChain(resId1, oa.chain_ends)
+#             resId2 = j
+#             chain2 = inWhichChain(resId2, oa.chain_ends)
+#             gamma_1[i][j] = get_pap_gamma_APH(i, j, chain1, chain2, gamma_aph)
+#             gamma_2[i][j] = get_pap_gamma_AP(i, j, chain1, chain2, gamma_ap)
+
+#     pap_function = f"-{k_pap}*(gamma_1(donor_idx,acceptor_idx)+gamma_2(donor_idx,acceptor_idx))\
+#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a1,d1))))\
+#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))"
+
+#     # pap_function = f"-{k_pap}*(gamma_1(donor_idx,acceptor_idx))\
+#     #                     *0.5*(1+tanh({eta_pap}*({r0}-distance(a1,d1))))\
+#     #                     *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))"
+
+#     # pap_function = f"-{k_pap}*distance(a1,d1)"
+#     pap = CustomHbondForce(pap_function)
+#     pap.addPerDonorParameter("donor_idx")
+#     pap.addPerAcceptorParameter("acceptor_idx")
+#     pap.addTabulatedFunction("gamma_1", Discrete2DFunction(nres, nres, gamma_1.T.flatten()))
+#     pap.addTabulatedFunction("gamma_2", Discrete2DFunction(nres, nres, gamma_2.T.flatten()))
+#     # print(ca)
+#     # count = 0;
+#     i = 0
+#     # pap.addAcceptor(ca[0], ca[4], -1, [0])
+#     # pap.addAcceptor(ca[20], ca[8], -1, [4])
+#     # pap.addDonor(ca[20], ca[0], -1, [4])
+#     for i in range(nres):
+#         if not isChainEnd(i, oa.chain_ends, n=4):
+#             pap.addAcceptor(ca[i], ca[i+4], -1, [i])
+
+#         if i > 13 and not isChainStart(i, oa.chain_starts, n=4):
+#             pap.addDonor(oa.n[i], oa.n[i-4], -1, [i])
+
+#     pap.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
+#     pap.setCutoffDistance(1.0)
+#     # print(count)
+#     pap.setForceGroup(26)
+#     return pap
+
+
+# def pap_term_1(oa, k_pap=4.184):
+#     print("pap_1 term ON")
+#     nres, ca = oa.nres, oa.ca
+#     # r0 = 2.0 # nm
+#     r0 = 0.8 # nm
+#     eta_pap = 70 # nm^-1
+#     gamma_aph = 1.0
+#     gamma_ap = 0.4
+#     gamma_p = 0.4
+
+#     gamma_1 = np.zeros((nres, nres))
+#     gamma_2 = np.zeros((nres, nres))
+#     for i in range(nres):
+#         for j in range(nres):
+#             resId1 = i
+#             chain1 = inWhichChain(resId1, oa.chain_ends)
+#             resId2 = j
+#             chain2 = inWhichChain(resId2, oa.chain_ends)
+#             gamma_1[i][j] = get_pap_gamma_APH(i, j, chain1, chain2, gamma_aph)
+#             gamma_2[i][j] = get_pap_gamma_AP(i, j, chain1, chain2, gamma_ap)
+
+#     pap_function = f"-{k_pap}*(gamma_1(donor_idx,acceptor_idx)+gamma_2(donor_idx,acceptor_idx))\
+#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a1,d1))))\
+#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))"
+
+#     pap_function = f"-{k_pap}*(gamma_1(donor_idx,acceptor_idx))\
+#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a1,d1))))\
+#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))"
+
+#     pap_function = f"-{k_pap}*distance(a1,d1)"
+#     pap = CustomHbondForce(pap_function)
+#     pap.addPerDonorParameter("donor_idx")
+#     pap.addPerAcceptorParameter("acceptor_idx")
+#     pap.addTabulatedFunction("gamma_1", Discrete2DFunction(nres, nres, gamma_1.T.flatten()))
+#     pap.addTabulatedFunction("gamma_2", Discrete2DFunction(nres, nres, gamma_2.T.flatten()))
+#     # print(ca)
+#     # count = 0;
+#     i = 0
+#     # pap.addAcceptor(ca[0], ca[4], -1, [0])
+#     # pap.addAcceptor(ca[20], ca[8], -1, [4])
+#     # pap.addDonor(ca[20], ca[0], -1, [4])
+#     for i in range(nres):
+#         if not isChainEnd(i, oa.chain_ends, n=4):
+#             pap.addAcceptor(ca[i], ca[i+4], -1, [i])
+
+#         if i > 13 and not isChainStart(i, oa.chain_starts, n=4):
+#             pap.addDonor(ca[i], ca[i-4], -1, [i])
+
+#     pap.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
+#     pap.setCutoffDistance(1.0)
+#     # print(count)
+#     pap.setForceGroup(26)
+#     return pap
 
 
 def beta_term_1_old(oa, k_beta=4.184, debug=False):
@@ -793,9 +853,64 @@ def pap_term_old(oa, k_pap=4.184):
                 pap.addBond([ca[i], ca[j], ca[i+4], ca[j+4]], [gamma_p])
                 #count = count + 1;
 
-    #print(count)
+    # print(count)
     pap.setForceGroup(26)
     return pap
+
+# def pap_term_1(oa, k_pap=4.184):
+#     print("pap_1 term ON")
+#     nres, ca = oa.nres, oa.ca
+#     # r0 = 2.0 # nm
+#     r0 = 0.8 # nm
+#     eta_pap = 70 # nm^-1
+#     gamma_aph = 1.0
+#     gamma_ap = 0.4
+#     gamma_p = 0.4
+
+#     gamma_1 = np.zeros((nres, nres))
+#     gamma_2 = np.zeros((nres, nres))
+#     for i in range(nres):
+#         for j in range(nres):
+#             resId1 = i
+#             chain1 = inWhichChain(resId1, oa.chain_ends)
+#             resId2 = j
+#             chain2 = inWhichChain(resId2, oa.chain_ends)
+#             gamma_1[i][j] = get_pap_gamma_APH(i, j, chain1, chain2, gamma_aph)
+#             gamma_2[i][j] = get_pap_gamma_AP(i, j, chain1, chain2, gamma_ap)
+
+#     pap_function = f"-{k_pap}*(gamma_1(donor_idx,acceptor_idx)+gamma_2(donor_idx,acceptor_idx))\
+#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a1,d1))))\
+#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))"
+
+#     pap_function = f"-{k_pap}*(gamma_1(donor_idx,acceptor_idx))\
+#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a1,d1))))\
+#                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))"
+
+#     pap_function = f"-{k_pap}*distance(a1,d1)"
+#     pap = CustomHbondForce(pap_function)
+#     pap.addPerDonorParameter("donor_idx")
+#     pap.addPerAcceptorParameter("acceptor_idx")
+#     pap.addTabulatedFunction("gamma_1", Discrete2DFunction(nres, nres, gamma_1.T.flatten()))
+#     pap.addTabulatedFunction("gamma_2", Discrete2DFunction(nres, nres, gamma_2.T.flatten()))
+#     # print(ca)
+#     # count = 0;
+#     i = 0
+#     # pap.addAcceptor(ca[0], ca[4], -1, [0])
+#     # pap.addAcceptor(ca[20], ca[8], -1, [4])
+#     # pap.addDonor(ca[20], ca[0], -1, [4])
+#     for i in range(nres):
+#         if not isChainEnd(i, oa.chain_ends, n=4):
+#             pap.addAcceptor(ca[i], ca[i+4], -1, [i])
+
+#         if i > 13 and not isChainStart(i, oa.chain_starts, n=4):
+#             pap.addDonor(ca[i], ca[i-4], -1, [i])
+
+#     pap.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
+#     pap.setCutoffDistance(1.0)
+#     # print(count)
+#     pap.setForceGroup(26)
+#     return pap
+
 
 '''
 # old way of getting lambda

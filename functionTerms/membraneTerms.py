@@ -3,7 +3,7 @@ from simtk.openmm import *
 from simtk.unit import *
 import numpy as np
 
-def membrane_term(oa, k_membrane=4.184, k_m=2, z_m=1.5, membrane_center=0*angstrom):
+def membrane_term(oa, k_membrane=4.184, k_m=20, z_m=1.5, membrane_center=0*angstrom):
     # k_m in units of nm^-1, z_m in units of nm.
     # z_m is half of membrane thickness
     # membrane_center is the membrane center plane shifted in z axis.

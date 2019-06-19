@@ -96,9 +96,11 @@ do(f"python {__location__}/helperFunctions/stride2ssweight.py > ssweight")
 protein_length = helperFunctions.myFunctions.getFromTerminal("wc ssweight").split()[0]
 print(f"protein: {name}, length: {protein_length}")
 
+seq_data = helperFunctions.myFunctions.seq_length_from_pdb("crystal_structure-cleaned.pdb", chain)
 with open("single_frags.mem", "w") as out:
     out.write("[Target]\nquery\n\n[Memories]\n")
-    out.write(f"{name}.gro 1 1 {protein_length} 20\n")
+    for (chain_name, chain_start_residue_index, seq_length) in seq_data:
+        out.write(f"{name}.gro {chain_start_residue_index} {chain_start_residue_index} {seq_length} 20\n")
 
 # below used for zim and zimPosition file
 if args.membrane or args.hybrid:

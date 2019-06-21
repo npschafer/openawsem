@@ -55,6 +55,7 @@ def membrane_preassigned_term(oa, k_membrane=4.184, k_m=20, z_m=1.5, membrane_ce
 def single_helix_orientation_bias_term(oa, k=1*kilocalorie_per_mole, membrane_center=0*angstrom, z_m=1.5, k_m=20, atomGroup=-1):
     membrane_center = membrane_center.value_in_unit(nanometer)   # convert to nm
     k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
+    k_single_helix_orientation_bias = oa.k_awsem * k
     nres, ca = oa.nres, oa.ca
     if atomGroup == -1:
         group = list(range(nres))
@@ -63,12 +64,13 @@ def single_helix_orientation_bias_term(oa, k=1*kilocalorie_per_mole, membrane_ce
     n = len(group)
     theta_z1 = f"(0.5*tanh({k_m}*((z1-{membrane_center})+{z_m}))+0.5*tanh({k_m}*({z_m}-(z1-{membrane_center}))))"
     theta_z2 = f"(0.5*tanh({k_m}*((z2-{membrane_center})+{z_m}))+0.5*tanh({k_m}*({z_m}-(z2-{membrane_center}))))"
-    v_orientation = CustomCompoundBondForce(2, f"{k}/normalization*((x1-x2)^2+(y1-y2)^2)*{theta_z1}*{theta_z2}")
+    normalization = n * n
+    v_orientation = CustomCompoundBondForce(2, f"k_single_helix_orientation_bias/{normalization}*((x1-x2)^2+(y1-y2)^2)*{theta_z1}*{theta_z2}")
     # rcm_square = CustomCompoundBondForce(2, "1/normalization*(x1*x2)")
-
+    membrane.addGlobalParameter("k_single_helix_orientation_bias", k_single_helix_orientation_bias)
     # rg_square = CustomBondForce("1/normalization*(sqrt(x^2+y^2)-rcm))^2")
     # rg = CustomBondForce("1")
-    v_orientation.addGlobalParameter("normalization", n*n)
+    # v_orientation.addGlobalParameter("normalization", n*n)
     for i in group:
         for j in group:
             if j <= i:

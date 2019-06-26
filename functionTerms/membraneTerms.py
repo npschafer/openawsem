@@ -29,18 +29,21 @@ def membrane_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, membrane_center
 
 
 
-def membrane_preassigned_term(oa, k_membrane=4.184, k_m=20, z_m=1.5, membrane_center=0):
+def membrane_preassigned_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, membrane_center=0*angstrom, zimFile="zimPosition"):
     # k_m in units of nm^-1, z_m in units of nm.
     # z_m is half of membrane thickness
     # membrane_center is the membrane center plane shifted in z axis.
     # add membrane forces
     # 1 Kcal = 4.184 kJ strength by overall scaling
-    k_membrane *= oa.k_awsem
+    membrane_center = membrane_center.value_in_unit(nanometer)   # convert to nm
+    k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
+    k_membrane = k * oa.k_awsem
+
     membrane = CustomExternalForce(f"{k_membrane}*\
             (0.5*tanh({k_m}*((z-{membrane_center})+{z_m}))+0.5*tanh({k_m}*({z_m}-(z-{membrane_center}))))*zim-0.5")
     membrane.addPerParticleParameter("zim")
     # zim = np.loadtxt("zim")
-    zimPosition = np.loadtxt("zimPosition")
+    zimPosition = np.loadtxt(zimFile)
     zim = [-1 if z == 2 else 1 for z in zimPosition]
     # print(zim)
     cb_fixed = [x if x > 0 else y for x,y in zip(oa.cb,oa.ca)]

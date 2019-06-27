@@ -15,7 +15,7 @@ class Atom:
     x = 0.0
     y = 0.0
     z = 0.0
-    
+
     def __init__(self, atom_no, atom_name, res_no, res_name, x, y, z, desc=''):
         self.atom_no = atom_no
         self.atom_name = atom_name
@@ -46,28 +46,28 @@ class Atom:
     	f.write( ("     "+str(self.atom_no))[-5:] )
     	f.write( ("        "+str(round(self.x/10,3)))[-8:] )
     	f.write( ("        "+str(round(self.y/10,3)))[-8:] )
-    	f.write( ("        "+str(round(self.z/10,3)))[-8:] )  
+    	f.write( ("        "+str(round(self.z/10,3)))[-8:] )
     	f.write("\n")
 
 def Pdb2Gro(pdb_file, gro_file, ch_name):
 	from Bio.PDB.PDBParser import PDBParser
 
-	p = PDBParser(PERMISSIVE=1)
+	p = PDBParser(PERMISSIVE=1, QUIET=True)
 
-	pdb_id = pdb_file 
+	pdb_id = pdb_file
 	if pdb_file[-4:].lower()!=".pdb":
 		pdb_file = pdb_file + ".pdb"
 	if pdb_id[-4:].lower()==".pdb":
 		pdb_id = pdb_id[:-4]
-	
+
 	output = gro_file
-	
+
 	s = p.get_structure(pdb_id, pdb_file)
 	chains = s[0].get_list()
-	
+
 	if ch_name=='':
 		ch_name = 'A'
-	
+
 	for chain in chains:
 		if chain.get_id()==ch_name:
 			ires = 0
@@ -85,10 +85,10 @@ def Pdb2Gro(pdb_file, gro_file, ch_name):
 						iatom = iatom + 1
 						atom_name = atom.get_name()
 						xyz = atom.get_coord()
-						
+
 #						residue_no = atom.get_full_id()[3][1]
 						atoms.append( Atom(iatom, atom_name, residue_no, res_name, xyz) )
-	
+
 	out = open(output, 'w')
 	out.write(" Structure-Based gro file\n")
 	out.write( ("            "+str(len(atoms)))[-12:] )

@@ -36,7 +36,7 @@ def read_reference_structure_for_q_calculation_3(oa, pdb_file, min_seq_sep=3, ma
                         structure_interactions.append(structure_interaction)
     return structure_interactions
 
-def read_reference_structure_for_qc_calculation(oa, pdb_file, min_seq_sep=3, a=0.1, startResidueIndex=0, endResidueIndex=-1):
+def read_reference_structure_for_qc_calculation(oa, pdb_file, min_seq_sep=3, a=0.1, startResidueIndex=0, endResidueIndex=-1, residueIndexGroup=None):
     # default use all chains in pdb file.
     # this change use the canonical Qw/Qo calculation for reference Q
     # for Qw calculation is 0; Qo is 1;
@@ -45,12 +45,19 @@ def read_reference_structure_for_qc_calculation(oa, pdb_file, min_seq_sep=3, a=0
     structure = parser.get_structure('X', pdb_file)
     if endResidueIndex == -1:
         endResidueIndex = len(list(structure.get_residues()))
+    if residueIndexGroup is None:
+        # residueIndexGroup is used for non-continuous residues that used for Q computation.
+        residueIndexGroup = list(range(len(list(structure.get_residues()))))
     for i, res_i in enumerate(structure.get_residues()):
         chain_i = res_i.get_parent().id
         if i < startResidueIndex:
             continue
+        if i not in residueIndexGroup:
+            continue
         for j, res_j in enumerate(structure.get_residues()):
             if j > endResidueIndex:
+                continue
+            if j not in residueIndexGroup:
                 continue
             chain_j = res_j.get_parent().id
             if j-i >= min_seq_sep and chain_i == chain_j:
@@ -105,11 +112,11 @@ def qc_value(oa, reference_pdb_file, min_seq_sep=10, a=0.2):
     qvalue.setForceGroup(3)
     return qvalue
 
-def partial_q_value(oa, reference_pdb_file, min_seq_sep=3, a=0.1, startResidueIndex=0, endResidueIndex=-1, forceGroup=4):
-    print(f"Including partial q value computation, start residue index: {startResidueIndex}, end residue index: {endResidueIndex}")
+def partial_q_value(oa, reference_pdb_file, min_seq_sep=3, a=0.1, startResidueIndex=0, endResidueIndex=-1, residueIndexGroup=None, forceGroup=4):
+    print(f"Including partial q value computation, start residue index: {startResidueIndex}, end residue index: {endResidueIndex}, residueIndexGroup: {residueIndexGroup}")
     # create bonds
     # structure_interactions = oa.read_reference_structure_for_q_calculation(reference_pdb_file, reference_chain_name, min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep, contact_threshold=contact_threshold)
-    structure_interactions = read_reference_structure_for_qc_calculation(oa, reference_pdb_file, min_seq_sep=min_seq_sep, a=a, startResidueIndex=startResidueIndex, endResidueIndex=endResidueIndex)
+    structure_interactions = read_reference_structure_for_qc_calculation(oa, reference_pdb_file, min_seq_sep=min_seq_sep, a=a, startResidueIndex=startResidueIndex, endResidueIndex=endResidueIndex, residueIndexGroup=residueIndexGroup)
     # print(len(structure_interactions))
     # print(structure_interactions)
     if len(structure_interactions) == 0:

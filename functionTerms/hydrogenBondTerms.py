@@ -465,7 +465,6 @@ def helical_term(oa, k_helical=4.184, inMembrane=False):
 
 def z_dependent_helical_term(oa, k_helical=4.184, membrane_center=0*angstrom, z_m=1.5):
     # without density dependency.
-    # without z dependency for now.
     k_helical *= oa.k_awsem
     sigma_NO = 0.068
     sigma_HO = 0.076

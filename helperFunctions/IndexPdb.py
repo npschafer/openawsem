@@ -18,6 +18,7 @@
 from Bio import pairwise2
 from Bio.PDB.PDBParser import PDBParser
 from Bio import SeqIO
+import os
 
 def three2one(prot):
     """ translate a protein sequence from 3 to 1 letter code"""
@@ -74,8 +75,8 @@ def getPdbSequance(pdb_file, chain_id):
     pdb_indexes = []
     pdb_sequance = []
 
-    p = PDBParser(PERMISSIVE=1)
-    s = p.get_structure("",  pdb_file)
+    p = PDBParser(PERMISSIVE=1, QUIET=True)
+    s = p.get_structure("", pdb_file)
     pdb_id = pdb_file[0:-4]
 
     if not s[0].has_id(chain_id):
@@ -142,6 +143,28 @@ def writeIndexFile(fasta_file, pdb_file, index_file, chain_id):
 
     fasta_seq = getFastaSequance(fasta_file)
     pdb_seq, pdb_indexes = getPdbSequance(pdb_file, chain_id)
+
+    # Do a check on pdb_indexes, if some residue is in wrong order. for example in PDB 5cxv, line 3383
+    # ATOM   2762  OH  TYR A1160     -21.292 -22.385  85.747  1.00 48.40           O
+    # ATOM   2763  N   PHE A 355     -16.598 -16.950  80.885  1.00 51.66           N
+    # The residue 1160 is ahead of residue 355.
+    preIndex = pdb_indexes[0]
+    needRenumber = False
+    for i in pdb_indexes[1:]:
+        if i < preIndex:
+            print(preIndex, i, "need reorder")
+            needRenumber = True
+            break
+        preIndex = i
+
+    if needRenumber:
+        pdbLocation = os.path.dirname(pdb_file)
+        os.system(f"mv {pdb_file} {pdb_file}.bak")
+        try:
+            os.system(f"pdb_reres {pdb_file}.bak > {pdb_file}")
+            pdb_seq, pdb_indexes = getPdbSequance(pdb_file, chain_id)
+        except:
+            print("You might want to install pdb-tools by doing something like 'pip install pdb-tools'")
 
     print()
     print(fasta_seq)

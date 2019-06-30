@@ -326,9 +326,9 @@ def beta_term_3(oa, k_beta=4.184):
     return beta_3
 
 
-def pap_term_1(oa, k_pap=4.184, dis_i_to_i4=0):
+def pap_term_1(oa, k_pap=4.184, dis_i_to_i4=1.2):
     print("pap_1 term ON")
-    # dis_i_to_i4 should be in nm
+    # dis_i_to_i4 should be in nm, it disfavor hydrogen bond when ca_i and ca_i+4 are 1.2 nm apart away.
     nres, ca = oa.nres, oa.ca
     # r0 = 2.0 # nm
     r0 = 0.8  # nm
@@ -384,7 +384,7 @@ def pap_term_1(oa, k_pap=4.184, dis_i_to_i4=0):
     pap.setForceGroup(26)
     return pap
 
-def pap_term_2(oa, k_pap=4.184, dis_i_to_i4=0):
+def pap_term_2(oa, k_pap=4.184, dis_i_to_i4=1.2):
     print("pap_2 term ON")
     nres, ca = oa.nres, oa.ca
     # r0 = 2.0 # nm

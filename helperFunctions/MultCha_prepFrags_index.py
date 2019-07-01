@@ -201,7 +201,7 @@ for record in SeqIO.parse(handle, "fasta"):
         if not os.path.isfile(pdbDir + pdbID.upper() + ".pdb"):
             failed_pdb[pdbID] = 1
             print(":::Cannot build PDB for PDB ID, failed to download:" + pdbID.upper())
-            os.system(f"echo '{pdbID}' > {openawsem_location}/notExistPDBsList")
+            os.system(f"echo '{pdbID}' >> {openawsem_location}/notExistPDBsList")
 
         # exit()
 

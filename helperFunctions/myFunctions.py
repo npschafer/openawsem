@@ -536,6 +536,7 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
         try:
             fixer.addMissingAtoms()
         except:
+            print("Unable to add missing atoms")
             continue
         fixer.addMissingHydrogens(7.0)
         PDBFile.writeFile(fixer.topology, fixer.positions, open(os.path.join(toFolder, pdbFile), 'w'))

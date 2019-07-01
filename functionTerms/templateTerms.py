@@ -89,7 +89,7 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_file_list_file="./frag.mem", npy
 
     if os.path.isfile(frag_table_file) and UseSavedFragTable:
         print(f"Reading Fragment table from {frag_table_file}.")
-        frag_table, interaction_list, interaction_pair_to_bond_index = np.load(frag_table_file)
+        frag_table, interaction_list, interaction_pair_to_bond_index = np.load(frag_table_file, allow_pickle=True)
         print(f"Fragment table loaded, number of bonds: {len(interaction_list)}")
         frag_file_list = []
     else:

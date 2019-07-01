@@ -4,9 +4,9 @@ import argparse
 import sys
 from time import sleep
 import subprocess
-import myPersonalFunctions
+# import myPersonalFunctions
 import fileinput
-from small_script.myFunctions import *
+# from small_script.myFunctions import *
 
 # parser = argparse.ArgumentParser(
 #     description="The goal of this python3 code is to automatically create \
@@ -22,6 +22,31 @@ from small_script.myFunctions import *
 
 
 # args = parser.parse_args()
+
+def read_hydrophobicity_scale(seq, isNew=False, tableLocation="~/openMM"):
+    seq_dataFrame = pd.DataFrame({"oneLetterCode":list(seq)})
+    # HFscales = pd.read_table("~/opt/small_script/Whole_residue_HFscales.txt")
+    HFscales = pd.read_csv(f"{tableLocation}/helperFunctions/Whole_residue_HFscales.txt", sep="\t")
+    if not isNew:
+        # Octanol Scale
+        # new and old difference is at HIS.
+        code = {"GLY" : "G", "ALA" : "A", "LEU" : "L", "ILE" : "I",
+                "ARG+" : "R", "LYS+" : "K", "MET" : "M", "CYS" : "C",
+                "TYR" : "Y", "THR" : "T", "PRO" : "P", "SER" : "S",
+                "TRP" : "W", "ASP-" : "D", "GLU-" : "E", "ASN" : "N",
+                "GLN" : "Q", "PHE" : "F", "HIS+" : "H", "VAL" : "V",
+                "M3L" : "K", "MSE" : "M", "CAS" : "C"}
+    else:
+        code = {"GLY" : "G", "ALA" : "A", "LEU" : "L", "ILE" : "I",
+                "ARG+" : "R", "LYS+" : "K", "MET" : "M", "CYS" : "C",
+                "TYR" : "Y", "THR" : "T", "PRO" : "P", "SER" : "S",
+                "TRP" : "W", "ASP-" : "D", "GLU-" : "E", "ASN" : "N",
+                "GLN" : "Q", "PHE" : "F", "HIS0" : "H", "VAL" : "V",
+                "M3L" : "K", "MSE" : "M", "CAS" : "C"}
+    HFscales_with_oneLetterCode = HFscales.assign(oneLetterCode=HFscales.AA.str.upper().map(code)).dropna()
+    data = seq_dataFrame.merge(HFscales_with_oneLetterCode, on="oneLetterCode", how="left")
+    return data
+
 
 seq = ""
 with open("crystal_structure.fasta", "r") as f:

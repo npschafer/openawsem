@@ -451,7 +451,7 @@ def er_term(oa, k_er=4.184, er_min_seq_sep=2, er_cutoff=99.0, er_well_width=0.1)
                 gamma_ij = 1.0
                 r_ijN = in_rnativeCBCB[i][j]/10.0*nanometers;
                 structure_interactions_er.append([oa.cb[i], oa.cb[j], [gamma_ij, r_ijN, sigma_ij]])
-                #print([i, j, oa.res_type[oa.resi[i]], oa.res_type[oa.resi[j]],oa.cb[i], oa.cb[j], [gamma_ij, r_ijN, sigma_ij]])
+                # print([i, j, oa.res_type[oa.resi[i]], oa.res_type[oa.resi[j]],oa.cb[i], oa.cb[j], [gamma_ij, r_ijN, sigma_ij]])
     # create bonds
     for structure_interaction_er in structure_interactions_er:
         er.addBond(*structure_interaction_er)

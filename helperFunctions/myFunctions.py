@@ -33,36 +33,6 @@ from simtk.openmm.app import PDBFile
 def getFromTerminal(CMD):
     return subprocess.Popen(CMD,stdout=subprocess.PIPE,shell=True).communicate()[0].decode()
 
-def read_hydrophobicity_scale(seq, isNew=False):
-    seq_dataFrame = pd.DataFrame({"oneLetterCode":list(seq)})
-    HFscales = pd.read_csv("~/opt/small_script/Whole_residue_HFscales.txt", sep="\t")
-    if not isNew:
-        # Octanol Scale
-        # new and old difference is at HIS.
-        code = {"GLY" : "G", "ALA" : "A", "LEU" : "L", "ILE" : "I",
-                "ARG+" : "R", "LYS+" : "K", "MET" : "M", "CYS" : "C",
-                "TYR" : "Y", "THR" : "T", "PRO" : "P", "SER" : "S",
-                "TRP" : "W", "ASP-" : "D", "GLU-" : "E", "ASN" : "N",
-                "GLN" : "Q", "PHE" : "F", "HIS+" : "H", "VAL" : "V",
-                "M3L" : "K", "MSE" : "M", "CAS" : "C"}
-    else:
-        code = {"GLY" : "G", "ALA" : "A", "LEU" : "L", "ILE" : "I",
-                "ARG+" : "R", "LYS+" : "K", "MET" : "M", "CYS" : "C",
-                "TYR" : "Y", "THR" : "T", "PRO" : "P", "SER" : "S",
-                "TRP" : "W", "ASP-" : "D", "GLU-" : "E", "ASN" : "N",
-                "GLN" : "Q", "PHE" : "F", "HIS0" : "H", "VAL" : "V",
-                "M3L" : "K", "MSE" : "M", "CAS" : "C"}
-    HFscales_with_oneLetterCode = HFscales.assign(oneLetterCode=HFscales.AA.str.upper().map(code)).dropna()
-    data = seq_dataFrame.merge(HFscales_with_oneLetterCode, on="oneLetterCode", how="left")
-    return data
-
-def create_zim(seqFile, isNew=False):
-    a = seqFile
-    seq = getFromTerminal("cat " + a).rstrip()
-    data = read_hydrophobicity_scale(seq, isNew=isNew)
-    z = data["DGwoct"].values
-    np.savetxt("zim", z, fmt="%.2f")
-
 
 def expand_grid(dictionary):
     return pd.DataFrame([row for row in product(*dictionary.values())],
@@ -703,3 +673,43 @@ def pdbToFasta(pdb, pdbLocation, fastaFile, chains="A"):
             out.write("\n".join(textwrap.wrap(chain_seq, width=80))+"\n")
             seq += chain_seq
     return seq
+
+
+def read_hydrophobicity_scale(seq, tableLocation, isNew=False):
+    seq_dataFrame = pd.DataFrame({"oneLetterCode":list(seq)})
+    # HFscales = pd.read_table("~/opt/small_script/Whole_residue_HFscales.txt")
+    # print(f"reading hydrophobicity scale table from {tableLocation}/Whole_residue_HFscales.txt")
+    HFscales = pd.read_csv(f"{tableLocation}/Whole_residue_HFscales.txt", sep="\t")
+    if not isNew:
+        # Octanol Scale
+        # new and old difference is at HIS.
+        code = {"GLY" : "G", "ALA" : "A", "LEU" : "L", "ILE" : "I",
+                "ARG+" : "R", "LYS+" : "K", "MET" : "M", "CYS" : "C",
+                "TYR" : "Y", "THR" : "T", "PRO" : "P", "SER" : "S",
+                "TRP" : "W", "ASP-" : "D", "GLU-" : "E", "ASN" : "N",
+                "GLN" : "Q", "PHE" : "F", "HIS+" : "H", "VAL" : "V",
+                "M3L" : "K", "MSE" : "M", "CAS" : "C"}
+    else:
+        code = {"GLY" : "G", "ALA" : "A", "LEU" : "L", "ILE" : "I",
+                "ARG+" : "R", "LYS+" : "K", "MET" : "M", "CYS" : "C",
+                "TYR" : "Y", "THR" : "T", "PRO" : "P", "SER" : "S",
+                "TRP" : "W", "ASP-" : "D", "GLU-" : "E", "ASN" : "N",
+                "GLN" : "Q", "PHE" : "F", "HIS0" : "H", "VAL" : "V",
+                "M3L" : "K", "MSE" : "M", "CAS" : "C"}
+    HFscales_with_oneLetterCode = HFscales.assign(oneLetterCode=HFscales.AA.str.upper().map(code)).dropna()
+    data = seq_dataFrame.merge(HFscales_with_oneLetterCode, on="oneLetterCode", how="left")
+    return data
+
+def create_zim(fastaFile, tableLocation, isNew=False):
+    # print("creating zim file for membrane potential")
+    seq = ""
+    with open(fastaFile, "r") as f:
+        for line in f:
+            if line[0] == ">":
+                pass
+            else:
+                # print(line)
+                seq += line.strip()
+    data = read_hydrophobicity_scale(seq, tableLocation, isNew=isNew)
+    z = data["DGwoct"].values
+    np.savetxt("zim", z, fmt="%.2f")

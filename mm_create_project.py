@@ -106,7 +106,7 @@ with open("single_frags.mem", "w") as out:
 if args.membrane or args.hybrid:
     do("grep -E 'CB|CA  GLY' crystal_structure-cleaned.pdb > cbs.data")
     do("""awk '{if($9>15) print "1"; else if($9<-15) print "3"; else print "2"}'  cbs.data  > zimPosition""")
-    do(f"python3 {__location__}/helperFunctions/create_zim.py")
+    helperFunctions.myFunctions.create_zim(f"crystal_structure.fasta", tableLocation=f"{__location__}/helperFunctions")
 
 
 if args.frag:
@@ -123,3 +123,5 @@ if args.frag:
 do(f"cp {__location__}/mm_run.py .")
 do(f"cp {__location__}/mm_analysis.py .")
 do(f"cp {__location__}/params.py .")
+
+print(f"{args.protein} project folder created")

@@ -25,7 +25,7 @@ def inWhichChain(residueId, chain_ends):
             return chain_table[i]
 
 
-def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0*angstrom, k_relative_mem=1.0, periodic=False, parametersLocation=".", burialPartOn=True):
+def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0*angstrom, k_relative_mem=1.0, periodic=False, parametersLocation=".", burialPartOn=True, withExclusion=True):
     k_contact *= oa.k_awsem
     # combine direct, burial, mediated.
     # default membrane thickness 1.5 nm
@@ -238,14 +238,17 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
 
     print("Number of atom: ", oa.natoms, "Number of residue: ", len(cb_fixed))
     # print(len(none_cb_fixed), len(cb_fixed))
-    for e1 in none_cb_fixed:
-        for e2 in none_cb_fixed:
-            if e1 > e2:
-                continue
-            contact.addExclusion(e1, e2)
-    for e1 in none_cb_fixed:
-        for e2 in cb_fixed:
-            contact.addExclusion(e1, e2)
+
+    # withExclusion won't affect the result. But may speed up the calculation with CPU but slows down for GPU.
+    if withExclusion:
+        for e1 in none_cb_fixed:
+            for e2 in none_cb_fixed:
+                if e1 > e2:
+                    continue
+                contact.addExclusion(e1, e2)
+        for e1 in none_cb_fixed:
+            for e2 in cb_fixed:
+                contact.addExclusion(e1, e2)
 
     # contact.setCutoffDistance(1.1)
     if periodic:

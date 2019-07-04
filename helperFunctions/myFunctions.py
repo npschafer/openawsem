@@ -661,7 +661,7 @@ def pdbToFasta(pdb, pdbLocation, fastaFile, chains="A"):
     seq = ""
     with open(fastaFile, "w") as out:
         for chain in chains:
-            out.write(f">{pdb.upper()}:{chain.upper()}|PDBID|CHAIN|SEQUENCE\n")
+            out.write(f">{pdb.upper()}:{chain.upper()}\n")
             c = m[chain]
             chain_seq = ""
             for residue in c:

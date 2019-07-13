@@ -1,0 +1,2 @@
+mm_analysis.py setup/2xov_complete/2xov_complete -t /Users/weilu/Research/server/jul_2019/example/run0/movie.dcd --subMode 3 -f forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t /Users/weilu/Research/server/jul_2019/example/run0/movie.dcd --subMode 3 -f forces_setup_2xov_complete.py

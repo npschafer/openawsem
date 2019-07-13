@@ -1,0 +1,90 @@
+mm_analysis.py setup/2xov_complete/2xov_complete -t test/2xov/native.pdb -o native.dat
+mm_analysis.py setup/2xov_complete/2xov_complete -t test/2xov/movie.dcd
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov/movie.dcd --subMode 3
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov/movie.dcd --subMode 3 -o with_helical
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov/movie.dcd --subMode 3 -o with_helical
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov/movie.dcd --subMode 3 -o with_helical
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov/movie.dcd --subMode 3 -o with_helical
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov/movie.dcd --subMode 3 -o with_helical
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov/movie.dcd --subMode 3 -o with_helical
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov/movie.dcd --subMode 3 -o with_helical
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov/movie.dcd --subMode 3 -o with_helical
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_2/movie.dcd --subMode 3 -o with_helical
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_long/movie.dcd --subMode 3 -o with_helical
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_long/movie.dcd --subMode 3 -o with_helical_z_dependent
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_long/movie.dcd --subMode 3 -o with_helical_z_dependent
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_long/movie.dcd --subMode 3 -o with_helical_z_dependent
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_long/movie.dcd --subMode 3 -o with_helical_z_dependent
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun15/movie.dcd --subMode 3 -o with_helical_z_dependent
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun15/movie.dcd --subMode 3 -o with_helical_z_dependent
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun15/movie.dcd --subMode 3 -o with_helical_z_dependent
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun15/movie.dcd --subMode 3 -o with_helical_z_dependent_with_q_part
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun15/movie.dcd --subMode 3 -o with_helical_z_dependent_with_q_part
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun15/movie.dcd --subMode 3 -o with_helical_z_dependent_with_q_part
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun15/movie.dcd --subMode 3 -o with_helical_z_dependent_with_q_part
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun15/movie.dcd --subMode 3 -o with_helical_z_dependent_with_q_part
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun15/movie.dcd --subMode 3 -o with_helical_z_dependent_correct
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun15/movie.dcd --subMode 3 -o with_helical_z_dependent_correct
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun15/movie.dcd --subMode 3 -o with_helical_z_dependent_correct
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_long/movie.dcd --subMode 3 -o with_helical_z_dependent_correct
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun15_long/movie.dcd --subMode 3 -o with_helical_z_dependent_correct
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun15_long/movie.dcd --subMode 3 -o frag_memory
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun17_long/movie.dcd --subMode 3
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun17_long/movie.dcd --subMode 3 -o single_memory
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun17_long/movie.dcd --subMode 3 -o single_memory
+mm_analysis.py setup/2xov_complete/2xov_complete -t complete_2xov_jun17_long/movie.dcd --subMode 3 -o new_frag
+mm_analysis.py 2xov_complete/2xov_complete -t /Users/weilu/Research/server/jun_2019/simluation_complete_2xov/first/0/movie.dcd --subMode 3
+mm_analysis.py 2xov_complete\2xov_complete -t D:\jun_2019\simluation_complete_2xov\first\1\movie.dcd --subMode 3
+mm_analysis.py 2xov_complete\2xov_complete -t D:\jun_2019\simluation_complete_2xov\first\1\movie.dcd --subMode 3
+mm_analysis.py 2xov_complete\2xov_complete -t D:\jun_2019\simluation_complete_2xov\first\1\movie.dcd --subMode 3
+mm_analysis.py setup/2xov_complete/2xov_complete -t /Users/weilu/Research/server/jun_2019/simluation_complete_2xov/test/0/movie.dcd --subMode 3
+mm_analysis.py setup\2xov_complete\2xov_complete -t D:\jun_2019\simluation_complete_2xov\pulled_first\0\movie.dcd --subMode 3
+mm_analysis.py setup\2xov_complete\2xov_complete -t D:\jun_2019\simluation_complete_2xov\pulled_first\0\movie.dcd --subMode 3
+mm_analysis.py setup/2xov_complete/2xov_complete -t pulled_first/0/movie.dcd --subMode 3
+mm_analysis.py setup\2xov_complete\2xov_complete -t D:\jun_2019\simluation_complete_2xov\native\movie.dcd --subMode 3
+mm_analysis.py setup\2xov_complete\2xov_complete -t native\movie.dcd --subMode 3 -f forces_setup_2xov.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t native/movie.dcd -f forces_setup_2xov.py --subMode 3
+mm_analysis.py setup\2xov_complete\2xov_complete -t D:\jun_2019\simluation_complete_2xov\native_2\movie.dcd --subMode 3 -f forces_setup_2xov.py
+mm_analysis.py setup\2xov_complete\2xov_complete -t D:\jun_2019\simluation_complete_2xov\pulled_first\1_with_beta\movie.dcd --subMode 3 -f forces_setup_2xov.py
+mm_analysis.py setup\2xov_complete\2xov_complete -t D:\jun_2019\simluation_complete_2xov\first_2xov\0\movie.dcd --subMode 3 -f forces_setup_2xov.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\second_small_batch\2xov_complete\0\movie.dcd --subMode 3 -f forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\second_small_batch\2xov_complete\1\movie.dcd --subMode 3 -f forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\second_small_batch\2xov_complete\2\movie.dcd --subMode 3 -f forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\second_small_batch\2xov_complete\0_no_contact\movie.dcd --subMode -1 -f forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\second_small_batch\2xov_complete\1_no_contact\movie.dcd --subMode -1 -f forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t second_small_batch/2xov_complete/1/movie.dcd --subMode 3 -f energy_forces/forces_setup_2xov_complete.py -o frag_ha_energy_1.dat
+mm_analysis.py setup/2xov_complete/2xov_complete -t second_small_batch/2xov_complete/2/movie.dcd --subMode 3 -f energy_forces/forces_setup_2xov_complete.py -o frag_ha_energy_2.dat
+mm_analysis.py setup/2xov_complete/2xov_complete -t second_small_batch/2xov_complete/0/movie.dcd --subMode 3 -f energy_forces/forces_setup_2xov_complete.py -o frag_ha_energy_0.dat
+mm_analysis.py setup/2xov_complete/2xov_complete -t second_small_batch/2xov_complete/0_longer/movie.dcd --subMode 3 -f energy_forces/forces_setup_2xov_complete.py
+./mm_analysis.py setup/2xov_complete/2xov_complete -t second_small_batch/2xov_complete/0_longer/movie.dcd --subMode 3 -f energy_forces/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t second_small_batch/2xov_complete/0/movie.dcd --subMode 3 -f forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t second_small_batch/2xov_complete/2/movie.dcd --subMode 3 -f forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t second_small_batch/2xov_complete/1/movie.dcd --subMode 3 -f forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\second_small_batch\2xov_complete\0_middle\movie.dcd --subMode 3 -f energy_forces/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\second_small_batch\2xov_complete\1_middle\movie.dcd --subMode 3 -f energy_forces/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\second_small_batch\2xov_complete\2_middle\movie.dcd --subMode 3 -f energy_forces/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\fourth\2xov_complete\0\movie.dcd --subMode 3 -f energy_forces/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\fourth\2xov_complete\1\movie.dcd --subMode 3 -f energy_forces/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\fourth\2xov_complete\2\movie.dcd --subMode 3 -f energy_forces/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\fourth\2xov_complete\3\movie.dcd --subMode 3 -f energy_forces/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\fourth\2xov_complete\4\movie.dcd --subMode 3 -f energy_forces/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\native\2xov_complete\movie.dcd --subMode 3 -f energy_forces/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t native/2xov_complete/movie.dcd --subMode 3 -f energy_forces/forces_setup_2xov_complete.py -o er.dat
+mm_analysis.py setup/2xov_complete/2xov_complete -t native/2xov_complete/movie.dcd --subMode 3 -f energy_forces/forces_setup_2xov_complete.py -o er.dat
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\fifth_with_er\2xov_complete\0\movie.dcd --subMode 3 -f energy_forces_with_er/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\fifth_with_er\2xov_complete\1\movie.dcd --subMode 3 -f energy_forces_with_er/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\sixth_with_er\2xov_complete\0\movie.dcd --subMode 3 -f energy_forces_with_er/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\sixth_with_er\2xov_complete\1\movie.dcd --subMode 3 -f energy_forces_with_er/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\sixth_with_er\2xov_complete\2\movie.dcd --subMode 3 -f energy_forces_with_er/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\sixth_with_er\2xov_complete\3\movie.dcd --subMode 3 -f energy_forces_with_er/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jun_2019\simluation_hybrid\sixth_with_er\2xov_complete\4\movie.dcd --subMode 3 -f energy_forces_with_er/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jul_2019\group1_hybrid_simulation\native_short\2xov_complete\0\movie.dcd --subMode 3 -f energy_forces_with_er/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jul_2019\group1_hybrid_simulation\first\2xov_complete\0\movie.dcd --subMode 3 -f energy_forces_with_er/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jul_2019\group1_hybrid_simulation\second_withoutExclusion\2xov_complete\0\movie.dcd --subMode 3 -f energy_forces_with_er_withoutExclusion/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jul_2019\group1_hybrid_simulation\first\2xov_complete\1\movie.dcd --subMode 3 -f energy_forces_with_er/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jul_2019\group1_hybrid_simulation\second_withoutExclusion\2xov_complete\1\movie.dcd --subMode 3 -f energy_forces_with_er_withoutExclusion/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jul_2019\group1_hybrid_simulation\first\2xov_complete\2\movie.dcd --subMode 3 -f energy_forces_with_er/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jul_2019\group1_hybrid_simulation\second_withoutExclusion\2xov_complete\2\movie.dcd --subMode 3 -f energy_forces_with_er_withoutExclusion/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t D:\jul_2019\group1_hybrid_simulation\third_without_contact\2xov_complete\0\movie.dcd --subMode -10 -f energy_forces_with_er/forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t /Users/weilu/Research/server/jul_2019/example/run0/movie.dcd --subMode 3 -f forces_setup_2xov_complete.py
+mm_analysis.py setup/2xov_complete/2xov_complete -t /Users/weilu/Research/server/jul_2019/example/run0/movie.dcd --subMode 3 -f forces_setup_2xov_complete.py

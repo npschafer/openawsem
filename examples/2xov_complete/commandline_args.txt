@@ -1,0 +1,5 @@
+mm_run_with_pulling_start.py setup/2xov_complete/2xov_complete --to run0 -s 1e3 --tempStart 1000 --tempEnd 300 --reportFrequency 500 -ff
+mm_run_with_pulling_start.py setup/2xov_complete/2xov_complete --to run0 -s 1e3 --tempStart 1000 --tempEnd 300 --reportFrequency 500 -f forces_setup_2xov_complete.py --subMode 3
+mm_run_with_pulling_start.py setup/2xov_complete/2xov_complete --to run0 -s 1e3 --tempStart 1000 --tempEnd 300 --reportFrequency 500 -f forces_setup_2xov_complete.py --subMode 3
+mm_run_with_pulling_start.py setup/2xov_complete/2xov_complete --to run0 -s 1e3 --tempStart 1000 --tempEnd 300 --reportFrequency 500 -f forces_setup_2xov_complete.py --subMode 3
+mm_run_with_pulling_start.py setup/2xov_complete/2xov_complete --to run0 -s 1e3 --tempStart 1000 --tempEnd 300 --reportFrequency 500 -f forces_setup_2xov_complete.py --subMode 3

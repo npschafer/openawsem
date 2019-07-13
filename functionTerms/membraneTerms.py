@@ -9,7 +9,6 @@ def membrane_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, membrane_center
     # membrane_center is the membrane center plane shifted in z axis.
     # add membrane forces
     # 1 Kcal = 4.184 kJ strength by overall scaling
-
     membrane_center = membrane_center.value_in_unit(nanometer)   # convert to nm
     k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
     k_membrane = k * oa.k_awsem

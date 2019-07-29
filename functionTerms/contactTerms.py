@@ -26,13 +26,13 @@ def inWhichChain(residueId, chain_ends):
 
 
 def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0*angstrom, k_relative_mem=1.0, periodic=False, parametersLocation=".", burialPartOn=True, withExclusion=True):
-    if isinstance(k_contact, float):
+    if isinstance(k_contact, float) or isinstance(k_contact, int):
         k_contact = k_contact * oa.k_awsem   # just for backward comptable
     elif isinstance(k_contact, Quantity):
         k_contact = k_contact.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
         k_contact = k_contact * oa.k_awsem
     else:
-        print(f"Unknown input, {k_contact}")
+        print(f"Unknown input, {k_contact}, {type(k_contact)}")
     # combine direct, burial, mediated.
     # default membrane thickness 1.5 nm
     membrane_center = membrane_center.value_in_unit(nanometer)   # convert to nm

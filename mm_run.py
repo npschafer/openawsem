@@ -132,8 +132,8 @@ spec.loader.exec_module(forces)
 oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml")  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 myForces = forces.set_up_forces(oa, submode=args.subMode, contactParameterLocation=parametersLocation)
 # print(forces)
-oa.addForces(myForces)
-
+# oa.addForces(myForces)
+oa.addForcesWithDefaultForceGroup(myForces)
 
 if args.fromCheckPoint:
     integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, 5*femtoseconds)
@@ -213,4 +213,4 @@ simulation = None
 time.sleep(30)
 os.chdir(pwd)
 print(os.getcwd())
-os.system(f"python mm_analysis.py {args.protein} -t {os.path.join(toPath, 'movie.dcd')} --subMode {args.subMode} -f {args.forces}")
+os.system(f"{sys.executable} mm_analysis.py {args.protein} -t {os.path.join(toPath, 'movie.dcd')} --subMode {args.subMode} -f {args.forces}")

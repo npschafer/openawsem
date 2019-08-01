@@ -115,7 +115,7 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_file_list_file="./frag.mem", npy
                 target_res_id_i = frag["Res_id"].iloc[i] - fragment_start + target_start
                 target_res_id_j = frag["Res_id"].iloc[j] - fragment_start + target_start
                 seq_sep = res_id_j - res_id_i
-                if seq_sep >= max_seq_sep:
+                if seq_sep > max_seq_sep:
                     continue
                 if seq_sep < min_seq_sep:
                     continue

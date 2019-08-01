@@ -325,7 +325,10 @@ def getSeqFromCleanPdb(input_pdb_filename, chains='A', writeFastaFile=False):
                 chain_seq = ""
                 for residue in c:
                     residue_name = residue.get_resname()
-                    chain_seq += ThreeToOne[residue_name]
+                    try:
+                        chain_seq += ThreeToOne[residue_name]
+                    except:
+                        print(f"Unknown residue name: {residue_name}")
                 out.write("\n".join(textwrap.wrap(chain_seq, width=80))+"\n")
                 seq += chain_seq
     else:

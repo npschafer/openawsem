@@ -4,7 +4,7 @@ from simtk.unit import *
 import numpy as np
 from Bio.PDB.PDBParser import PDBParser
 
-def read_reference_structure_for_q_calculation_3(oa, pdb_file, min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.95*nanometers, Qflag=0, a=0.1):
+def read_reference_structure_for_q_calculation_3(oa, pdb_file, reference_chain_name="ALL", min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.95*nanometers, Qflag=0, a=0.1):
     # default use all chains in pdb file.
     # this change use the canonical Qw/Qo calculation for reference Q
     # for Qw calculation is 0; Qo is 1;
@@ -13,7 +13,7 @@ def read_reference_structure_for_q_calculation_3(oa, pdb_file, min_seq_sep=3, ma
     structure = parser.get_structure('X', pdb_file)
     model = structure[0]
     chain_start = 0
-    count = 0;
+    count = 0
     for chain in model.get_chains():
         chain_start += count
         count = 0
@@ -32,6 +32,8 @@ def read_reference_structure_for_q_calculation_3(oa, pdb_file, min_seq_sep=3, ma
                         gamma_ij = 1.0
                         i_index = oa.ca[i+chain_start]
                         j_index = oa.ca[j+chain_start]
+                        if reference_chain_name is not "ALL" and chain.id != reference_chain_name:
+                            continue
                         structure_interaction = [i_index, j_index, [gamma_ij, r_ijN, sigma_ij]]
                         structure_interactions.append(structure_interaction)
     return structure_interactions
@@ -73,12 +75,12 @@ def read_reference_structure_for_qc_calculation(oa, pdb_file, min_seq_sep=3, a=0
                     structure_interactions.append(structure_interaction)
     return structure_interactions
 
-def q_value(oa, reference_pdb_file, reference_chain_name='A', min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.95*nanometers):
+def q_value(oa, reference_pdb_file, reference_chain_name="ALL", min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.95*nanometers, forceGroup=1):
     ### Modified by Mingchen to compute canonical QW/QO
 
     # create bonds
     # structure_interactions = oa.read_reference_structure_for_q_calculation(reference_pdb_file, reference_chain_name, min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep, contact_threshold=contact_threshold)
-    structure_interactions = read_reference_structure_for_q_calculation_3(oa, reference_pdb_file,
+    structure_interactions = read_reference_structure_for_q_calculation_3(oa, reference_pdb_file, reference_chain_name=reference_chain_name,
         min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep, contact_threshold=contact_threshold, Qflag=0)
     # print(len(structure_interactions))
     # print(structure_interactions)
@@ -91,7 +93,7 @@ def q_value(oa, reference_pdb_file, reference_chain_name='A', min_seq_sep=3, max
 
     for structure_interaction in structure_interactions:
         qvalue.addBond(*structure_interaction)
-    qvalue.setForceGroup(1)
+    qvalue.setForceGroup(forceGroup)
     return qvalue
 
 

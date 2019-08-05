@@ -32,6 +32,7 @@ def set_up_forces(oa, computeQ=False, submode=0, contactParameterLocation=".", m
         beta_term_3(oa),
         pap_term_1(oa),
         pap_term_2(oa),
+        # er_term(oa),
         # membrane_term(oa, k=1*kilocalorie_per_mole, membrane_center=membrane_center),
         # fragment_memory_term(oa, frag_file_list_file="./frags.mem", npy_frag_table="./frags.npy", UseSavedFragTable=True),
         # fragment_memory_term(oa, frag_file_list_file="./single_frags.mem", npy_frag_table="./single_frags.npy", UseSavedFragTable=True),

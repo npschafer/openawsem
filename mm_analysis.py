@@ -39,7 +39,7 @@ parser.add_argument("-f", "--forces", default="forces_setup.py")
 parser.add_argument("--parameters", default=None)
 args = parser.parse_args()
 
-with open('analysis_cmd.txt', 'a') as f:
+with open('analysis_commandline_args.txt', 'a') as f:
     f.write(' '.join(sys.argv))
     f.write('\n')
 print(' '.join(sys.argv))
@@ -76,10 +76,6 @@ if simulation_platform == "CPU":
     print(f"{simulation_platform}: {platform.getPropertyDefaultValue('Threads')} threads")
 
 
-# print(args)
-with open('analysis_commandline_args.txt', 'a') as f:
-    f.write(' '.join(sys.argv))
-    f.write('\n')
 
 if chain == "-1":
     chain = getAllChains("crystal_structure.pdb")

@@ -304,15 +304,23 @@ def read_fasta(fastaFile):
                 data += line.strip("\n")
     return data
 
-
+def formatResidue_ThreeLetterCodeToOne(residue):
+    ThreeToOne = {'ALA':'A','ARG':'R','ASN':'N','ASP':'D','CYS':'C','GLU':'E','GLN':'Q','GLY':'G','HIS':'H',
+        'ILE':'I','LEU':'L','LYS':'K','MET':'M','PHE':'F','PRO':'P','SER':'S','THR':'T','TRP':'W',
+        'TYR':'Y','VAL':'V'}
+    residue_name = residue.get_resname()
+    try:
+        oneLetter = ThreeToOne[residue_name]
+    except:
+        print(f"Unknown residue: {residue.get_full_id()}, treat as ALA")
+        residue_name = "ALA"
+    return ThreeToOne[residue_name]
 
 def getSeqFromCleanPdb(input_pdb_filename, chains='A', writeFastaFile=False):
     cleaned_pdb_filename = input_pdb_filename.replace("openmmawsem.pdb", "cleaned.pdb")
     pdb = input_pdb_filename.replace("-openmmawsem.pdb", "")
     fastaFile = pdb + ".fasta"
-    ThreeToOne = {'ALA':'A','ARG':'R','ASN':'N','ASP':'D','CYS':'C','GLU':'E','GLN':'Q','GLY':'G','HIS':'H',
-        'ILE':'I','LEU':'L','LYS':'K','MET':'M','PHE':'F','PRO':'P','SER':'S','THR':'T','TRP':'W',
-        'TYR':'Y','VAL':'V'}
+
 
     s = PDBParser().get_structure("X", cleaned_pdb_filename)
     m = s[0] # model 0
@@ -324,11 +332,7 @@ def getSeqFromCleanPdb(input_pdb_filename, chains='A', writeFastaFile=False):
                 c = m[chain]
                 chain_seq = ""
                 for residue in c:
-                    residue_name = residue.get_resname()
-                    try:
-                        chain_seq += ThreeToOne[residue_name]
-                    except:
-                        print(f"Unknown residue name: {residue_name}")
+                    chain_seq += formatResidue_ThreeLetterCodeToOne(residue)
                 out.write("\n".join(textwrap.wrap(chain_seq, width=80))+"\n")
                 seq += chain_seq
     else:
@@ -336,8 +340,7 @@ def getSeqFromCleanPdb(input_pdb_filename, chains='A', writeFastaFile=False):
             c = m[chain]
             chain_seq = ""
             for residue in c:
-                residue_name = residue.get_resname()
-                chain_seq += ThreeToOne[residue_name]
+                chain_seq += formatResidue_ThreeLetterCodeToOne(residue)
             seq += chain_seq
     return seq
 
@@ -346,9 +349,6 @@ def getSeq(input_pdb_filename, chains='A', writeFastaFile=False, fromPdb=False, 
         cleaned_pdb_filename = input_pdb_filename.replace("openmmawsem.pdb", "cleaned.pdb")
         pdb = input_pdb_filename.replace("-openmmawsem.pdb", "")
         fastaFile = pdb + ".fasta"
-        ThreeToOne = {'ALA':'A','ARG':'R','ASN':'N','ASP':'D','CYS':'C','GLU':'E','GLN':'Q','GLY':'G','HIS':'H',
-            'ILE':'I','LEU':'L','LYS':'K','MET':'M','PHE':'F','PRO':'P','SER':'S','THR':'T','TRP':'W',
-            'TYR':'Y','VAL':'V'}
 
         s = PDBParser().get_structure("X", cleaned_pdb_filename)
         m = s[0] # model 0
@@ -360,8 +360,7 @@ def getSeq(input_pdb_filename, chains='A', writeFastaFile=False, fromPdb=False, 
                     c = m[chain]
                     chain_seq = ""
                     for residue in c:
-                        residue_name = residue.get_resname()
-                        chain_seq += ThreeToOne[residue_name]
+                        chain_seq += formatResidue_ThreeLetterCodeToOne(residue)
                     out.write("\n".join(textwrap.wrap(chain_seq, width=80))+"\n")
                     seq += chain_seq
         else:
@@ -369,8 +368,7 @@ def getSeq(input_pdb_filename, chains='A', writeFastaFile=False, fromPdb=False, 
                 c = m[chain]
                 chain_seq = ""
                 for residue in c:
-                    residue_name = residue.get_resname()
-                    chain_seq += ThreeToOne[residue_name]
+                    chain_seq += formatResidue_ThreeLetterCodeToOne(residue)
                 seq += chain_seq
     elif fromFasta:
         for line in f:

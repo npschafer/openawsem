@@ -30,10 +30,11 @@ def read_reference_structure_for_q_calculation_3(oa, pdb_file, reference_chain_n
                         if Qflag ==1 and r_ijN >= contact_threshold: continue
                         sigma_ij = a*(abs(i-j)**0.15)  # 0.1 nm = 1 A
                         gamma_ij = 1.0
-                        i_index = oa.ca[i+chain_start]
-                        j_index = oa.ca[j+chain_start]
+
                         if reference_chain_name is not "ALL" and chain.id != reference_chain_name:
                             continue
+                        i_index = oa.ca[i+chain_start]
+                        j_index = oa.ca[j+chain_start]
                         structure_interaction = [i_index, j_index, [gamma_ij, r_ijN, sigma_ij]]
                         structure_interactions.append(structure_interaction)
     return structure_interactions

@@ -70,7 +70,7 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_file_list_file="./frag.mem", npy
     r_array = np.arange(frag_table_rmin, frag_table_rmax, frag_table_dr)
     number_of_atoms = oa.natoms
     r_table_size = int((frag_table_rmax - frag_table_rmin)/frag_table_dr)  # 500 here.
-    raw_frag_table = np.zeros((number_of_atoms, 6*max_seq_sep, r_table_size))
+    raw_frag_table = np.zeros((number_of_atoms, 6*(1+max_seq_sep), r_table_size))
     data_dic = {}
     for i in range(oa.natoms):
         if i in oa.ca:

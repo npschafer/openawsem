@@ -4,6 +4,7 @@ import simtk.openmm
 # Reads pdb file to a table
 _AWSEMresidues = ['IPR', 'IGL', 'NGP']
 
+
 def parsePDB(pdb_file):
     def pdb_line(line):
         return dict(recname=str(line[0:6]).strip(),
@@ -71,8 +72,22 @@ class BaseError(Exception):
 
 
 class Protein(object):
-    def __init__(self, atoms,sequence, k_awsem=1):
+    def __init__(self, atoms, sequence, k_awsem=1):
         self.atoms = atoms
+
+        #Include real residue name in atoms
+        atoms = self.atoms.copy()
+        atoms['chain_res'] = atoms['chainID'].astype(str) + '_' + atoms['resSeq'].astype(str)
+        sel = atoms[atoms['resname'].isin(_AWSEMresidues)]
+        resix = sel['chain_res'].unique()
+        assert len(resix) == len(sequence), \
+            f'The number of residues {len(resix)} does not agree with the length of the sequence {len(protein_sequence_one)}'
+        atoms.index = atoms['chain_res']
+        for r, s in zip(resix, sequence):
+            atoms.loc[r, 'real_resname'] = s
+        atoms.index = range(len(atoms))
+        self.atoms = atoms
+
         protein_data = atoms[atoms.resname.isin(_AWSEMresidues)].copy()
         # renumber residues
         resix = (protein_data.chainID + '_' + protein_data.resSeq.astype(str))
@@ -82,7 +97,7 @@ class Protein(object):
         atom_types_table = {'N': 'n', 'H': 'h', 'CA': 'ca', 'C': 'c', 'O': 'o', 'CB': 'cb'}
         protein_data['atom_list'] = protein_data['name'].replace(atom_types_table)
         protein_data['idx'] = protein_data.index.astype(int)
-        self.protein_data=protein_data
+        self.protein_data = protein_data
         self.atom_lists = protein_data.pivot(index='resID', columns='atom_list', values='idx').fillna(-1).astype(int)
         self.n = self.atom_lists['n'].tolist()
         self.h = self.atom_lists['h'].tolist()
@@ -91,13 +106,13 @@ class Protein(object):
         self.o = self.atom_lists['o'].tolist()
         self.cb = self.atom_lists['cb'].tolist()
         self.nres = len(self.atom_lists)
-        self.k_awsem=k_awsem
+        self.k_awsem = k_awsem
         self.res_type = [r.iloc[0]['resname'] for i, r in protein_data.groupby('resID')]
-        self.chain_starts=[c.iloc[0].resID for i,c in protein_data.groupby('chainID')]
-        self.chain_ends=[c.iloc[-1].resID for i,c in protein_data.groupby('chainID')]
-        self.natoms=len(atoms)
-        self.bonds=self._setup_bonds()
-        self.seq=sequence
+        self.chain_starts = [c.iloc[0].resID for i, c in protein_data.groupby('chainID')]
+        self.chain_ends = [c.iloc[-1].resID for i, c in protein_data.groupby('chainID')]
+        self.natoms = len(atoms)
+        self.bonds = self._setup_bonds()
+        self.seq = sequence
         self.resi = pandas.merge(self.atoms, self.protein_data, how='left').resID.fillna(-1).astype(int).tolist()
         pass
 
@@ -120,20 +135,20 @@ class Protein(object):
                 bonds.append((self.n[i], self.c[i]))
         return bonds
 
-    def setup_virtual_sites(self, system,):
+    def setup_virtual_sites(self, system, ):
         # set virtual sites
         for i in range(self.nres):
             if i not in self.chain_starts:
                 n_virtual_site = simtk.openmm.ThreeParticleAverageSite(self.ca[i - 1], self.ca[i], self.o[i - 1],
-                                                          0.48318, 0.70328, -0.18643)
+                                                                       0.48318, 0.70328, -0.18643)
                 system.setVirtualSite(self.n[i], n_virtual_site)
                 if not self.res_type[i] == "IPR":
                     h_virtual_site = simtk.openmm.ThreeParticleAverageSite(self.ca[i - 1], self.ca[i], self.o[i - 1],
-                                                              0.84100, 0.89296, -0.73389)
+                                                                           0.84100, 0.89296, -0.73389)
                     system.setVirtualSite(self.h[i], h_virtual_site)
             if i not in self.chain_ends:
                 c_virtual_site = simtk.openmm.ThreeParticleAverageSite(self.ca[i], self.ca[i + 1], self.o[i],
-                                                          0.44365, 0.23520, 0.32115)
+                                                                       0.44365, 0.23520, 0.32115)
                 # print("Virtual", c[i])
                 system.setVirtualSite(self.c[i], c_virtual_site)
 
@@ -146,7 +161,7 @@ class Protein(object):
     def fromCoarsePDB(cls, pdb_file, sequence):
         """ Initializes the protein from an already coarse grained pdb"""
         atoms = parsePDB(pdb_file)
-        return cls(atoms,sequence)
+        return cls(atoms, sequence)
 
     def parseConfigurationFile(self):
         """ Parses the AWSEM configuration file to use for the topology and to set the forces"""
@@ -157,7 +172,7 @@ class Protein(object):
         pass
 
 
-def addNonBondedExclusions(oa,force):
+def addNonBondedExclusions(oa, force):
     cb_fixed = [x if x > 0 else y for x, y in zip(oa.cb, oa.ca)]
     none_cb_fixed = [i for i in range(oa.natoms) if i not in cb_fixed]
     for e1 in none_cb_fixed:
@@ -176,6 +191,8 @@ def addNonBondedExclusions(oa,force):
     for e1 in none_cb_fixed:
         for e2 in cb_fixed:
             force.addExclusion(e1, e2)
+
+
 def Forces():
     pass
 

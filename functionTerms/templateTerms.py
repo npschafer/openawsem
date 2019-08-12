@@ -4,7 +4,7 @@ from simtk.unit import *
 import numpy as np
 import pandas as pd
 
-def read_reference_structure_for_q_calculation_4(oa, contact_threshold,rnative_dat,  min_seq_sep=3, max_seq_sep=np.inf):
+def read_reference_structure_for_q_calculation_4(oa, contact_threshold,rnative_dat, min_seq_sep=3, max_seq_sep=np.inf):
     # use contact matrix for Q calculation
     # this change use the canonical Qw/Qo calculation for reference Q
     # for Qw calculation is 0; Qo is 1;
@@ -45,7 +45,7 @@ def q_value_dat(oa, contact_threshold, rnative_dat="rnative.dat", min_seq_sep=3,
     return qvalue_dat
 
 
-def tbm_q_term(oa, k_tbm_q, tbm_q_min_seq_sep=2, tbm_q_cutoff=0.2*nanometers, tbm_q_well_width=0.1, target_q=1.0):
+def tbm_q_term(oa, k_tbm_q, tbm_q_min_seq_sep=2, tbm_q_cutoff=0.2*nanometers, tbm_q_well_width=0.1, target_q=1.0, forceGroup=26):
     ### Added by Mingchen Chen
     ### this function is solely used for template based modelling from rnative.dat file
     ### for details, refer to Chen, Lin & Lu Wolynes JCTC 2018
@@ -55,13 +55,13 @@ def tbm_q_term(oa, k_tbm_q, tbm_q_min_seq_sep=2, tbm_q_cutoff=0.2*nanometers, tb
     tbm_q.addCollectiveVariable("q", q)
     tbm_q.addGlobalParameter("k_tbm_q", k_tbm_q)
     tbm_q.addGlobalParameter("q0", target_q)
-    tbm_q.setForceGroup(22)
+    tbm_q.setForceGroup(forceGroup)
     return tbm_q
 
 
 
 def fragment_memory_term(oa, k_fm=0.04184, frag_file_list_file="./frag.mem", npy_frag_table="./frag_table.npy",
-                    min_seq_sep=3, max_seq_sep=9, fm_well_width=0.1, UseSavedFragTable=True):
+                    min_seq_sep=3, max_seq_sep=9, fm_well_width=0.1, UseSavedFragTable=True, forceGroup=23):
     # 0.8368 = 0.01 * 4.184 # in kJ/mol, converted from default value in LAMMPS AWSEM
     k_fm *= oa.k_awsem
     frag_table_rmin = 0
@@ -197,7 +197,7 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_file_list_file="./frag.mem", npy
     fm.addGlobalParameter("frag_table_dr", frag_table_dr)
     fm.addGlobalParameter("frag_table_rmin", frag_table_rmin)
 
-    fm.setForceGroup(19)
+    fm.setForceGroup(forceGroup)
     return fm
 
 
@@ -413,7 +413,7 @@ def additive_amhgo_term(oa, pdb_file, chain_name, k_amhgo=4.184, amhgo_min_seq_s
     #amhgo.setForceGroup(22)
     return amhgo
 
-def er_term(oa, k_er=4.184, er_min_seq_sep=2, er_cutoff=99.0, er_well_width=0.1):
+def er_term(oa, k_er=4.184, er_min_seq_sep=2, er_cutoff=99.0, er_well_width=0.1, forceGroup=25):
     ### this is a structure prediction related term; Adapted from Sirovitz Schafer Wolynes 2017 Protein Science;
     ### See original papers for reference: Make AWSEM AWSEM-ER with Evolutionary restrictions
     ### ER restrictions can be obtained from multiple sources (RaptorX, deepcontact, and Gremlin)
@@ -455,7 +455,7 @@ def er_term(oa, k_er=4.184, er_min_seq_sep=2, er_cutoff=99.0, er_well_width=0.1)
     # create bonds
     for structure_interaction_er in structure_interactions_er:
         er.addBond(*structure_interaction_er)
-    er.setForceGroup(21)
+    er.setForceGroup(forceGroup)
     return er
 
 

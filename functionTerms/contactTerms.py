@@ -25,7 +25,7 @@ def inWhichChain(residueId, chain_ends):
             return chain_table[i]
 
 
-def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0*angstrom, k_relative_mem=1.0, periodic=False, parametersLocation=".", burialPartOn=True, withExclusion=True):
+def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0*angstrom, k_relative_mem=1.0, periodic=False, parametersLocation=".", burialPartOn=True, withExclusion=True, forceGroup=22):
     if isinstance(k_contact, float) or isinstance(k_contact, int):
         k_contact = k_contact * oa.k_awsem   # just for backward comptable
     elif isinstance(k_contact, Quantity):
@@ -263,7 +263,7 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
         contact.setNonbondedMethod(contact.CutoffNonPeriodic)
     print("Contact cutoff ", contact.getCutoffDistance())
     print("NonbondedMethod: ", contact.getNonbondedMethod())
-    contact.setForceGroup(18)
+    contact.setForceGroup(forceGroup)
     return contact
 
 def index_based_contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0, k_relative_mem=1.0, periodic=False, pre=None):

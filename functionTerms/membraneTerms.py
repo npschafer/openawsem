@@ -3,7 +3,7 @@ from simtk.openmm import *
 from simtk.unit import *
 import numpy as np
 
-def membrane_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, membrane_center=0*angstrom):
+def membrane_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, membrane_center=0*angstrom, forceGroup=24):
     # k_m in units of nm^-1, z_m in units of nm.
     # z_m is half of membrane thickness
     # membrane_center is the membrane center plane shifted in z axis.
@@ -23,12 +23,12 @@ def membrane_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, membrane_center
     for i in ca:
         # print(oa.resi[i] , oa.seq[oa.resi[i]])
         membrane.addParticle(i, [zim[oa.resi[i]]])
-    membrane.setForceGroup(20)
+    membrane.setForceGroup(forceGroup)
     return membrane
 
 
 
-def membrane_preassigned_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, membrane_center=0*angstrom, zimFile="zimPosition"):
+def membrane_preassigned_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, membrane_center=0*angstrom, zimFile="zimPosition", forceGroup=24):
     # k_m in units of nm^-1, z_m in units of nm.
     # z_m is half of membrane thickness
     # membrane_center is the membrane center plane shifted in z axis.
@@ -49,12 +49,12 @@ def membrane_preassigned_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, mem
     for i in cb_fixed:
         membrane.addParticle(i, [zim[oa.resi[i]]])
         # print(oa.resi[i] , oa.seq[oa.resi[i]])
-    membrane.setForceGroup(20)
+    membrane.setForceGroup(forceGroup)
     return membrane
 
 
 
-def single_helix_orientation_bias_term(oa, k=1*kilocalorie_per_mole, membrane_center=0*angstrom, z_m=1.5, k_m=20, atomGroup=-1):
+def single_helix_orientation_bias_term(oa, k=1*kilocalorie_per_mole, membrane_center=0*angstrom, z_m=1.5, k_m=20, atomGroup=-1, forceGroup=18):
     membrane_center = membrane_center.value_in_unit(nanometer)   # convert to nm
     k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
     k_single_helix_orientation_bias = oa.k_awsem * k
@@ -79,11 +79,11 @@ def single_helix_orientation_bias_term(oa, k=1*kilocalorie_per_mole, membrane_ce
                 continue
             v_orientation.addBond([ca[i], ca[j]], [])
 
-    v_orientation.setForceGroup(27)
+    v_orientation.setForceGroup(forceGroup)
     return v_orientation
 
 
-def pulling_term(oa, k_pulling=4.184, forceDirect="x", appliedToResidue=0):
+def pulling_term(oa, k_pulling=4.184, forceDirect="x", appliedToResidue=0, forceGroup=19):
     # k_m in units of nm^-1, z_m in units of nm.
     # z_m is half of membrane thickness
     # membrane_center is the membrane center plane shifted in z axis.
@@ -95,7 +95,7 @@ def pulling_term(oa, k_pulling=4.184, forceDirect="x", appliedToResidue=0):
         if oa.resi[i] == appliedToResidue:
             pulling.addParticle(i)
         # print(oa.resi[i] , oa.seq[oa.resi[i]])
-    pulling.setForceGroup(29)
+    pulling.setForceGroup(forceGroup)
     return pulling
 
 def rg_term(oa, convertToAngstrom=True):
@@ -114,22 +114,22 @@ def rg_term(oa, convertToAngstrom=True):
     rg.setForceGroup(2)
     return rg
 
-def rg_bias_term(oa, k_rg=4.184, rg0=0, atomGroup=-1):
-    nres, ca = oa.nres, oa.ca
-    if atomGroup == -1:
-        group = list(range(nres))
-    else:
-        group = atomGroup
-    n = len(group)
-    rg_square = CustomBondForce("1/normalization*r^2")
-    # rg = CustomBondForce("1")
-    rg_square.addGlobalParameter("normalization", n*n)
-    for i in group:
-        for j in group:
-            if j <= i:
-                continue
-            rg_square.addBond(ca[i], ca[j], [])
-    rg = CustomCVForce(f"{k_rg}*(rg_square^0.5-{rg0})^2")
-    rg.addCollectiveVariable("rg_square", rg_square)
-    rg.setForceGroup(27)
-    return rg
+# def rg_bias_term(oa, k_rg=4.184, rg0=0, atomGroup=-1):
+#     nres, ca = oa.nres, oa.ca
+#     if atomGroup == -1:
+#         group = list(range(nres))
+#     else:
+#         group = atomGroup
+#     n = len(group)
+#     rg_square = CustomBondForce("1/normalization*r^2")
+#     # rg = CustomBondForce("1")
+#     rg_square.addGlobalParameter("normalization", n*n)
+#     for i in group:
+#         for j in group:
+#             if j <= i:
+#                 continue
+#             rg_square.addBond(ca[i], ca[j], [])
+#     rg = CustomCVForce(f"{k_rg}*(rg_square^0.5-{rg0})^2")
+#     rg.addCollectiveVariable("rg_square", rg_square)
+#     rg.setForceGroup(27)
+#     return rg

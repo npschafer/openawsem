@@ -3,7 +3,7 @@ from simtk.openmm import *
 from simtk.unit import *
 import numpy as np
 
-def debye_huckel_term(self, k_dh=4.15*4.184):
+def debye_huckel_term(self, k_dh=4.15*4.184, forceGroup=30):
         print("Debye Huckel term is ON")
         k_dh *= self.k_awsem*0.1
         k_screening = 1.0
@@ -33,5 +33,5 @@ def debye_huckel_term(self, k_dh=4.15*4.184):
                     # print([self.seq[i], self.seq[j],self.cb[i], self.cb[j], [charge_i, charge_j]])
         for structure_interaction_dh in structure_interactions_dh:
             dh.addBond(*structure_interaction_dh)
-        dh.setForceGroup(27)
+        dh.setForceGroup(forceGroup)
         return dh

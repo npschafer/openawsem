@@ -114,9 +114,16 @@ integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 2*femtoseconds)
 simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
 
 # apply forces
-forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
-                    "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "beta_2":24,"beta_3":25,"pap":26, "Total":list(range(11, 32)),
-                    "Water":[16, 18], "Beta":[23, 24, 25], "Pap":26, "Rg_Bias":27, "Helical":28, "Pulling":29, "Q":1, "Rg":2, "Qc":3, "Q_wat":4, "Q_mem":5}
+forceGroupTable = {"Backbone":20, "Rama":21, "Contact":22, "Fragment":23, "Membrane":24, "ER":25, "TBM_Q":26, "Beta":27, "Pap":28, "Helical":29,
+                    "Q":1, "Rg":2,
+                    "Helix_orientation":18, "Pulling":19,
+                    "Total":list(range(11, 32))
+                    # , "Q_wat":4, "Q_mem":5, "Debye_huckel":30
+                   }
+
+# forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
+#                     "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "beta_2":24,"beta_3":25,"pap":26, "Total":list(range(11, 32)),
+#                     "Water":[16, 18], "Beta":[23, 24, 25], "Pap":26, "Rg_Bias":27, "Helical":28, "Pulling":29, "Q":1, "Rg":2, "Qc":3, "Q_wat":4, "Q_mem":5}
 # forceGroupTable_Rev = {11:"Con", 12:"Chain", 13:"Chi", 14:"Excluded", 15:"Rama", 16:"Direct",
 #                   17:"Burial", 18:"Mediated", 19:"Fragment"}
 # forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
@@ -126,9 +133,9 @@ forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Di
 #                    "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "Total":list(range(11, 26)),
 #                    "Water":[16, 18], "beta":[23, 24, 25], "Q":1}
 
-
-showEnergy = ["Q", "Qc", "Rg", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Helical", "Fragment", "Membrane", "ER", "Beta", "Pap", "Total"]
-
+showEnergy = ["Q", "Rg", "Backbone", "Rama", "Contact", "Fragment", "Membrane", "ER", "TBM_Q", "Beta", "Pap", "Helical", "Total"]
+# , "Disulfide"
+# showEnergy = ["Q", "Qc", "Rg", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Helical", "Fragment", "Membrane", "ER", "Beta", "Pap", "Total"]
 # showEnergy = ["Q", "Qc", "Rg", "Pulling", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "FamilyFold", "Fragment", "Membrane", "Beta", "Pap", "Rg_Bias", "Total"]
 # showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane", "Beta", "Pap", "Total"]
 # showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane", "Total"]

@@ -180,7 +180,7 @@ def get_Lambda_3(i, j, p_par, p_anti, p_antihb, p_antinhb, p_parhb, a):
 #     # beta_3.setForceGroup(25)
 #     return beta_1
 
-def beta_term_1(oa, k_beta=4.184):
+def beta_term_1(oa, k_beta=4.184, forceGroup=27):
     print("beta_1 term ON")
     nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
     # print(lambda_1)
@@ -215,12 +215,12 @@ def beta_term_1(oa, k_beta=4.184):
             beta_1.addDonor(oa.n[i], oa.h[i], -1, [i])
     beta_1.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
     beta_1.setCutoffDistance(1.0)
-    beta_1.setForceGroup(23)
+    beta_1.setForceGroup(forceGroup)
     # beta_2.setForceGroup(24)
     # beta_3.setForceGroup(25)
     return beta_1
 
-def beta_term_2(oa, k_beta=4.184):
+def beta_term_2(oa, k_beta=4.184, forceGroup=27):
     print("beta_2 term ON")
     nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
     # print(lambda_1)
@@ -264,13 +264,13 @@ def beta_term_2(oa, k_beta=4.184):
     beta_2.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
     beta_2.setCutoffDistance(1.0)
     # beta_1.setForceGroup(23)
-    beta_2.setForceGroup(24)
+    beta_2.setForceGroup(forceGroup)
     # beta_3.setForceGroup(25)
 
     return beta_2
 
 
-def beta_term_3(oa, k_beta=4.184):
+def beta_term_3(oa, k_beta=4.184, forceGroup=27):
     print("beta_3 term ON")
     nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
     # print(lambda_1)
@@ -321,12 +321,12 @@ def beta_term_3(oa, k_beta=4.184):
     beta_3.setCutoffDistance(1.0)
     # beta_1.setForceGroup(23)
     # beta_2.setForceGroup(24)
-    beta_3.setForceGroup(25)
+    beta_3.setForceGroup(forceGroup)
 
     return beta_3
 
 
-def pap_term_1(oa, k_pap=4.184, dis_i_to_i4=1.2):
+def pap_term_1(oa, k_pap=4.184, dis_i_to_i4=1.2, forceGroup=28):
     print("pap_1 term ON")
     # dis_i_to_i4 should be in nm, it disfavor hydrogen bond when ca_i and ca_i+4 are 1.2 nm apart away.
     nres, ca = oa.nres, oa.ca
@@ -381,10 +381,10 @@ def pap_term_1(oa, k_pap=4.184, dis_i_to_i4=1.2):
     pap.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
     pap.setCutoffDistance(1.0)
     # print(count)
-    pap.setForceGroup(26)
+    pap.setForceGroup(forceGroup)
     return pap
 
-def pap_term_2(oa, k_pap=4.184, dis_i_to_i4=1.2):
+def pap_term_2(oa, k_pap=4.184, dis_i_to_i4=1.2, forceGroup=28):
     print("pap_2 term ON")
     nres, ca = oa.nres, oa.ca
     # r0 = 2.0 # nm
@@ -426,7 +426,7 @@ def pap_term_2(oa, k_pap=4.184, dis_i_to_i4=1.2):
     pap.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
     pap.setCutoffDistance(1.0)
     # print(count)
-    pap.setForceGroup(26)
+    pap.setForceGroup(forceGroup)
     return pap
 
 def get_helical_f(oneLetterCode, inMembrane=False):
@@ -438,7 +438,7 @@ def get_helical_f(oneLetterCode, inMembrane=False):
             "L": 0.62, "K": 0.65, "M": 0.5, "F": 0.41, "P": 0.4, "S": 0.35, "T": 0.11, "W": 0.45, "Y": 0.17, "V": 0.14}
     return table[oneLetterCode]
 
-def helical_term(oa, k_helical=4.184, inMembrane=False):
+def helical_term(oa, k_helical=4.184, inMembrane=False, forceGroup=29):
     # without density dependency.
     # without z dependency for now.
     k_helical *= oa.k_awsem
@@ -460,10 +460,10 @@ def helical_term(oa, k_helical=4.184, inMembrane=False):
             fa_ip4 = get_helical_f(oa.seq[i+4], inMembrane=inMembrane)
             helical.addBond([oa.o[i], oa.n[i+4], oa.h[i+4]], [fa_i, fa_ip4])
 
-    helical.setForceGroup(28)
+    helical.setForceGroup(forceGroup)
     return helical
 
-def z_dependent_helical_term(oa, k_helical=4.184, membrane_center=0*angstrom, z_m=1.5):
+def z_dependent_helical_term(oa, k_helical=4.184, membrane_center=0*angstrom, z_m=1.5, forceGroup=29):
     # without density dependency.
     k_helical *= oa.k_awsem
     sigma_NO = 0.068
@@ -492,7 +492,7 @@ def z_dependent_helical_term(oa, k_helical=4.184, membrane_center=0*angstrom, z_
             fa_ip4_membrane = get_helical_f(oa.seq[i+4], inMembrane=True)
             helical.addBond([oa.o[i], oa.n[i+4], oa.h[i+4], oa.ca[i]], [fa_i, fa_ip4, fa_i_membrane, fa_ip4_membrane])
 
-    helical.setForceGroup(28)
+    helical.setForceGroup(forceGroup)
     return helical
 
 

@@ -3,7 +3,7 @@ from simtk.openmm import *
 from simtk.unit import *
 import numpy as np
 
-def con_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, .153]):
+def con_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, .153], forceGroup=20):
     # add con forces
     # 50208 = 60 * 2 * 4.184 * 100. kJ/nm^2, converted from default value in LAMMPS AWSEM
     # multiply interaction strength by overall scaling
@@ -16,11 +16,11 @@ def con_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, .153]):
         if i not in oa.chain_ends:
             con.addBond(oa.ca[i], oa.ca[i+1], bond_lengths[0], k_con)
             con.addBond(oa.o[i], oa.ca[i+1], bond_lengths[2], k_con)
-    con.setForceGroup(11)   # start with 11, so that first 10 leave for user defined force.
+    con.setForceGroup(forceGroup)   # start with 11, so that first 10 leave for user defined force.
     return con
 
 
-def chain_term(oa, k_chain=50208, bond_lengths=[0.2459108, 0.2519591, 0.2466597]):
+def chain_term(oa, k_chain=50208, bond_lengths=[0.2459108, 0.2519591, 0.2466597], forceGroup=20):
     # add chain forces
     # 50208 = 60 * 2 * 4.184 * 100. kJ/nm^2, converted from default value in LAMMPS AWSEM
     # multiply interaction strength by overall scaling
@@ -33,10 +33,10 @@ def chain_term(oa, k_chain=50208, bond_lengths=[0.2459108, 0.2519591, 0.2466597]
             chain.addBond(oa.c[i], oa.cb[i], bond_lengths[1], k_chain)
         if i not in oa.chain_starts and i not in oa.chain_ends:
             chain.addBond(oa.n[i], oa.c[i], bond_lengths[2], k_chain)
-    chain.setForceGroup(12)
+    chain.setForceGroup(forceGroup)
     return chain
 
-def chi_term(oa, k_chi=251.04, chi0=-0.71):
+def chi_term(oa, k_chi=251.04, chi0=-0.71, forceGroup=20):
     # add chi forces
     # The sign of the equilibrium value is opposite and magnitude differs slightly
     # 251.04 = 60 * 4.184 kJ, converted from default value in LAMMPS AWSEM
@@ -58,10 +58,10 @@ def chi_term(oa, k_chi=251.04, chi0=-0.71):
     for i in range(oa.nres):
         if i not in oa.chain_starts and i not in oa.chain_ends and not oa.res_type[i] == "IGL":
             chi.addBond([oa.ca[i], oa.c[i], oa.n[i], oa.cb[i]])
-    chi.setForceGroup(13)
+    chi.setForceGroup(forceGroup)
     return chi
 
-def excl_term(oa, k_excl=8368, r_excl=0.35, periodic=False):
+def excl_term(oa, k_excl=8368, r_excl=0.35, periodic=False, forceGroup=20):
     # add excluded volume
     # Still need to add element specific parameters
     # 8368 = 20 * 4.184 * 100 kJ/nm^2, converted from default value in LAMMPS AWSEM
@@ -88,10 +88,10 @@ def excl_term(oa, k_excl=8368, r_excl=0.35, periodic=False):
 
     # excl.setNonbondedMethod(excl.CutoffNonPeriodic)
     excl.createExclusionsFromBonds(oa.bonds, 1)
-    excl.setForceGroup(14)
+    excl.setForceGroup(forceGroup)
     return excl
 
-def rama_term(oa, k_rama=8.368, num_rama_wells=3, w=[1.3149, 1.32016, 1.0264], sigma=[15.398, 49.0521, 49.0954], omega_phi=[0.15, 0.25, 0.65], phi_i=[-1.74, -1.265, 1.041], omega_psi=[0.65, 0.45, 0.25], psi_i=[2.138, -0.318, 0.78]):
+def rama_term(oa, k_rama=8.368, num_rama_wells=3, w=[1.3149, 1.32016, 1.0264], sigma=[15.398, 49.0521, 49.0954], omega_phi=[0.15, 0.25, 0.65], phi_i=[-1.74, -1.265, 1.041], omega_psi=[0.65, 0.45, 0.25], psi_i=[2.138, -0.318, 0.78], forceGroup=21):
     # add Rama potential
     # 8.368 = 2 * 4.184 kJ/mol, converted from default value in LAMMPS AWSEM
     # multiply interaction strength by overall scaling
@@ -115,10 +115,10 @@ def rama_term(oa, k_rama=8.368, num_rama_wells=3, w=[1.3149, 1.32016, 1.0264], s
     for i in range(oa.nres):
         if i not in oa.chain_starts and i not in oa.chain_ends and not oa.res_type[i] == "IGL" and not oa.res_type[i] == "IPR":
             rama.addBond([oa.c[i-1], oa.n[i], oa.ca[i], oa.c[i], oa.n[i+1]])
-    rama.setForceGroup(15)
+    rama.setForceGroup(forceGroup)
     return rama
 
-def rama_proline_term(oa, k_rama_proline=8.368, num_rama_proline_wells=2, w=[2.17, 2.15], sigma=[105.52, 109.09], omega_phi=[1.0, 1.0], phi_i=[-1.153, -0.95], omega_psi=[0.15, 0.15], psi_i=[2.4, -0.218]):
+def rama_proline_term(oa, k_rama_proline=8.368, num_rama_proline_wells=2, w=[2.17, 2.15], sigma=[105.52, 109.09], omega_phi=[1.0, 1.0], phi_i=[-1.153, -0.95], omega_psi=[0.15, 0.15], psi_i=[2.4, -0.218], forceGroup=21):
     # add Rama potential for prolines
     # 8.368 = 2 * 4.184 kJ/mol, converted from default value in LAMMPS AWSEM
     # multiply interaction strength by overall scaling
@@ -142,12 +142,12 @@ def rama_proline_term(oa, k_rama_proline=8.368, num_rama_proline_wells=2, w=[2.1
     for i in range(oa.nres):
         if i not in oa.chain_starts and i not in oa.chain_ends and oa.res_type[i] == "IPR":
             rama.addBond([oa.c[i-1], oa.n[i], oa.ca[i], oa.c[i], oa.n[i+1]])
-    rama.setForceGroup(15)
+    rama.setForceGroup(forceGroup)
     return rama
 
 def rama_ssweight_term(oa, k_rama_ssweight=8.368, num_rama_wells=2, w=[2.0, 2.0],
                     sigma=[419.0, 15.398], omega_phi=[1.0, 1.0], phi_i=[-0.995, -2.25],
-                    omega_psi=[1.0, 1.0], psi_i=[-0.82, 2.16], location_pre="./"):
+                    omega_psi=[1.0, 1.0], psi_i=[-0.82, 2.16], location_pre="./", forceGroup=21):
     # add RamaSS potential
     # 8.368 = 2 * 4.184 kJ/mol, converted from default value in LAMMPS AWSEM
     # multiply interaction strength by overall scaling
@@ -173,5 +173,5 @@ def rama_ssweight_term(oa, k_rama_ssweight=8.368, num_rama_wells=2, w=[2.0, 2.0]
             ramaSS.addBond([oa.c[i-1], oa.n[i], oa.ca[i], oa.c[i], oa.n[i+1]], [i])
     ssweight = np.loadtxt(location_pre+"ssweight")
     ramaSS.addTabulatedFunction("ssweight", Discrete2DFunction(2, oa.nres, ssweight.flatten()))
-    ramaSS.setForceGroup(15)
+    ramaSS.setForceGroup(forceGroup)
     return ramaSS

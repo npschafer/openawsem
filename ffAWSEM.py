@@ -1,9 +1,12 @@
 import pandas
 import simtk.openmm
+import os
+import shutil
 
 # Reads pdb file to a table
+__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 _AWSEMresidues = ['IPR', 'IGL', 'NGP']
-
+xml = f'{__location__}/awsem.xml'
 
 def parsePDB(pdb_file):
     def pdb_line(line):
@@ -66,6 +69,15 @@ def parseConfigTable(config_section):
             print(f'Unexpected row {readData(config_section, a)}')
     return pandas.DataFrame(data, columns=columns)
 
+
+def copy_parameter_files():
+    src = f"{__location__}/parameters"
+    dest = '.'
+    src_files = os.listdir(src)
+    for file_name in src_files:
+        full_file_name = os.path.join(src, file_name)
+        if os.path.isfile(full_file_name):
+            shutil.copy(full_file_name, dest)
 
 class BaseError(Exception):
     pass

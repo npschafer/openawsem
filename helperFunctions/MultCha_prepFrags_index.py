@@ -166,7 +166,12 @@ for record in SeqIO.parse(handle, "fasta"):
     for line in match.readlines():
         matchlines.append(line)
         entries = line.split()
-        pdbfull = str(entries[0])
+        entry = entries[0]
+        if entry[:3] == "pdb":
+            # for example 'pdb|4V12|A'
+            pdbfull = str(entry[4:8]) + str(entry[9:])
+        else:
+            pdbfull = str(entry)
         keys[pdbfull] = 1
     unique = list(keys.keys())
 
@@ -245,7 +250,13 @@ for record in SeqIO.parse(handle, "fasta"):
             windows_index_str = entries[11]
             if count[windows_index_str] >= N_mem:
                 continue
-            pdbfull = str(entries[0])
+            # pdbfull = str(entries[0])
+            entry = entries[0]
+            if entry[:3] == "pdb":
+                # for example 'pdb|4V12|A'
+                pdbfull = str(entry[4:8]) + str(entry[9:])
+            else:
+                pdbfull = str(entry)
             pdbID = pdbfull[0:4].lower()
             pdbIDsecond = pdbfull[1:2].lower()
             pdbIDthird = pdbfull[2:3].lower()
@@ -390,7 +401,13 @@ for record in SeqIO.parse(handle, "fasta"):
         entries = line.split()
         print("sseqid slen bitscore score evalue pident")
         print(entries)
-        pdbfull = entries[0]
+        entry = entries[0]
+        if entry[:3] == "pdb":
+            # for example 'pdb|4V12|A'
+            pdbfull = str(entry[4:8]) + str(entry[9:])
+        else:
+            pdbfull = str(entry)
+        # pdbfull = entries[0]
         pdbID = pdbfull[0:4].lower()
         if brain_damage == 0:
             total_homo_count += homo_count[pdbID]
@@ -412,7 +429,13 @@ for record in SeqIO.parse(handle, "fasta"):
     for line in homoOut:
         entries = line.split()
         if len(entries):
-            pdbfull = entries[0]
+            entry = entries[0]
+            if entry[:3] == "pdb":
+                # for example 'pdb|4V12|A'
+                pdbfull = str(entry[4:8]) + str(entry[9:])
+            else:
+                pdbfull = str(entry)
+            # pdbfull = entries[0]
             pdbID = pdbfull[0:4].lower()
             print(pdbID)
 

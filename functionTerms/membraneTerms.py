@@ -83,7 +83,7 @@ def single_helix_orientation_bias_term(oa, k=1*kilocalorie_per_mole, membrane_ce
     return v_orientation
 
 
-def pulling_term(oa, k_pulling=4.184, forceDirect="x", appliedToResidue=0, forceGroup=19):
+def pulling_term(oa, k_pulling=4.184, forceDirect="x", appliedToResidue=1, forceGroup=19):
     # k_m in units of nm^-1, z_m in units of nm.
     # z_m is half of membrane thickness
     # membrane_center is the membrane center plane shifted in z axis.
@@ -92,7 +92,7 @@ def pulling_term(oa, k_pulling=4.184, forceDirect="x", appliedToResidue=0, force
     k_pulling *= oa.k_awsem
     pulling = CustomExternalForce(f"(-{k_pulling})*({forceDirect})")
     for i in range(oa.natoms):
-        if oa.resi[i] == appliedToResidue:
+        if oa.resi[i] == (appliedToResidue-1):
             pulling.addParticle(i)
         # print(oa.resi[i] , oa.seq[oa.resi[i]])
     pulling.setForceGroup(forceGroup)

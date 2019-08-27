@@ -49,8 +49,12 @@ python YOUR_OPENAWSEM_LOCATION/mm_create_project.py PATH_TO_YOUR_PDB/1r69.pdb --
 ```
 * Run the simulation:
 ```
-python mm_run.py 1r69
+python mm_run.py 1r69 --platform CPU --steps 1e5 --tempStart 800 --tempEnd 200 -f forces_steup.py
 ```
+* Note:
+
+forces_setup.py controls which force(energy) term will be included in the simulation. 
+
 * Compute energy and Q:
 ```
 python mm_analysis.py 1r69 > energy.dat

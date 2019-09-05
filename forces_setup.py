@@ -35,10 +35,10 @@ def set_up_forces(oa, computeQ=False, submode=0, contactParameterLocation=".", m
         # er_term(oa),
         # membrane_term(oa, k=1*kilocalorie_per_mole, membrane_center=membrane_center),
         # fragment_memory_term(oa, frag_file_list_file="./frags.mem", npy_frag_table="./frags.npy", UseSavedFragTable=True),
-        # fragment_memory_term(oa, frag_file_list_file="./single_frags.mem", npy_frag_table="./single_frags.npy", UseSavedFragTable=True),
+        fragment_memory_term(oa, frag_file_list_file="./single_frags.mem", npy_frag_table="./single_frags.npy", UseSavedFragTable=True),
     ]
     if computeQ:
         forces.append(rg_term(oa))
-        forces.append(q_value(oa, "crystal_structure-cleaned.pdb"))
+        forces.append(q_value(oa, "crystal_structure-cleaned.pdb", forceGroup=1))
         forces.append(qc_value(oa, "crystal_structure-cleaned.pdb"))
     return forces

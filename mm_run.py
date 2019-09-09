@@ -46,6 +46,7 @@ parser.add_argument("--subMode", type=int, default=-1)
 parser.add_argument("-f", "--forces", default="forces_setup.py")
 parser.add_argument("--parameters", default=None)
 parser.add_argument("--reportFrequency", type=int, default=-1)
+parser.add_argument("--fromOpenMMPDB", action="store_true", default=False)
 
 args = parser.parse_args()
 
@@ -99,8 +100,13 @@ if args.to != "./":
     # os.system(f"cp {pdb} {args.to}/{pdb}")
     # pdb = os.path.join(args.to, pdb)
 
-input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
-
+if args.fromOpenMMPDB:
+    input_pdb_filename = proteinName
+    seq=read_fasta("crystal_structure.fasta")
+    print(f"Using Seq:\n{seq}")
+else:
+    input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
+    seq=None
 
 # start simulation
 collision_rate = 5.0 / picoseconds
@@ -129,7 +135,7 @@ forces = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(forces)
 
 
-oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml")  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
+oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml", seqFromPdb=seq)  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 myForces = forces.set_up_forces(oa, submode=args.subMode, contactParameterLocation=parametersLocation)
 # print(forces)
 # oa.addForces(myForces)
@@ -210,7 +216,7 @@ with open(timeFile, "w") as out:
 
 # accompany with analysis run
 simulation = None
-time.sleep(30)
+time.sleep(10)
 os.chdir(pwd)
 print(os.getcwd())
 os.system(f"{sys.executable} mm_analysis.py {args.protein} -t {os.path.join(toPath, 'movie.dcd')} --subMode {args.subMode} -f {args.forces}")

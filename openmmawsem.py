@@ -344,7 +344,7 @@ def getSeqFromCleanPdb(input_pdb_filename, chains='A', writeFastaFile=False):
             seq += chain_seq
     return seq
 
-def getSeq(input_pdb_filename, chains='A', writeFastaFile=False, fromPdb=False, fromFasta=False):
+def getSeq(input_pdb_filename, chains='A', writeFastaFile=False, fromPdb=False, fromFasta=None):
     if fromPdb:
         cleaned_pdb_filename = input_pdb_filename.replace("openmmawsem.pdb", "cleaned.pdb")
         pdb = input_pdb_filename.replace("-openmmawsem.pdb", "")
@@ -371,12 +371,14 @@ def getSeq(input_pdb_filename, chains='A', writeFastaFile=False, fromPdb=False, 
                     chain_seq += formatResidue_ThreeLetterCodeToOne(residue)
                 seq += chain_seq
     elif fromFasta:
-        for line in f:
-            if line[0] == ">":
-                pass
-            else:
-                # print(line)
-                seq += line.strip()
+        seq = ""
+        with open(fromFasta) as f:
+            for line in f:
+                if line[0] == ">":
+                    pass
+                else:
+                    # print(line)
+                    seq += line.strip()
     return seq
 
 def fixPymolPdb(location):
@@ -396,7 +398,7 @@ def download(pdb_id):
         os.rename("pdb%s.ent" % pdb_id, f"{pdb_id}.pdb")
 
 class OpenMMAWSEMSystem:
-    def __init__(self, pdb_filename, chains='A', xml_filename='awsem.xml', k_awsem=1.0, seqFromPdb=1):
+    def __init__(self, pdb_filename, chains='A', xml_filename='awsem.xml', k_awsem=1.0, seqFromPdb=None):
         # read PDB
         self.pdb = PDBFile(pdb_filename)
         self.forcefield = ForceField(xml_filename)
@@ -432,10 +434,12 @@ class OpenMMAWSEMSystem:
         # keep track of force names for output purposes
         self.force_names = []
         # save seq info
-        if seqFromPdb == 1:
+        if seqFromPdb is None:
             self.seq = getSeq(pdb_filename, chains=chains, fromPdb=True)
-        elif seqFromPdb == 0:
-            self.seq = getSeq(pdb_filename, chains=chains, fromFasta=True)
+        else:
+            self.seq = seqFromPdb
+        # elif seqFromPdb == 0:
+        #     self.seq = getSeq(pdb_filename, chains=chains, fromFasta=True)
 
     def addForces(self, forces):
         for i, (force) in enumerate(forces):

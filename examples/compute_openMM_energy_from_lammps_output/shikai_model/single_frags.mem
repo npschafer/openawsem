@@ -1,0 +1,6 @@
+[Target]
+query
+
+[Memories]
+model_2001.gro 1 1 149 20
+model_2001.gro 150 150 96 20

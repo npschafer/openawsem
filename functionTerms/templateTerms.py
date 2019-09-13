@@ -8,19 +8,19 @@ def read_reference_structure_for_q_calculation_4(oa, contact_threshold,rnative_d
     # use contact matrix for Q calculation
     # this change use the canonical Qw/Qo calculation for reference Q
     # for Qw calculation is 0; Qo is 1;
-    in_rnative = np.loadtxt(rnative_dat)  ## read in rnative_dat file for Q calculation
+    in_rnative = np.loadtxt(rnative_dat)  # read in rnative_dat file for Q calculation
     structure_interactions = []
     chain_start = 0
-    count = 0;
+    count = 0
     for i in range(oa.nres):
         chain_start += count
         count = 0
         for j in range(oa.nres):
             count +=1
             if abs(i-j) >= min_seq_sep and abs(i-j) <= max_seq_sep:  # taking the signed value to avoid double counting
-                r_ijN = in_rnative[i][j]/10.0 * nanometers # convert to nm
+                r_ijN = in_rnative[i][j]/10.0 * nanometers  # convert to nm
                 if r_ijN < contact_threshold: continue
-                sigma_ij = 0.1*abs(i-j)**0.15 # 0.1 nm = 1 A
+                sigma_ij = 0.1*abs(i-j)**0.15  # 0.1 nm = 1 A
                 gamma_ij = 1.0
                 i_index = oa.ca[i]
                 j_index = oa.ca[j]
@@ -38,19 +38,19 @@ def q_value_dat(oa, contact_threshold, rnative_dat="rnative.dat", min_seq_sep=3,
     qvalue_dat.addPerBondParameter("gamma_ij")
     qvalue_dat.addPerBondParameter("r_ijN")
     qvalue_dat.addPerBondParameter("sigma_ij")
-    structure_interactions_tbm_q = read_reference_structure_for_q_calculation_4(oa, contact_threshold=contact_threshold,rnative_dat="rnative.dat",  min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep)
+    structure_interactions_tbm_q = read_reference_structure_for_q_calculation_4(oa, contact_threshold=contact_threshold,rnative_dat="rnative.dat", min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep)
     qvalue_dat.addGlobalParameter("normalization", len(structure_interactions_tbm_q))
     for structure_interaction_tbm_q in structure_interactions_tbm_q:
         qvalue_dat.addBond(*structure_interaction_tbm_q)
     return qvalue_dat
 
 
-def tbm_q_term(oa, k_tbm_q, tbm_q_min_seq_sep=2, tbm_q_cutoff=0.2*nanometers, tbm_q_well_width=0.1, target_q=1.0, forceGroup=26):
+def tbm_q_term(oa, k_tbm_q, tbm_q_min_seq_sep=3, tbm_q_cutoff=0.2*nanometers, tbm_q_well_width=0.1, target_q=1.0, forceGroup=26):
     ### Added by Mingchen Chen
     ### this function is solely used for template based modelling from rnative.dat file
     ### for details, refer to Chen, Lin & Lu Wolynes JCTC 2018
     print("TBM_Q term ON")
-    tbm_q = CustomCVForce("0.5*k_tbm_q*(q-q0)^2")
+    tbm_q = CustomCVForce("k_tbm_q*(q-q0)^2")
     q = q_value_dat(oa, contact_threshold=tbm_q_cutoff, rnative_dat="rnative.dat", min_seq_sep=tbm_q_min_seq_sep, max_seq_sep=np.inf)
     tbm_q.addCollectiveVariable("q", q)
     tbm_q.addGlobalParameter("k_tbm_q", k_tbm_q)

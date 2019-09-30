@@ -48,6 +48,17 @@ if args.protein[-4:] == '.pdb':
     pdb = os.path.basename(args.protein)
     do("mkdir -p original_pdbs")
     do(f"cp {args.protein} original_pdbs/")
+elif args.protein[-6:] == ".fasta":
+    print("Creating simulation folder from fasta file.")
+    name = os.path.basename(args.protein)[:-6]
+    # use pymol to generate the initial pdb.
+    do(f"python3 {__location__}/helperFunctions/fasta2pdb.py {name} -f {args.protein}")
+    helperFunctions.myFunctions.add_chain_to_pymol_pdb(f"{name}.pdb")  # only work for one chain only now
+    do("mkdir -p original_fasta")
+    do("mkdir -p original_pdbs")
+    do(f"cp {args.protein} original_fasta/")
+    do(f"cp {name}.pdb crystal_structure.pdb")  # treat as crystal_structure.
+    pdb = f"{name}.pdb"
 else:
     name = args.protein
     pdb = f"{name}.pdb"

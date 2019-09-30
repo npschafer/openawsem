@@ -53,6 +53,39 @@ def membrane_preassigned_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, mem
     return membrane
 
 
+def SideToZ_m(side):
+    side = side.strip()
+    if side == "down":
+        return -1.5
+    if side == "up":
+        return 1.5
+    if side == "middle":
+        return 0
+
+def membrane_preassigned_side_term(oa, k=1*kilocalorie_per_mole, membrane_center=0*angstrom, zimFile="PredictedZimSide", forceGroup=24):
+    # k_m in units of nm^-1, z_m in units of nm.
+    # z_m is half of membrane thickness
+    # membrane_center is the membrane center plane shifted in z axis.
+    # add membrane forces
+    # 1 Kcal = 4.184 kJ strength by overall scaling
+    membrane_center = membrane_center.value_in_unit(nanometer)   # convert to nm
+    k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
+    k_membrane = k * oa.k_awsem
+    membrane = CustomExternalForce(f"{k_membrane}*(abs(z-{membrane_center}-z_m))")
+    membrane.addPerParticleParameter("z_m")
+
+    with open(zimFile) as f:
+        a = f.readlines()
+
+    cb_fixed = [x if x > 0 else y for x,y in zip(oa.cb,oa.ca)]
+    # print(cb_fixed)
+    for i in cb_fixed:
+        z_m = SideToZ_m(a[oa.resi[i]])
+        # print(oa.resi[i])
+        membrane.addParticle(i, [z_m])
+    membrane.setForceGroup(forceGroup)
+    return membrane
+
 
 def single_helix_orientation_bias_term(oa, k=1*kilocalorie_per_mole, membrane_center=0*angstrom, z_m=1.5, k_m=20, atomGroup=-1, forceGroup=18):
     membrane_center = membrane_center.value_in_unit(nanometer)   # convert to nm

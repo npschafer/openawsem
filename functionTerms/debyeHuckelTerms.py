@@ -9,10 +9,7 @@ def debye_huckel_term(self, k_dh=4.15*4.184, forceGroup=30):
         k_screening = 1.0
         screening_length = 1.0  # (in the unit of nanometers)
 
-        dh = CustomBondForce("k_dh*charge_i*charge_j/r*exp(-k_screening*r/screening_length)")
-        dh.addGlobalParameter("k_dh", k_dh)
-        dh.addGlobalParameter("k_screening", k_screening)
-        dh.addGlobalParameter("screening_length", screening_length)
+        dh = CustomBondForce(f"{k_dh}*charge_i*charge_j/r*exp(-{k_screening}*r/{screening_length})")
         dh.addPerBondParameter("charge_i")
         dh.addPerBondParameter("charge_j")
         structure_interactions_dh = []
@@ -29,7 +26,7 @@ def debye_huckel_term(self, k_dh=4.15*4.184, forceGroup=30):
                 if self.seq[j] == "D" or self.seq[j]=="E":
                     charge_j = -1.0
                 if charge_i*charge_j!=0.0:
-                    structure_interactions_dh.append([self.cb[i], self.cb[j], [charge_i, charge_j]]);
+                    structure_interactions_dh.append([self.cb[i], self.cb[j], [charge_i, charge_j]])
                     # print([self.seq[i], self.seq[j],self.cb[i], self.cb[j], [charge_i, charge_j]])
         for structure_interaction_dh in structure_interactions_dh:
             dh.addBond(*structure_interaction_dh)

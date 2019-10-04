@@ -26,6 +26,7 @@ def set_up_forces(oa, computeQ=False, submode=0, contactParameterLocation=".", m
         rama_proline_term(oa),
         rama_ssweight_term(oa, k_rama_ssweight=2*8.368),
         contact_term(oa),
+        # for membrane protein simulation use contact_term below.
         # contact_term(oa, z_dependent=True, inMembrane=True, membrane_center=membrane_center),
         beta_term_1(oa),
         beta_term_2(oa),
@@ -34,6 +35,7 @@ def set_up_forces(oa, computeQ=False, submode=0, contactParameterLocation=".", m
         pap_term_2(oa),
         # er_term(oa),
         # membrane_term(oa, k=1*kilocalorie_per_mole, membrane_center=membrane_center),
+        # membrane_preassigned_term(oa, k=1*kilocalorie_per_mole, membrane_center=membrane_center, zimFile="PredictedZim"),
         # fragment_memory_term(oa, frag_file_list_file="./frags.mem", npy_frag_table="./frags.npy", UseSavedFragTable=True),
         fragment_memory_term(oa, frag_file_list_file="./single_frags.mem", npy_frag_table="./single_frags.npy", UseSavedFragTable=True),
     ]

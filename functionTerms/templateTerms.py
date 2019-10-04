@@ -349,6 +349,8 @@ def density_dependent_associative_memory_term(oa, memories, k_am_dd=1.0, am_dd_m
 
 def read_amhgo_structure(oa, pdb_file, chain_name, amhgo_min_seq_sep=4, amhgo_contact_threshold=0.8*nanometers, amhgo_well_width=0.1):
     structure_interactions = []
+    from Bio.PDB import PDBParser
+    import itertools
     parser = PDBParser()
     structure = parser.get_structure('X', pdb_file)
     chain = structure[0][chain_name]
@@ -374,7 +376,7 @@ def read_amhgo_structure(oa, pdb_file, chain_name, amhgo_min_seq_sep=4, amhgo_co
                     cb_j = residue_j['CB']
                     cb_list.append(cb_j)
                     atom_list_j.append(cb_j)
-                for atom_i, atom_j in product(atom_list_i, atom_list_j):
+                for atom_i, atom_j in itertools.product(atom_list_i, atom_list_j):
                     r_ijN = abs(atom_i - atom_j)/10.0*nanometers # convert to nm
                     if r_ijN <= amhgo_contact_threshold:
                         sigma_ij = amhgo_well_width*abs(i-j)**0.15 # 0.1 nm = 1 A
@@ -398,9 +400,8 @@ def additive_amhgo_term(oa, pdb_file, chain_name, k_amhgo=4.184, amhgo_min_seq_s
     print("AMH-GO structure based term is ON")
     k_amhgo *= oa.k_awsem
     # create contact force
-    amhgo = CustomBondForce("-k_amhgo*gamma_ij*exp(-(r-r_ijN)^2/(2*sigma_ij^2))")
+    amhgo = CustomBondForce(f"-{k_amhgo}*gamma_ij*exp(-(r-r_ijN)^2/(2*sigma_ij^2))")
     # # add global parameters
-    amhgo.addGlobalParameter("k_amhgo", k_amhgo)
     amhgo.addPerBondParameter("gamma_ij")
     amhgo.addPerBondParameter("r_ijN")
     amhgo.addPerBondParameter("sigma_ij")

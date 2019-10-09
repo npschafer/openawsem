@@ -54,6 +54,18 @@ if not os.path.exists(pdbDir) or not os.path.exists(fLibDir) or not os.path.exis
     print("Can't create necessary directories")
     sys.exit()
 
+failed_download_pdb_list =[]
+failed_download_pdb_list_file = f"{openawsem_location}/notExistPDBsList"
+if os.path.exists(failed_download_pdb_list_file):
+    with open(failed_download_pdb_list_file) as f:
+        for line in f:
+            failed_download_pdb_list.append(line.strip())
+    # failed_download_pdb_list = list(set(failed_download_pdb_list))
+    # print(failed_download_pdb_list)
+    # for pdb in failed_download_pdb_list:
+    #     print(pdb)
+    # exit()
+
 # set up out
 LAMWmatch = open('frags.mem', 'w')
 LAMWmatch.write('[Target]' + "\n")
@@ -194,6 +206,10 @@ for record in SeqIO.parse(handle, "fasta"):
         homo[pdbID] = 0
         homo_count[pdbID] = 0
 
+        if pdbID in failed_download_pdb_list:
+            failed_pdb[pdbID] = 1
+            print(":::Cannot build PDB for PDB ID, skipped:" + pdbID.upper())
+            continue
         # download PDBs if not exist    ##from script 'pdbget' (original author
         # unknown)
         if not os.path.isfile(pdbDir + pdbID.upper() + ".pdb"):

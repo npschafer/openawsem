@@ -394,7 +394,7 @@ def read_amhgo_structure(oa, pdb_file, chain_name, amhgo_min_seq_sep=4, amhgo_co
                         structure_interactions.append(structure_interaction)
     return structure_interactions
 
-def additive_amhgo_term(oa, pdb_file, chain_name, k_amhgo=4.184, amhgo_min_seq_sep=10, amhgo_contact_threshold=0.8*nanometers, amhgo_well_width=0.1):
+def additive_amhgo_term(oa, pdb_file, chain_name, k_amhgo=4.184, amhgo_min_seq_sep=3, amhgo_contact_threshold=0.8*nanometers, amhgo_well_width=0.1):
     import itertools
     # multiply interaction strength by overall scaling
     print("AMH-GO structure based term is ON")

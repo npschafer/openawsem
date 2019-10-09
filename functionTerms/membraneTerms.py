@@ -167,3 +167,23 @@ def rg_bias_term(oa, k_rg=4.184, rg0=0, atomGroup=-1, forceGroup=27):
     rg.setForceGroup(forceGroup)
     return rg
 
+def cylindrical_rg_bias_term(oa, k_rg=4.184, rg0=0, atomGroup=-1, forceGroup=27):
+    nres, ca = oa.nres, oa.ca
+    if atomGroup == -1:
+        group = list(range(nres))
+    else:
+        group = atomGroup     # atomGroup = [0, 1, 10, 12]  means include residue 1, 2, 11, 13.
+    n = len(group)
+    rg_square = CustomBondForce("1/normalization*(x^2+y^2)")
+    # rg = CustomBondForce("1")
+    rg_square.addGlobalParameter("normalization", n*n)
+    for i in group:
+        for j in group:
+            if j <= i:
+                continue
+            rg_square.addBond(ca[i], ca[j], [])
+    rg = CustomCVForce(f"{k_rg}*(rg_square^0.5-{rg0})^2")
+    rg.addCollectiveVariable("rg_square", rg_square)
+    rg.setForceGroup(forceGroup)
+    return rg
+

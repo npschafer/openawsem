@@ -2,7 +2,9 @@ import pandas
 import simtk.openmm
 import os
 import shutil
-
+# imports for accessibility outside
+import functionTerms
+functionTerms=functionTerms
 # Reads pdb file to a table
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 _AWSEMresidues = ['IPR', 'IGL', 'NGP']
@@ -93,7 +95,7 @@ class Protein(object):
         sel = atoms[atoms['resname'].isin(_AWSEMresidues)]
         resix = sel['chain_res'].unique()
         assert len(resix) == len(sequence), \
-            f'The number of residues {len(resix)} does not agree with the length of the sequence {len(protein_sequence_one)}'
+            f'The number of residues {len(resix)} does not agree with the length of the sequence {len(sequence)}'
         atoms.index = atoms['chain_res']
         for r, s in zip(resix, sequence):
             atoms.loc[r, 'real_resname'] = s
@@ -183,6 +185,78 @@ class Protein(object):
         """ Compute the bonds and angles from the pdb"""
         pass
 
+    @staticmethod
+    def CoarseGrain(pdb_table):
+        """ Selects AWSEM atoms from a pdb table and returns a table containing only the coarse-grained atoms for AWSEM """
+        protein_residues = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS',
+                            'GLN', 'GLU', 'GLY', 'HIS', 'ILE',
+                            'LEU', 'LYS', 'MET', 'PHE', 'PRO',
+                            'SER', 'THR', 'TRP', 'TYR', 'VAL']
+        awsem_atoms = ["N", "H", "CA", "C", "O", "CB"]
+
+        # Select coarse grained atoms
+        selection = pdb_table[pdb_table.resname.isin(protein_residues) & pdb_table.name.isin(awsem_atoms)].copy()
+
+        # Remove virtual atoms at the end or begining of the chain
+        drop_list = []
+        for chain in selection.chainID.unique():
+            sel = selection[selection.chainID == chain]
+            drop_list += list(sel[(sel.resSeq == sel.resSeq.min()) & sel['name'].isin(['N', 'H'])].index)
+            drop_list += list(sel[(sel.resSeq == sel.resSeq.max()) & sel['name'].isin(['C'])].index)
+        selection = selection.drop(drop_list)
+
+        # Replace resnames
+        selection['real_resname'] = selection.resname.copy()
+        resname = selection.resname.copy()
+        resname[:] = 'NGP'
+        resname[selection.resname == 'PRO'] = 'IPR'
+        resname[selection.resname == 'GLY'] = 'IGL'
+        selection.resname = resname
+
+        # CB element is B
+        selection.loc[selection['name'] == 'CB', 'element'] = 'B'
+
+        # Reorder atoms
+        selection.name = pandas.Categorical(selection.name, awsem_atoms)
+        selection.sort_values(['chainID', 'resSeq', 'name'])
+
+        # Prepare virtual sites
+        for c, chain in selection.groupby('chainID'):
+            first = chain.resSeq.min()
+            last = chain.resSeq.max()
+            for i, residue in chain.groupby('resSeq'):
+                idx = dict(zip(residue.name, residue.index))
+                pos = dict(zip(residue.name, [residue.loc[i, ['x', 'y', 'z']] for i in residue.index]))
+
+                if i != first:
+                    if 'N' in idx.keys():
+                        selection.loc[idx['N'], ['x', 'y', 'z']] = 0.48318 * pos_im['CA'] + 0.70328 * pos[
+                            'CA'] - 0.18643 * pos_im['O']
+                    if 'H' in idx.keys():
+                        selection.loc[idx['H'], ['x', 'y', 'z']] = 0.84100 * pos_im['CA'] + 0.89296 * pos[
+                            'CA'] - 0.73389 * pos_im['O']
+                    if 'C' in idx.keys():
+                        selection.loc[idx_im['C'], ['x', 'y', 'z']] = 0.44365 * pos_im['CA'] + 0.23520 * pos[
+                            'CA'] + 0.32115 * pos_im['O']
+
+                pos_im = pos.copy()
+                idx_im = idx.copy()
+        # Renumber
+        selection['serial'] = range(len(selection))
+        return selection
+
+    @staticmethod
+    def write_sequence(Coarse, seq_file='protein.seq'):
+        from Bio.PDB.Polypeptide import three_to_one
+        protein_data = Coarse[Coarse.resname.isin(_AWSEMresidues)].copy()
+        resix = (protein_data.chainID + '_' + protein_data.resSeq.astype(str))
+        res_unique = resix.unique()
+        protein_data['resID'] = resix.replace(dict(zip(res_unique, range(len(res_unique)))))
+        protein_sequence = [r.iloc[0]['real_resname'] for i, r in protein_data.groupby('resID')]
+        protein_sequence_one = [three_to_one(a) for a in protein_sequence]
+
+        with open(seq_file, 'w+') as ps:
+            ps.write(''.join(protein_sequence_one))
 
 def addNonBondedExclusions(oa, force):
     cb_fixed = [x if x > 0 else y for x, y in zip(oa.cb, oa.ca)]

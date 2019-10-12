@@ -54,6 +54,18 @@ if not os.path.exists(pdbDir) or not os.path.exists(fLibDir) or not os.path.exis
     print("Can't create necessary directories")
     sys.exit()
 
+failed_download_pdb_list =[]
+failed_download_pdb_list_file = f"{openawsem_location}/notExistPDBsList"
+if os.path.exists(failed_download_pdb_list_file):
+    with open(failed_download_pdb_list_file) as f:
+        for line in f:
+            failed_download_pdb_list.append(line.strip())
+    # failed_download_pdb_list = list(set(failed_download_pdb_list))
+    # print(failed_download_pdb_list)
+    # for pdb in failed_download_pdb_list:
+    #     print(pdb)
+    # exit()
+
 # set up out
 LAMWmatch = open('frags.mem', 'w')
 LAMWmatch.write('[Target]' + "\n")
@@ -166,7 +178,12 @@ for record in SeqIO.parse(handle, "fasta"):
     for line in match.readlines():
         matchlines.append(line)
         entries = line.split()
-        pdbfull = str(entries[0])
+        entry = entries[0]
+        if entry[:3] == "pdb":
+            # for example 'pdb|4V12|A'
+            pdbfull = str(entry[4:8]) + str(entry[9:])
+        else:
+            pdbfull = str(entry)
         keys[pdbfull] = 1
     unique = list(keys.keys())
 
@@ -189,6 +206,10 @@ for record in SeqIO.parse(handle, "fasta"):
         homo[pdbID] = 0
         homo_count[pdbID] = 0
 
+        if pdbID in failed_download_pdb_list:
+            failed_pdb[pdbID] = 1
+            print(":::Cannot build PDB for PDB ID, skipped:" + pdbID.upper())
+            continue
         # download PDBs if not exist    ##from script 'pdbget' (original author
         # unknown)
         if not os.path.isfile(pdbDir + pdbID.upper() + ".pdb"):
@@ -245,7 +266,13 @@ for record in SeqIO.parse(handle, "fasta"):
             windows_index_str = entries[11]
             if count[windows_index_str] >= N_mem:
                 continue
-            pdbfull = str(entries[0])
+            # pdbfull = str(entries[0])
+            entry = entries[0]
+            if entry[:3] == "pdb":
+                # for example 'pdb|4V12|A'
+                pdbfull = str(entry[4:8]) + str(entry[9:])
+            else:
+                pdbfull = str(entry)
             pdbID = pdbfull[0:4].lower()
             pdbIDsecond = pdbfull[1:2].lower()
             pdbIDthird = pdbfull[2:3].lower()
@@ -390,7 +417,13 @@ for record in SeqIO.parse(handle, "fasta"):
         entries = line.split()
         print("sseqid slen bitscore score evalue pident")
         print(entries)
-        pdbfull = entries[0]
+        entry = entries[0]
+        if entry[:3] == "pdb":
+            # for example 'pdb|4V12|A'
+            pdbfull = str(entry[4:8]) + str(entry[9:])
+        else:
+            pdbfull = str(entry)
+        # pdbfull = entries[0]
         pdbID = pdbfull[0:4].lower()
         if brain_damage == 0:
             total_homo_count += homo_count[pdbID]
@@ -412,7 +445,13 @@ for record in SeqIO.parse(handle, "fasta"):
     for line in homoOut:
         entries = line.split()
         if len(entries):
-            pdbfull = entries[0]
+            entry = entries[0]
+            if entry[:3] == "pdb":
+                # for example 'pdb|4V12|A'
+                pdbfull = str(entry[4:8]) + str(entry[9:])
+            else:
+                pdbfull = str(entry)
+            # pdbfull = entries[0]
             pdbID = pdbfull[0:4].lower()
             print(pdbID)
 

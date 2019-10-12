@@ -8,19 +8,19 @@ def read_reference_structure_for_q_calculation_4(oa, contact_threshold,rnative_d
     # use contact matrix for Q calculation
     # this change use the canonical Qw/Qo calculation for reference Q
     # for Qw calculation is 0; Qo is 1;
-    in_rnative = np.loadtxt(rnative_dat)  ## read in rnative_dat file for Q calculation
+    in_rnative = np.loadtxt(rnative_dat)  # read in rnative_dat file for Q calculation
     structure_interactions = []
     chain_start = 0
-    count = 0;
+    count = 0
     for i in range(oa.nres):
         chain_start += count
         count = 0
         for j in range(oa.nres):
             count +=1
             if abs(i-j) >= min_seq_sep and abs(i-j) <= max_seq_sep:  # taking the signed value to avoid double counting
-                r_ijN = in_rnative[i][j]/10.0 * nanometers # convert to nm
+                r_ijN = in_rnative[i][j]/10.0 * nanometers  # convert to nm
                 if r_ijN < contact_threshold: continue
-                sigma_ij = 0.1*abs(i-j)**0.15 # 0.1 nm = 1 A
+                sigma_ij = 0.1*abs(i-j)**0.15  # 0.1 nm = 1 A
                 gamma_ij = 1.0
                 i_index = oa.ca[i]
                 j_index = oa.ca[j]
@@ -38,19 +38,19 @@ def q_value_dat(oa, contact_threshold, rnative_dat="rnative.dat", min_seq_sep=3,
     qvalue_dat.addPerBondParameter("gamma_ij")
     qvalue_dat.addPerBondParameter("r_ijN")
     qvalue_dat.addPerBondParameter("sigma_ij")
-    structure_interactions_tbm_q = read_reference_structure_for_q_calculation_4(oa, contact_threshold=contact_threshold,rnative_dat="rnative.dat",  min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep)
+    structure_interactions_tbm_q = read_reference_structure_for_q_calculation_4(oa, contact_threshold=contact_threshold,rnative_dat="rnative.dat", min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep)
     qvalue_dat.addGlobalParameter("normalization", len(structure_interactions_tbm_q))
     for structure_interaction_tbm_q in structure_interactions_tbm_q:
         qvalue_dat.addBond(*structure_interaction_tbm_q)
     return qvalue_dat
 
 
-def tbm_q_term(oa, k_tbm_q, tbm_q_min_seq_sep=2, tbm_q_cutoff=0.2*nanometers, tbm_q_well_width=0.1, target_q=1.0, forceGroup=26):
+def tbm_q_term(oa, k_tbm_q, tbm_q_min_seq_sep=3, tbm_q_cutoff=0.2*nanometers, tbm_q_well_width=0.1, target_q=1.0, forceGroup=26):
     ### Added by Mingchen Chen
     ### this function is solely used for template based modelling from rnative.dat file
     ### for details, refer to Chen, Lin & Lu Wolynes JCTC 2018
     print("TBM_Q term ON")
-    tbm_q = CustomCVForce("0.5*k_tbm_q*(q-q0)^2")
+    tbm_q = CustomCVForce("k_tbm_q*(q-q0)^2")
     q = q_value_dat(oa, contact_threshold=tbm_q_cutoff, rnative_dat="rnative.dat", min_seq_sep=tbm_q_min_seq_sep, max_seq_sep=np.inf)
     tbm_q.addCollectiveVariable("q", q)
     tbm_q.addGlobalParameter("k_tbm_q", k_tbm_q)
@@ -349,6 +349,8 @@ def density_dependent_associative_memory_term(oa, memories, k_am_dd=1.0, am_dd_m
 
 def read_amhgo_structure(oa, pdb_file, chain_name, amhgo_min_seq_sep=4, amhgo_contact_threshold=0.8*nanometers, amhgo_well_width=0.1):
     structure_interactions = []
+    from Bio.PDB import PDBParser
+    import itertools
     parser = PDBParser()
     structure = parser.get_structure('X', pdb_file)
     chain = structure[0][chain_name]
@@ -374,7 +376,7 @@ def read_amhgo_structure(oa, pdb_file, chain_name, amhgo_min_seq_sep=4, amhgo_co
                     cb_j = residue_j['CB']
                     cb_list.append(cb_j)
                     atom_list_j.append(cb_j)
-                for atom_i, atom_j in product(atom_list_i, atom_list_j):
+                for atom_i, atom_j in itertools.product(atom_list_i, atom_list_j):
                     r_ijN = abs(atom_i - atom_j)/10.0*nanometers # convert to nm
                     if r_ijN <= amhgo_contact_threshold:
                         sigma_ij = amhgo_well_width*abs(i-j)**0.15 # 0.1 nm = 1 A
@@ -392,15 +394,14 @@ def read_amhgo_structure(oa, pdb_file, chain_name, amhgo_min_seq_sep=4, amhgo_co
                         structure_interactions.append(structure_interaction)
     return structure_interactions
 
-def additive_amhgo_term(oa, pdb_file, chain_name, k_amhgo=4.184, amhgo_min_seq_sep=10, amhgo_contact_threshold=0.8*nanometers, amhgo_well_width=0.1):
+def additive_amhgo_term(oa, pdb_file, chain_name, k_amhgo=4.184, amhgo_min_seq_sep=3, amhgo_contact_threshold=0.8*nanometers, amhgo_well_width=0.1):
     import itertools
     # multiply interaction strength by overall scaling
     print("AMH-GO structure based term is ON")
     k_amhgo *= oa.k_awsem
     # create contact force
-    amhgo = CustomBondForce("-k_amhgo*gamma_ij*exp(-(r-r_ijN)^2/(2*sigma_ij^2))")
+    amhgo = CustomBondForce(f"-{k_amhgo}*gamma_ij*exp(-(r-r_ijN)^2/(2*sigma_ij^2))")
     # # add global parameters
-    amhgo.addGlobalParameter("k_amhgo", k_amhgo)
     amhgo.addPerBondParameter("gamma_ij")
     amhgo.addPerBondParameter("r_ijN")
     amhgo.addPerBondParameter("sigma_ij")

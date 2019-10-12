@@ -11,7 +11,7 @@ def con_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, .153], forceGroup
     con = HarmonicBondForce()
     for i in range(oa.nres):
         con.addBond(oa.ca[i], oa.o[i], bond_lengths[1], k_con)
-        if not oa.res_type[i] == "IGL":
+        if not oa.res_type[i] == "IGL": # Openawsem system doesn't have virtual HB atom for glycine, so con_term doesn't include C_alpha and HB interaction in LAMMPS
             con.addBond(oa.ca[i], oa.cb[i], bond_lengths[3], k_con)
         if i not in oa.chain_ends:
             con.addBond(oa.ca[i], oa.ca[i+1], bond_lengths[0], k_con)
@@ -66,6 +66,7 @@ def excl_term(oa, k_excl=8368, r_excl=0.35, periodic=False, forceGroup=20):
     # Still need to add element specific parameters
     # 8368 = 20 * 4.184 * 100 kJ/nm^2, converted from default value in LAMMPS AWSEM
     # multiply interaction strength by overall scaling
+    # Openawsem doesn't have the distance range (r_excl) change from 0.35 to 0.45 when the sequence separtation more than 5
     k_excl *= oa.k_awsem
     excl = CustomNonbondedForce("k_excl*step(r0-r)*(r-r0)^2")
     excl.addGlobalParameter("k_excl", k_excl)

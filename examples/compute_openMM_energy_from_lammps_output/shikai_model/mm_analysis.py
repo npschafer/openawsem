@@ -37,7 +37,6 @@ parser.add_argument("-o", "--output", type=str, default=None, help="The Name of 
 parser.add_argument("--subMode", type=int, default=3)
 parser.add_argument("-f", "--forces", default="forces_setup.py")
 parser.add_argument("--parameters", default=None)
-parser.add_argument("--fromOpenMMPDB", action="store_true", default=False)
 args = parser.parse_args()
 
 with open('analysis_commandline_args.txt', 'a') as f:
@@ -83,13 +82,7 @@ if chain == "-1":
     print("Chains to simulate: ", chain)
 
 # for compute Q
-if args.fromOpenMMPDB:
-    input_pdb_filename = proteinName
-    seq=read_fasta("crystal_structure.fasta")
-    print(f"Using Seq:\n{seq}")
-else:
-    input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
-    seq=None
+input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
 
 fileType = trajectoryPath[-3:]
 if fileType == "pdb":
@@ -103,7 +96,7 @@ else:
 
 
 
-oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filename=f"{OPENAWSEM_LOCATION}/awsem.xml", seqFromPdb=seq)  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
+oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filename=f"{OPENAWSEM_LOCATION}/awsem.xml")  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 
 print(f"using force setup file from {forceSetupFile}")
 spec = importlib.util.spec_from_file_location("forces", forceSetupFile)
@@ -121,12 +114,19 @@ integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 2*femtoseconds)
 simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
 
 # apply forces
-forceGroupTable = {"Backbone":20, "Rama":21, "Contact":22, "Fragment":23, "Membrane":24, "ER":25, "TBM_Q":26, "Beta":27, "Pap":28, "Helical":29,
-                    "Q":1, "Rg":2, "Qc":3,
+forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Contact":22, "Fragment":23, "Membrane":24, "ER":25, "TBM_Q":26, "Beta":27, "Pap":28, "Helical":29,
+                    "Q":1, "Rg":2,
                     "Helix_orientation":18, "Pulling":19,
                     "Total":list(range(11, 32))
                     # , "Q_wat":4, "Q_mem":5, "Debye_huckel":30
                    }
+
+# forceGroupTable = {"Backbone":20, "Rama":21, "Contact":22, "Fragment":23, "Membrane":24, "ER":25, "TBM_Q":26, "Beta":27, "Pap":28, "Helical":29,
+#                     "Q":1, "Rg":2,
+#                     "Helix_orientation":18, "Pulling":19,
+#                     "Total":list(range(11, 32))
+#                     # , "Q_wat":4, "Q_mem":5, "Debye_huckel":30
+#                    }
 
 # forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
 #                     "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "beta_2":24,"beta_3":25,"pap":26, "Total":list(range(11, 32)),
@@ -139,8 +139,9 @@ forceGroupTable = {"Backbone":20, "Rama":21, "Contact":22, "Fragment":23, "Membr
 # forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
 #                    "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "Total":list(range(11, 26)),
 #                    "Water":[16, 18], "beta":[23, 24, 25], "Q":1}
+showEnergy = ["Q", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Fragment", "Membrane", "ER", "TBM_Q", "Beta", "Pap", "Helical", "Total"]
 
-showEnergy = ["Q", "Rg", "Backbone", "Rama", "Contact", "Fragment", "Membrane", "ER", "TBM_Q", "Beta", "Pap", "Helical", "Total"]
+# showEnergy = ["Q", "Rg", "Backbone", "Rama", "Contact", "Fragment", "Membrane", "ER", "TBM_Q", "Beta", "Pap", "Helical", "Total"]
 # , "Disulfide"
 # showEnergy = ["Q", "Qc", "Rg", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Helical", "Fragment", "Membrane", "ER", "Beta", "Pap", "Total"]
 # showEnergy = ["Q", "Qc", "Rg", "Pulling", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "FamilyFold", "Fragment", "Membrane", "Beta", "Pap", "Rg_Bias", "Total"]

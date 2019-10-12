@@ -53,6 +53,39 @@ def membrane_preassigned_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, mem
     return membrane
 
 
+def SideToZ_m(side):
+    side = side.strip()
+    if side == "down":
+        return -1.5
+    if side == "up":
+        return 1.5
+    if side == "middle":
+        return 0
+
+def membrane_preassigned_side_term(oa, k=1*kilocalorie_per_mole, membrane_center=0*angstrom, zimFile="PredictedZimSide", forceGroup=24):
+    # k_m in units of nm^-1, z_m in units of nm.
+    # z_m is half of membrane thickness
+    # membrane_center is the membrane center plane shifted in z axis.
+    # add membrane forces
+    # 1 Kcal = 4.184 kJ strength by overall scaling
+    membrane_center = membrane_center.value_in_unit(nanometer)   # convert to nm
+    k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
+    k_membrane = k * oa.k_awsem
+    membrane = CustomExternalForce(f"{k_membrane}*(abs(z-{membrane_center}-z_m))")
+    membrane.addPerParticleParameter("z_m")
+
+    with open(zimFile) as f:
+        a = f.readlines()
+
+    cb_fixed = [x if x > 0 else y for x,y in zip(oa.cb,oa.ca)]
+    # print(cb_fixed)
+    for i in cb_fixed:
+        z_m = SideToZ_m(a[oa.resi[i]])
+        # print(oa.resi[i])
+        membrane.addParticle(i, [z_m])
+    membrane.setForceGroup(forceGroup)
+    return membrane
+
 
 def single_helix_orientation_bias_term(oa, k=1*kilocalorie_per_mole, membrane_center=0*angstrom, z_m=1.5, k_m=20, atomGroup=-1, forceGroup=18):
     membrane_center = membrane_center.value_in_unit(nanometer)   # convert to nm
@@ -83,7 +116,7 @@ def single_helix_orientation_bias_term(oa, k=1*kilocalorie_per_mole, membrane_ce
     return v_orientation
 
 
-def pulling_term(oa, k_pulling=4.184, forceDirect="x", appliedToResidue=0, forceGroup=19):
+def pulling_term(oa, k_pulling=4.184, forceDirect="x", appliedToResidue=1, forceGroup=19):
     # k_m in units of nm^-1, z_m in units of nm.
     # z_m is half of membrane thickness
     # membrane_center is the membrane center plane shifted in z axis.
@@ -92,7 +125,7 @@ def pulling_term(oa, k_pulling=4.184, forceDirect="x", appliedToResidue=0, force
     k_pulling *= oa.k_awsem
     pulling = CustomExternalForce(f"(-{k_pulling})*({forceDirect})")
     for i in range(oa.natoms):
-        if oa.resi[i] == appliedToResidue:
+        if oa.resi[i] == (appliedToResidue-1):
             pulling.addParticle(i)
         # print(oa.resi[i] , oa.seq[oa.resi[i]])
     pulling.setForceGroup(forceGroup)
@@ -114,22 +147,43 @@ def rg_term(oa, convertToAngstrom=True):
     rg.setForceGroup(2)
     return rg
 
-# def rg_bias_term(oa, k_rg=4.184, rg0=0, atomGroup=-1):
-#     nres, ca = oa.nres, oa.ca
-#     if atomGroup == -1:
-#         group = list(range(nres))
-#     else:
-#         group = atomGroup
-#     n = len(group)
-#     rg_square = CustomBondForce("1/normalization*r^2")
-#     # rg = CustomBondForce("1")
-#     rg_square.addGlobalParameter("normalization", n*n)
-#     for i in group:
-#         for j in group:
-#             if j <= i:
-#                 continue
-#             rg_square.addBond(ca[i], ca[j], [])
-#     rg = CustomCVForce(f"{k_rg}*(rg_square^0.5-{rg0})^2")
-#     rg.addCollectiveVariable("rg_square", rg_square)
-#     rg.setForceGroup(27)
-#     return rg
+def rg_bias_term(oa, k_rg=4.184, rg0=0, atomGroup=-1, forceGroup=27):
+    nres, ca = oa.nres, oa.ca
+    if atomGroup == -1:
+        group = list(range(nres))
+    else:
+        group = atomGroup     # atomGroup = [0, 1, 10, 12]  means include residue 1, 2, 11, 13.
+    n = len(group)
+    rg_square = CustomBondForce("1/normalization*r^2")
+    # rg = CustomBondForce("1")
+    rg_square.addGlobalParameter("normalization", n*n)
+    for i in group:
+        for j in group:
+            if j <= i:
+                continue
+            rg_square.addBond(ca[i], ca[j], [])
+    rg = CustomCVForce(f"{k_rg}*(rg_square^0.5-{rg0})^2")
+    rg.addCollectiveVariable("rg_square", rg_square)
+    rg.setForceGroup(forceGroup)
+    return rg
+
+def cylindrical_rg_bias_term(oa, k_rg=4.184, rg0=0, atomGroup=-1, forceGroup=27):
+    nres, ca = oa.nres, oa.ca
+    if atomGroup == -1:
+        group = list(range(nres))
+    else:
+        group = atomGroup     # atomGroup = [0, 1, 10, 12]  means include residue 1, 2, 11, 13.
+    n = len(group)
+    rg_square = CustomBondForce("1/normalization*(x^2+y^2)")
+    # rg = CustomBondForce("1")
+    rg_square.addGlobalParameter("normalization", n*n)
+    for i in group:
+        for j in group:
+            if j <= i:
+                continue
+            rg_square.addBond(ca[i], ca[j], [])
+    rg = CustomCVForce(f"{k_rg}*(rg_square^0.5-{rg0})^2")
+    rg.addCollectiveVariable("rg_square", rg_square)
+    rg.setForceGroup(forceGroup)
+    return rg
+

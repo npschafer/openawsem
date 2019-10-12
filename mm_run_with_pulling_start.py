@@ -46,8 +46,6 @@ parser.add_argument("--subMode", type=int, default=-1)
 parser.add_argument("-f", "--forces", default="forces_setup.py")
 parser.add_argument("--parameters", default=None)
 parser.add_argument("--reportFrequency", type=int, default=-1)
-parser.add_argument("--fromOpenMMPDB", action="store_true", default=False)
-
 args = parser.parse_args()
 
 
@@ -70,7 +68,6 @@ if simulation_platform == "CPU":
 
 # if mm_run.py is not at the same location of your setup folder.
 setupFolderPath = os.path.dirname(args.protein)
-setupFolderPath = "." if setupFolderPath == "" else setupFolderPath
 proteinName = pdb_id = os.path.basename(args.protein)
 
 
@@ -94,19 +91,20 @@ if chain == "-1":
 if args.to != "./":
     # os.system(f"mkdir -p {args.to}")
     os.makedirs(toPath, exist_ok=True)
+    # os.system(f"cp {paramPath} {toPath}/params.py")
     os.system(f"cp {forceSetupFile} {toPath}/forces_setup.py")
     os.system(f"cp crystal_structure.fasta {toPath}/")
     os.system(f"cp crystal_structure.pdb {toPath}/")
     # os.system(f"cp {pdb} {args.to}/{pdb}")
     # pdb = os.path.join(args.to, pdb)
 
-if args.fromOpenMMPDB:
-    input_pdb_filename = proteinName
-    seq=read_fasta("crystal_structure.fasta")
-    print(f"Using Seq:\n{seq}")
-else:
-    input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
-    seq=None
+# import args.params as params
+# spec = importlib.util.spec_from_file_location("params", paramPath)
+# params = importlib.util.module_from_spec(spec)
+# spec.loader.exec_module(params)
+
+input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
+
 
 # start simulation
 collision_rate = 5.0 / picoseconds
@@ -119,6 +117,7 @@ snapShotCount = 400
 stepsPerT = int(args.steps/snapShotCount)
 Tstart = args.tempStart
 Tend = args.tempEnd
+
 if args.reportFrequency == -1:
     if stepsPerT == 0:
         reporter_frequency = 4000
@@ -135,11 +134,11 @@ forces = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(forces)
 
 
-oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml", seqFromPdb=seq)  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
+oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml")  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 myForces = forces.set_up_forces(oa, submode=args.subMode, contactParameterLocation=parametersLocation)
 # print(forces)
-# oa.addForces(myForces)
-oa.addForcesWithDefaultForceGroup(myForces)
+oa.addForces(myForces)
+
 
 if args.fromCheckPoint:
     integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, 5*femtoseconds)
@@ -156,19 +155,59 @@ else:
     simulation.minimizeEnergy()  # first, minimize the energy to a local minimum to reduce any large forces that might be present
     simulation.step(int(1))
 
-
-    # print("------------------Folding-------------------")
-    # oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml")  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
-    # myForces = forces.set_up_forces(oa, submode=args.subMode, contactParameterLocation=parametersLocation)
-    # oa.addForces(myForces)
-
+    print("------------------Set topology-------------------")
+    oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml")  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
+    pull_part_forces = forces.set_topology(oa)
+    oa.addForces(pull_part_forces)
+    # integrator = LangevinIntegrator(800*kelvin, 1/picosecond, 5*femtoseconds)
     integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, 5*femtoseconds)
+    # integrator = LangevinIntegrator(800*kelvin, 1/picosecond, 1*picoseconds)
     # integrator = CustomIntegrator(0.001)
     simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
-    # simulation.loadState(os.path.join(toPath, 'output.xml'))
     simulation.context.setPositions(oa.pdb.positions)  # set the initial positions of the atoms
     simulation.context.setVelocitiesToTemperature(Tstart*kelvin)  # set the initial velocities of the atoms according to the desired starting temperature
-    simulation.minimizeEnergy()  # first, minimize the energy to a local minimum to reduce any large forces that might be present
+    # simulation.minimizeEnergy()  # first, minimize the energy to a local minimum to reduce any large forces that might be present
+
+    simulation.reporters.append(PDBReporter(os.path.join(toPath, "topology.pdb"), 1000))
+    simulation.reporters.append(StateDataReporter(stdout, 1000, step=True, potentialEnergy=True, temperature=True))  # output energy and temperature during simulation
+    simulation.step(int(4e5))
+
+    simulation.saveState(os.path.join(toPath, 'output_topo.xml'))
+
+    print("------------------Pulling apart-------------------")
+    oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml")  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
+    myForces = forces.pull_part(oa)
+    # print(forces)
+    oa.addForces(myForces)
+    # integrator = LangevinIntegrator(800*kelvin, 1/picosecond, 5*femtoseconds)
+    integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, 5*femtoseconds)
+    # integrator = LangevinIntegrator(800*kelvin, 1/picosecond, 1*picoseconds)
+    # integrator = CustomIntegrator(0.001)
+    simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
+    simulation.loadState(os.path.join(toPath, 'output_topo.xml'))
+    simulation.reporters.append(PDBReporter(os.path.join(toPath, "pulling.pdb"), 1000))
+    simulation.reporters.append(StateDataReporter(stdout, 1000, step=True, potentialEnergy=True, temperature=True))  # output energy and temperature during simulation
+    simulation.step(int(4e5))
+    simulation.saveState(os.path.join(toPath, 'output.xml'))
+    print("------------------Folding-------------------")
+    oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml")  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
+    myForces = forces.set_up_forces(oa, submode=args.subMode, contactParameterLocation=parametersLocation)
+    # print(forces)
+    oa.addForces(myForces)
+    # integrator = LangevinIntegrator(800*kelvin, 1/picosecond, 5*femtoseconds)
+    integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, 5*femtoseconds)
+    # integrator = LangevinIntegrator(800*kelvin, 1/picosecond, 1*picoseconds)
+    # integrator = CustomIntegrator(0.001)
+    simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
+    simulation.loadState(os.path.join(toPath, 'output.xml'))
+    # simulation.context.setPositions(oa.pdb.positions)  # set the initial positions of the atoms
+    # simulation.context.setVelocitiesToTemperature(Tstart*kelvin)  # set the initial velocities of the atoms according to the desired starting temperature
+    # simulation.minimizeEnergy()  # first, minimize the energy to a local minimum to reduce any large forces that might be present
+
+    # k_mem = simulation.context.getParameter("k_membrane")
+    # k_single_helix_orientation_bias = simulation.context.getParameter("k_single_helix_orientation_bias")
+    # print(k_mem, k_single_helix_orientation_bias)
+
 
 
 print("reporter_frequency", reporter_frequency)
@@ -219,4 +258,4 @@ simulation = None
 time.sleep(10)
 os.chdir(pwd)
 print(os.getcwd())
-os.system(f"{sys.executable} mm_analysis.py {args.protein} -t {os.path.join(toPath, 'movie.dcd')} --subMode {args.subMode} -f {args.forces}")
+os.system(f"python mm_analysis.py {args.protein} -t {os.path.join(toPath, 'movie.dcd')} --subMode {args.subMode} -f {args.forces}")

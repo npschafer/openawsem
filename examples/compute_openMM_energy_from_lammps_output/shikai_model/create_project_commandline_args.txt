@@ -1,0 +1,1 @@
+/Users/weilu/openmmawsem/mm_create_project.py ../model_2001.pdb

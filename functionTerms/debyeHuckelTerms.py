@@ -3,12 +3,13 @@ from simtk.openmm import *
 from simtk.unit import *
 import numpy as np
 
-def debye_huckel_term(self, k_dh=4.15*4.184, forceGroup=30):
+def debye_huckel_term(self, k_dh=4.15*4.184, forceGroup=30, screening_length=1.0):
+        # screening_length (in the unit of nanometers)
         print("Debye Huckel term is ON")
         k_dh *= self.k_awsem*0.1
         k_screening = 1.0
-        screening_length = 1.0  # (in the unit of nanometers)
-        min_seq_sep = 10
+        # screening_length = 1.0  # (in the unit of nanometers)
+        min_seq_sep = 1
         dh = CustomBondForce(f"{k_dh}*charge_i*charge_j/r*exp(-{k_screening}*r/{screening_length})")
         dh.addPerBondParameter("charge_i")
         dh.addPerBondParameter("charge_j")

@@ -8,13 +8,13 @@ def debye_huckel_term(self, k_dh=4.15*4.184, forceGroup=30):
         k_dh *= self.k_awsem*0.1
         k_screening = 1.0
         screening_length = 1.0  # (in the unit of nanometers)
-
+        min_seq_sep = 10
         dh = CustomBondForce(f"{k_dh}*charge_i*charge_j/r*exp(-{k_screening}*r/{screening_length})")
         dh.addPerBondParameter("charge_i")
         dh.addPerBondParameter("charge_j")
         structure_interactions_dh = []
         for i in range(self.nres):
-            for j in range(i+1,self.nres):
+            for j in range(i+min_seq_sep,self.nres):
                 charge_i = 0.0
                 charge_j = 0.0
                 if self.seq[i] == "R" or self.seq[i]=="K":

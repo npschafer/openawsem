@@ -125,6 +125,10 @@ def pulling_term(oa, k_pulling=4.184, forceDirect="x", appliedToResidue=1, force
     k_pulling *= oa.k_awsem
     pulling = CustomExternalForce(f"(-{k_pulling})*({forceDirect})")
     for i in range(oa.natoms):
+        if appliedToResidue == "LAST":
+            appliedToResidue = oa.nres
+        if appliedToResidue == "FIRST":
+            appliedToResidue = 1
         if oa.resi[i] == (appliedToResidue-1):
             pulling.addParticle(i)
         # print(oa.resi[i] , oa.seq[oa.resi[i]])
@@ -147,7 +151,9 @@ def rg_term(oa, convertToAngstrom=True):
     rg.setForceGroup(2)
     return rg
 
-def rg_bias_term(oa, k_rg=4.184, rg0=0, atomGroup=-1, forceGroup=27):
+def rg_bias_term(oa, k=1*kilocalorie_per_mole, rg0=0, atomGroup=-1, forceGroup=27):
+    k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
+    k_rg = oa.k_awsem * k
     nres, ca = oa.nres, oa.ca
     if atomGroup == -1:
         group = list(range(nres))
@@ -167,21 +173,24 @@ def rg_bias_term(oa, k_rg=4.184, rg0=0, atomGroup=-1, forceGroup=27):
     rg.setForceGroup(forceGroup)
     return rg
 
-def cylindrical_rg_bias_term(oa, k_rg=4.184, rg0=0, atomGroup=-1, forceGroup=27):
+def cylindrical_rg_bias_term(oa, k=1*kilocalorie_per_mole, rg0=0, atomGroup=-1, forceGroup=27):
+    k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
+    k_rg = oa.k_awsem * k
     nres, ca = oa.nres, oa.ca
     if atomGroup == -1:
         group = list(range(nres))
     else:
-        group = atomGroup     # atomGroup = [0, 1, 10, 12]  means include residue 1, 2, 11, 13.
+        group = atomGroup          # atomGroup = [0, 1, 10, 12]  means include residue 1, 2, 11, 13.
     n = len(group)
-    rg_square = CustomBondForce("1/normalization*(x^2+y^2)")
-    # rg = CustomBondForce("1")
-    rg_square.addGlobalParameter("normalization", n*n)
+    normalization = n * n
+    rg_square = CustomCompoundBondForce(2, f"1/{normalization}*((x1-x2)^2+(y1-y2)^2)")
+
     for i in group:
         for j in group:
             if j <= i:
                 continue
-            rg_square.addBond(ca[i], ca[j], [])
+            rg_square.addBond([ca[i], ca[j]], [])
+
     rg = CustomCVForce(f"{k_rg}*(rg_square^0.5-{rg0})^2")
     rg.addCollectiveVariable("rg_square", rg_square)
     rg.setForceGroup(forceGroup)

@@ -25,7 +25,8 @@ def inWhichChain(residueId, chain_ends):
             return chain_table[i]
 
 
-def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0*angstrom, k_relative_mem=1.0, periodic=False, parametersLocation=".", burialPartOn=True, withExclusion=True, forceGroup=22):
+def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0*angstrom, k_relative_mem=1.0, periodic=False, parametersLocation=".", burialPartOn=True, withExclusion=True, forceGroup=22,
+                gammaName="gamma.dat", burialGammaName="burial_gamma.dat", membraneGammaName="membrane_gamma.dat"):
     if isinstance(k_contact, float) or isinstance(k_contact, int):
         k_contact = k_contact * oa.k_awsem   # just for backward comptable
     elif isinstance(k_contact, Quantity):
@@ -55,12 +56,12 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
     # read in seq data.
     seq = oa.seq
     # read in gamma info
-    gamma_direct, gamma_mediated = read_gamma(os.path.join(parametersLocation, "gamma.dat"))
+    gamma_direct, gamma_mediated = read_gamma(os.path.join(parametersLocation, gammaName))
 
     burial_kappa = 4.0
     burial_ro_min = [0.0, 3.0, 6.0]
     burial_ro_max = [3.0, 6.0, 9.0]
-    burial_gamma = np.loadtxt(os.path.join(parametersLocation, "burial_gamma.dat"))
+    burial_gamma = np.loadtxt(os.path.join(parametersLocation, burialGammaName))
 
     k_relative_mem = k_relative_mem  # adjust the relative strength of gamma
     inMembrane = int(inMembrane)
@@ -100,7 +101,7 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
 
 
     if z_dependent or inMembrane:
-        mem_gamma_direct, mem_gamma_mediated = read_gamma(os.path.join(parametersLocation, "membrane_gamma.dat"))
+        mem_gamma_direct, mem_gamma_mediated = read_gamma(os.path.join(parametersLocation, membraneGammaName))
         m = 1  # membrane environment
         count = 0
         for i in range(20):

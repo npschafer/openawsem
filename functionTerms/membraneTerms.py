@@ -14,7 +14,7 @@ def membrane_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, membrane_center
     k_membrane = k * oa.k_awsem
 
     membrane = CustomExternalForce(f"k_membrane*\
-            (0.5*tanh({k_m}*((z-{membrane_center})+{z_m}))+0.5*tanh({k_m}*({z_m}-(z-{membrane_center}))))*hydrophobicityScale-0.5")
+            (0.5*tanh({k_m}*((z-{membrane_center})+{z_m}))+0.5*tanh({k_m}*({z_m}-(z-{membrane_center}))))*hydrophobicityScale")
     membrane.addPerParticleParameter("hydrophobicityScale")
     membrane.addGlobalParameter("k_membrane", k_membrane)
     zim = np.loadtxt("zim")
@@ -39,7 +39,7 @@ def membrane_preassigned_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, mem
     k_membrane = k * oa.k_awsem
 
     membrane = CustomExternalForce(f"{k_membrane}*\
-            (0.5*tanh({k_m}*((z-{membrane_center})+{z_m}))+0.5*tanh({k_m}*({z_m}-(z-{membrane_center}))))*zim-0.5")
+            (0.5*tanh({k_m}*((z-{membrane_center})+{z_m}))+0.5*tanh({k_m}*({z_m}-(z-{membrane_center}))))*zim")
     membrane.addPerParticleParameter("zim")
     # zim = np.loadtxt("zim")
     zimPosition = np.loadtxt(zimFile)

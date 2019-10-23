@@ -27,7 +27,7 @@ def set_up_forces(oa, computeQ=False, submode=0, contactParameterLocation=".", m
         rama_ssweight_term(oa, k_rama_ssweight=2*8.368),
         contact_term(oa),
         # for membrane protein simulation use contact_term below.
-        # contact_term(oa, z_dependent=True, inMembrane=True, membrane_center=membrane_center),
+        # contact_term(oa, z_dependent=True, inMembrane=True, membrane_center=membrane_center, k_relative_mem=3),
         beta_term_1(oa),
         beta_term_2(oa),
         beta_term_3(oa),

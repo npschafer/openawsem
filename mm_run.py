@@ -47,6 +47,7 @@ parser.add_argument("-f", "--forces", default="forces_setup.py")
 parser.add_argument("--parameters", default=None)
 parser.add_argument("--reportFrequency", type=int, default=-1, help="default value step/400")
 parser.add_argument("--fromOpenMMPDB", action="store_true", default=False)
+parser.add_argument("--fasta", type=str, default="")
 
 args = parser.parse_args()
 
@@ -108,6 +109,11 @@ else:
     input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
     seq=None
 
+if args.fasta == "":
+    seq = None
+else:
+    seq = seq=read_fasta(args.fasta)
+    print(f"Using Seq:\n{seq}")
 # start simulation
 collision_rate = 5.0 / picoseconds
 checkpoint_file = "checkpnt.chk"
@@ -219,4 +225,4 @@ simulation = None
 time.sleep(10)
 os.chdir(pwd)
 print(os.getcwd())
-os.system(f"{sys.executable} mm_analysis.py {args.protein} -t {os.path.join(toPath, 'movie.dcd')} --subMode {args.subMode} -f {args.forces}")
+os.system(f"{sys.executable} mm_analysis.py {args.protein} -t {os.path.join(toPath, 'movie.dcd')} --subMode {args.subMode} -f {args.forces} --fasta {args.fasta}")

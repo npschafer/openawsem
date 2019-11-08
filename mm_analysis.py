@@ -38,6 +38,8 @@ parser.add_argument("--subMode", type=int, default=3)
 parser.add_argument("-f", "--forces", default="forces_setup.py")
 parser.add_argument("--parameters", default=None)
 parser.add_argument("--fromOpenMMPDB", action="store_true", default=False)
+parser.add_argument("--fasta", type=str, default="")
+
 args = parser.parse_args()
 
 with open('analysis_commandline_args.txt', 'a') as f:
@@ -90,6 +92,12 @@ if args.fromOpenMMPDB:
 else:
     input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
     seq=None
+
+if args.fasta == "":
+    seq = None
+else:
+    seq = seq=read_fasta(args.fasta)
+    print(f"Using Seq:\n{seq}")
 
 fileType = trajectoryPath[-3:]
 if fileType == "pdb":

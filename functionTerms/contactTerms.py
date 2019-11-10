@@ -791,6 +791,72 @@ def hybrid_contact_term(oa, k_contact=4.184, z_m=1.5, membrane_center=0*angstrom
     contact.setForceGroup(18)
     return contact
 
+def disulfide_bond_term(oa, k=1*kilocalorie_per_mole, cutoff=4.2*angstrom, periodic=False, withExclusion=True, forceGroup=30):
+    print("Disulfide Bond term on")
+    k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
+    cutoff = cutoff.value_in_unit(nanometer)
+
+    step_k_bin = 20
+    # eta = 5  # eta actually has unit of nm^-1.
+    k_bin = 50    # in unit of nm^-1.
+    k_disulfide_bond = k * oa.k_awsem
+
+    disulfide_bond = CustomGBForce()
+    disulfide_bond.addPerParticleParameter("resNameA")
+    disulfide_bond.addPerParticleParameter("cysResId")
+    disulfide_bond.addPerParticleParameter("cysCB")
+    # disulfide_bond.addComputedValue("rho", f"isCb1*isCb2*step(abs(resId1-resId2)-2)*0.25*(1+tanh({eta}*(r-{r_min})))*(1+tanh({eta}*({r_max}-r)))", CustomGBForce.ParticlePair)
+    disulfide_bond.addComputedValue("rhoCys", f"cysCB1*cysCB2*step(abs(cysResId1-cysResId2)-2)*0.5*(1-tanh({k_bin}*(r-{cutoff})))", CustomGBForce.ParticlePair)
+    disulfide_bond.addComputedValue("dummy", f"0", CustomGBForce.SingleParticle)
+
+    cysCount = 0
+    for i in range(oa.natoms):
+        if oa.seq[oa.resi[i]] == "C" and i in oa.cb:
+            isCysCB = 1
+        else:
+            isCysCB = 0
+        cysCount += isCysCB
+        disulfide_bond.addParticle([gamma_se_map_1_letter[oa.seq[oa.resi[i]]], oa.resi[i], isCysCB])
+    print(f"number of CYS: {cysCount}")
+
+    # disulfide_bond.addEnergyTerm(f"{k_disulfide_bond}*isCb1*isCb2*step(0.5-abs(rho1-rho2))*step(2.5-rho1-rho2)*0.5*(tanh({k_bin}*(r-{cutoff}))-1)",
+    #                             CustomGBForce.ParticlePair)
+    disulfide_bond.addEnergyTerm(f"{k_disulfide_bond}*cysCB1*cysCB2*min_sep*stepNear*stepSmall*0.5*(tanh({k_bin}*(r-{cutoff}))-1);\
+                                    stepNear=0.5*(tanh({step_k_bin}*(0.5-abs(rhoCys1-rhoCys2)))+1);\
+                                    stepSmall=0.5*(tanh({step_k_bin}*(2-rhoCys1-rhoCys2))+1);\
+                                    min_sep=step(abs(cysResId1-cysResId2)-2)",
+                                CustomGBForce.ParticlePair)
+
+
+
+    # disulfide_bond.addEnergyTerm(f"{k_disulfide_bond}*isCb1*isCb2*0.5*(tanh({k_bin}*(r-{cutoff}))-1)",
+    #                             CustomGBForce.ParticlePair)
+    # disulfide_bond.addEnergyTerm(f"{k_disulfide_bond}*isCb1*isCb2", CustomGBForce.ParticlePair)
+    # disulfide_bond.addEnergyTerm(f"{k_disulfide_bond}*isCb1*isCb2*(rho1+rho2)", CustomGBForce.ParticlePair)
+    if periodic:
+        disulfide_bond.setNonbondedMethod(disulfide_bond.CutoffPeriodic)
+    else:
+        disulfide_bond.setNonbondedMethod(disulfide_bond.CutoffNonPeriodic)
+    # disulfide_bond.setCutoffDistance(10)
+
+    # withExclusion won't affect the result. But may speed up the calculation with CPU but slows down for GPU.
+    cb_fixed = [x if x > 0 else y for x,y in zip(oa.cb,oa.ca)]
+    none_cb_fixed = [i for i in range(oa.natoms) if i not in cb_fixed]
+    if withExclusion:
+        for e1 in none_cb_fixed:
+            for e2 in none_cb_fixed:
+                if e1 > e2:
+                    continue
+                disulfide_bond.addExclusion(e1, e2)
+        for e1 in none_cb_fixed:
+            for e2 in cb_fixed:
+                disulfide_bond.addExclusion(e1, e2)
+    print("Disulfide Bond cutoff ", disulfide_bond.getCutoffDistance())
+    print("Disulfide NonbondedMethod: ", disulfide_bond.getNonbondedMethod())
+    disulfide_bond.setForceGroup(forceGroup)
+    return disulfide_bond
+
+
 '''
 # for debug purpose
 

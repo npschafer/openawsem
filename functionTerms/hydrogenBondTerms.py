@@ -120,10 +120,6 @@ def get_pap_gamma_APH(donor_idx, acceptor_idx, chain_i, chain_j, gamma_APH):
         return gamma_APH
     else:
         return 0
-    # if donor_idx - acceptor_idx < 13 or donor_idx - acceptor_idx > 16:
-    #     return 0
-    # else:
-    #     return gamma_APH
 
 def get_pap_gamma_AP(donor_idx, acceptor_idx, chain_i, chain_j, gamma_AP, ssweight):
     if ssweight[donor_idx][1] == 1 and ssweight[acceptor_idx][1] == 1:
@@ -388,15 +384,14 @@ def pap_term_1(oa, k_pap=4.184, dis_i_to_i4=1.2, forceGroup=28, ssweightFileName
     # print(ca)
     # count = 0;
     i = 0
-    # pap.addAcceptor(ca[0], ca[4], -1, [0])
-    # pap.addAcceptor(ca[20], ca[8], -1, [4])
-    # pap.addDonor(ca[20], ca[0], -1, [4])
+
     for i in range(nres):
         if not isChainEnd(i, oa.chain_ends, n=4):
             pap.addAcceptor(ca[i], ca[i+4], -1, [i])
 
-        if i > 13 and not isChainStart(i, oa.chain_starts, n=4):
-            pap.addDonor(oa.n[i], oa.n[i-4], -1, [i])
+        if not isChainStart(i, oa.chain_starts, n=4):
+            if oa.n[i] != -1 and oa.n[i-4] != -1:
+                pap.addDonor(oa.n[i], oa.n[i-4], -1, [i])
 
     pap.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
     pap.setCutoffDistance(1.0)
@@ -441,9 +436,8 @@ def pap_term_2(oa, k_pap=4.184, dis_i_to_i4=1.2, forceGroup=28, ssweightFileName
     # print(oa.n)
     # count = 0;
     for i in range(nres):
-        if not isChainEnd(i, oa.chain_ends, n=13):
-            pap.addAcceptor(ca[i], ca[i+4], -1, [i])
         if not isChainEnd(i, oa.chain_ends, n=4):
+            pap.addAcceptor(ca[i], ca[i+4], -1, [i])
             # pap.addDonor(ca[i], ca[i+4], -1, [i])
             if oa.n[i] != -1 and oa.n[i+4] != -1:
                 pap.addDonor(oa.n[i], oa.n[i+4], -1, [i])

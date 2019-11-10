@@ -22,7 +22,7 @@ parser.add_argument("--frag", action="store_true", default=False, help="Generate
 parser.add_argument("--extended", action="store_true", default=False, help="Start from extended structure")
 parser.add_argument("--membrane", action="store_true", default=False)
 parser.add_argument("--hybrid", action="store_true", default=False)
-
+parser.add_argument("--verbose", action="store_true", default=False)
 
 args = parser.parse_args()
 
@@ -60,14 +60,14 @@ elif args.protein[-6:] == ".fasta":
     do(f"cp {name}.pdb crystal_structure.pdb")  # treat as crystal_structure.
     pdb = f"{name}.pdb"
 else:
+    # If the file does not exist download it from the server
     name = args.protein
     pdb = f"{name}.pdb"
     pdb_list = [name]
     helperFunctions.myFunctions.downloadPdb(pdb_list)
 
-# If the file does not exist download it from the pdb
 if not os.path.exists(f"crystal_structure.pdb"):
-    helperFunctions.myFunctions.cleanPdb([name], chain="-1", toFolder="cleaned_pdbs")
+    helperFunctions.myFunctions.cleanPdb([name], chain="-1", toFolder="cleaned_pdbs", verbose=args.verbose)
     do(f"cp cleaned_pdbs/{pdb} crystal_structure.pdb")
 
 chain = args.chain.upper()

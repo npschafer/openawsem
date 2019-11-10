@@ -10,6 +10,9 @@ se_map_1_letter = {'A': 0,  'P': 1,  'K': 2,  'N': 3,  'R': 4,
 
 def isChainStart(residueId, chain_starts, n=2):
     # return true if residue is near chain starts.
+    # n=0 means always return False
+    # n=1 means only return True if residue is the the first residue of a chain.
+    # n=2 means return True if residue is the first or the one nearest to the first residue of a chain.
     atBegin = False
     for i in range(n):
         if (residueId-i) in chain_starts:
@@ -18,6 +21,9 @@ def isChainStart(residueId, chain_starts, n=2):
 
 def isChainEnd(residueId, chain_ends, n=2):
     # return true if residue is near chain ends.
+    # n=0 means always return False
+    # n=1 means only return True if residue is the the last residue of a chain.
+    # n=2 means return True if residue is the last or the one nearest to the last residue of a chain.
     atEnd = False
     for i in range(n):
         if (residueId+i) in chain_ends:
@@ -119,16 +125,24 @@ def get_pap_gamma_APH(donor_idx, acceptor_idx, chain_i, chain_j, gamma_APH):
     # else:
     #     return gamma_APH
 
-def get_pap_gamma_AP(donor_idx, acceptor_idx, chain_i, chain_j, gamma_AP):
-    # if (donor_idx - acceptor_idx >= 17) or chain_i != chain_j:
-    if (donor_idx - acceptor_idx >= 17):
-        return gamma_AP
+def get_pap_gamma_AP(donor_idx, acceptor_idx, chain_i, chain_j, gamma_AP, ssweight):
+    if ssweight[donor_idx][1] == 1 and ssweight[acceptor_idx][1] == 1:
+        additional_scale = 1.5
+    else:
+        additional_scale = 1.0
+    # if (donor_idx - acceptor_idx >= 17):
+    if (donor_idx - acceptor_idx >= 17) or chain_i != chain_j:
+        return additional_scale * gamma_AP
     else:
         return 0
 
-def get_pap_gamma_P(donor_idx, acceptor_idx, chain_i, chain_j, gamma_P):
+def get_pap_gamma_P(donor_idx, acceptor_idx, chain_i, chain_j, gamma_P, ssweight):
+    if ssweight[donor_idx][1] == 1 and ssweight[acceptor_idx][1] == 1:
+        additional_scale = 1.5
+    else:
+        additional_scale = 1.0
     if (donor_idx - acceptor_idx >= 9) or chain_i != chain_j:
-        return gamma_P
+        return additional_scale * gamma_P
     else:
         return 0
 
@@ -326,7 +340,7 @@ def beta_term_3(oa, k_beta=4.184, forceGroup=27):
     return beta_3
 
 
-def pap_term_1(oa, k_pap=4.184, dis_i_to_i4=1.2, forceGroup=28):
+def pap_term_1(oa, k_pap=4.184, dis_i_to_i4=1.2, forceGroup=28, ssweightFileName="ssweight"):
     print("pap_1 term ON")
     # dis_i_to_i4 should be in nm, it disfavor hydrogen bond when ca_i and ca_i+4 are 1.2 nm apart away.
     nres, ca = oa.nres, oa.ca
@@ -337,6 +351,12 @@ def pap_term_1(oa, k_pap=4.184, dis_i_to_i4=1.2, forceGroup=28):
     gamma_ap = 0.4
     gamma_p = 0.4
 
+    if not os.path.exists(ssweightFileName):
+        print("No ssweight given, assume all zero")
+        ssweight = np.zeros((nres, 2))
+    else:
+        ssweight = np.loadtxt(ssweightFileName)
+
     gamma_1 = np.zeros((nres, nres))
     gamma_2 = np.zeros((nres, nres))
     for i in range(nres):
@@ -346,7 +366,7 @@ def pap_term_1(oa, k_pap=4.184, dis_i_to_i4=1.2, forceGroup=28):
             resId2 = j
             chain2 = inWhichChain(resId2, oa.chain_ends)
             gamma_1[i][j] = get_pap_gamma_APH(i, j, chain1, chain2, gamma_aph)
-            gamma_2[i][j] = get_pap_gamma_AP(i, j, chain1, chain2, gamma_ap)
+            gamma_2[i][j] = get_pap_gamma_AP(i, j, chain1, chain2, gamma_ap, ssweight)
 
     constraint_i_and_i4 = f"0.5*(1+tanh({eta_pap}*(distance(a1,a2)-{dis_i_to_i4})))"
 
@@ -384,7 +404,7 @@ def pap_term_1(oa, k_pap=4.184, dis_i_to_i4=1.2, forceGroup=28):
     pap.setForceGroup(forceGroup)
     return pap
 
-def pap_term_2(oa, k_pap=4.184, dis_i_to_i4=1.2, forceGroup=28):
+def pap_term_2(oa, k_pap=4.184, dis_i_to_i4=1.2, forceGroup=28, ssweightFileName="ssweight"):
     print("pap_2 term ON")
     nres, ca = oa.nres, oa.ca
     # r0 = 2.0 # nm
@@ -393,6 +413,11 @@ def pap_term_2(oa, k_pap=4.184, dis_i_to_i4=1.2, forceGroup=28):
     gamma_aph = 1.0
     gamma_ap = 0.4
     gamma_p = 0.4
+    if not os.path.exists(ssweightFileName):
+        print("No ssweight given, assume all zero")
+        ssweight = np.zeros((nres, 2))
+    else:
+        ssweight = np.loadtxt(ssweightFileName)
 
     gamma_3 = np.zeros((nres, nres))
     for i in range(nres):
@@ -401,7 +426,7 @@ def pap_term_2(oa, k_pap=4.184, dis_i_to_i4=1.2, forceGroup=28):
             chain1 = inWhichChain(resId1, oa.chain_ends)
             resId2 = j
             chain2 = inWhichChain(resId2, oa.chain_ends)
-            gamma_3[i][j] = get_pap_gamma_P(i, j, chain1, chain2, gamma_p)
+            gamma_3[i][j] = get_pap_gamma_P(i, j, chain1, chain2, gamma_p, ssweight)
 
 
     constraint_i_and_i4 = f"0.5*(1+tanh({eta_pap}*(distance(a1,a2)-{dis_i_to_i4})))"

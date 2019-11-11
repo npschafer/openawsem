@@ -791,7 +791,7 @@ def hybrid_contact_term(oa, k_contact=4.184, z_m=1.5, membrane_center=0*angstrom
     contact.setForceGroup(18)
     return contact
 
-def disulfide_bond_term(oa, k=1*kilocalorie_per_mole, cutoff=4.2*angstrom, k_bin=100, step_k_bin=20, periodic=False, withExclusion=True, forceGroup=31):
+def disulfide_bond_term(oa, k=1*kilocalorie_per_mole, cutoff=4.2*angstrom, k_bin=100, step_k_bin=20, rho_max=2.2, rho_near=0.2, periodic=False, withExclusion=True, forceGroup=31):
     print("Disulfide Bond term on")
     k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
     cutoff = cutoff.value_in_unit(nanometer)
@@ -819,8 +819,8 @@ def disulfide_bond_term(oa, k=1*kilocalorie_per_mole, cutoff=4.2*angstrom, k_bin
     # disulfide_bond.addEnergyTerm(f"{k_disulfide_bond}*isCb1*isCb2*step(0.5-abs(rho1-rho2))*step(2.5-rho1-rho2)*0.5*(tanh({k_bin}*(r-{cutoff}))-1)",
     #                             CustomGBForce.ParticlePair)
     disulfide_bond.addEnergyTerm(f"{k_disulfide_bond}*cysCB1*cysCB2*min_sep*stepNear*stepSmall*0.5*(tanh({k_bin}*(r-{cutoff}))-1);\
-                                    stepNear=0.5*(tanh({step_k_bin}*(0.5-abs(rhoCys1-rhoCys2)))+1);\
-                                    stepSmall=0.5*(tanh({step_k_bin}*(2-rhoCys1-rhoCys2))+1);\
+                                    stepNear=0.5*(tanh({step_k_bin}*({rho_near}-abs(rhoCys1-rhoCys2)))+1);\
+                                    stepSmall=0.5*(tanh({step_k_bin}*({rho_max}-rhoCys1-rhoCys2))+1);\
                                     min_sep=step(abs(cysResId1-cysResId2)-2)",
                                 CustomGBForce.ParticlePair)
 

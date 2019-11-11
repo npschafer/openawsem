@@ -225,4 +225,8 @@ simulation = None
 time.sleep(10)
 os.chdir(pwd)
 print(os.getcwd())
-os.system(f"{sys.executable} mm_analysis.py {args.protein} -t {os.path.join(toPath, 'movie.dcd')} --subMode {args.subMode} -f {args.forces} --fasta {args.fasta}")
+if args.fasta == "":
+    analysis_fasta = ""
+else:
+    analysis_fasta = f"--fasta {args.fasta}"
+os.system(f"{sys.executable} mm_analysis.py {args.protein} -t {os.path.join(toPath, 'movie.dcd')} --subMode {args.subMode} -f {args.forces} {analysis_fasta}")

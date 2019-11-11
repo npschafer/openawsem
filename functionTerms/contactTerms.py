@@ -791,14 +791,11 @@ def hybrid_contact_term(oa, k_contact=4.184, z_m=1.5, membrane_center=0*angstrom
     contact.setForceGroup(18)
     return contact
 
-def disulfide_bond_term(oa, k=1*kilocalorie_per_mole, cutoff=4.2*angstrom, periodic=False, withExclusion=True, forceGroup=31):
+def disulfide_bond_term(oa, k=1*kilocalorie_per_mole, cutoff=4.2*angstrom, k_bin=100, step_k_bin=20, periodic=False, withExclusion=True, forceGroup=31):
     print("Disulfide Bond term on")
     k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
     cutoff = cutoff.value_in_unit(nanometer)
-
-    step_k_bin = 20
-    # eta = 5  # eta actually has unit of nm^-1.
-    k_bin = 50    # in unit of nm^-1.
+    # step_k_bin and k_bin in unit of nm^-1.
     k_disulfide_bond = k * oa.k_awsem
 
     disulfide_bond = CustomGBForce()

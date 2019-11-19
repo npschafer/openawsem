@@ -116,7 +116,7 @@ def get_pap_gamma_APH(donor_idx, acceptor_idx, chain_i, chain_j, gamma_APH):
     # if abs(j-i) < 13 or abs(j-i) > 16:
     # if i-j < 13 or i-j > 16:
     # if (donor_idx - acceptor_idx >= 13 and donor_idx - acceptor_idx <= 16) or chain_i != chain_j:
-    if (donor_idx - acceptor_idx >= 13 and donor_idx - acceptor_idx <= 16):
+    if (donor_idx - acceptor_idx >= 13 and donor_idx - acceptor_idx <= 16) and chain_i == chain_j:
         return gamma_APH
     else:
         return 0
@@ -208,7 +208,8 @@ def beta_term_1(oa, k_beta=4.184, forceGroup=27):
     # mu_2 = 5   # nm^-1
     rcHB = 1.2  # in nm
     # v1i ensures the hydrogen bonding does not occur when five residue segment is shorter than 12 A
-    v1i = f"0.5*(1+tanh({mu_1}*(distance(a2,a3)-{rcHB})))"
+    # v1i = f"0.5*(1+tanh({mu_1}*(distance(a2,a3)-{rcHB})))"
+    v1i = "1"
     beta_string_1 = f"-{k_beta}*lambda_1(res_i,res_j)*theta_ij*v1i;theta_ij={theta_ij};v1i={v1i};r_Oi_Nj=distance(a1,d1);r_Oi_Hj=distance(a1,d2);"
     beta_1 = CustomHbondForce(beta_string_1)
     beta_1.addPerDonorParameter("res_i")
@@ -220,7 +221,8 @@ def beta_term_1(oa, k_beta=4.184, forceGroup=27):
         if oa.o[i]!= -1:
             ca_i_minus_2 = oa.ca[0] if i <= 2 else oa.ca[i-2]
             ca_i_plus_2 = oa.ca[-1] if i+2 >= nres else oa.ca[i+2]
-            beta_1.addAcceptor(oa.o[i], ca_i_minus_2, ca_i_plus_2, [i])
+            # beta_1.addAcceptor(oa.o[i], ca_i_minus_2, ca_i_plus_2, [i])
+            beta_1.addAcceptor(oa.o[i], -1, -1, [i])
         if oa.n[i]!=-1 and oa.h[i]!=-1:
             beta_1.addDonor(oa.n[i], oa.h[i], -1, [i])
     beta_1.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
@@ -625,7 +627,7 @@ def z_dependent_helical_term(oa, k_helical=4.184, membrane_center=0*angstrom, z_
 #     return pap
 
 
-def beta_term_1_old(oa, k_beta=4.184, debug=False):
+def beta_term_1_old(oa, k_beta=4.184, debug=False, forceGroup=23):
 
     print("beta_1 term ON")
     nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
@@ -678,12 +680,13 @@ def beta_term_1_old(oa, k_beta=4.184, debug=False):
             #if not res_type[i+2] == "IPR" and not res_type[j] == "IPR":
             #    beta_3.addBond([o[i], n[j], h[j], o[j], n[i+2], h[i+2], ca[i-2], ca[i+2], ca[j-2], ca[j+2]], [i, j])
 
-    beta_1.setForceGroup(23)
+    # beta_1.setForceGroup(23)
     #beta_2.setForceGroup(24)
     #beta_3.setForceGroup(25)
+    beta_1.setForceGroup(forceGroup)
     return beta_1
 
-def beta_term_2_old(oa, k_beta=4.184, debug=False):
+def beta_term_2_old(oa, k_beta=4.184, debug=False, forceGroup=24):
     print("beta_2 term ON");
     nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
     # add beta potential
@@ -755,11 +758,11 @@ def beta_term_2_old(oa, k_beta=4.184, debug=False):
 
 
     #beta_1.setForceGroup(23)
-    beta_2.setForceGroup(24)
+    beta_2.setForceGroup(forceGroup)
     #beta_3.setForceGroup(25)
     return beta_2
 
-def beta_term_3_old(oa, k_beta=4.184, debug=False):
+def beta_term_3_old(oa, k_beta=4.184, debug=False, forceGroup=25):
     print("beta_3 term ON")
     nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
     # add beta potential
@@ -829,10 +832,10 @@ def beta_term_3_old(oa, k_beta=4.184, debug=False):
 
     #beta_1.setForceGroup(23)
     #beta_2.setForceGroup(24)
-    beta_3.setForceGroup(25)
+    beta_3.setForceGroup(forceGroup)
     return beta_3
 
-def pap_term_old(oa, k_pap=4.184):
+def pap_term_old(oa, k_pap=4.184, forceGroup=26):
     print("pap term ON")
     nres, ca = oa.nres, oa.ca
     # r0 = 2.0 # nm
@@ -872,7 +875,7 @@ def pap_term_old(oa, k_pap=4.184):
                 #count = count + 1;
 
     # print(count)
-    pap.setForceGroup(26)
+    pap.setForceGroup(forceGroup)
     return pap
 
 # def pap_term_1(oa, k_pap=4.184):

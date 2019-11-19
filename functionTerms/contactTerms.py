@@ -804,7 +804,7 @@ def disulfide_bond_term(oa, k=1*kilocalorie_per_mole, cutoff=4.2*angstrom, k_bin
     disulfide_bond.addPerParticleParameter("cysCB")
     # disulfide_bond.addComputedValue("rho", f"isCb1*isCb2*step(abs(resId1-resId2)-2)*0.25*(1+tanh({eta}*(r-{r_min})))*(1+tanh({eta}*({r_max}-r)))", CustomGBForce.ParticlePair)
     disulfide_bond.addComputedValue("rhoCys", f"cysCB1*cysCB2*step(abs(cysResId1-cysResId2)-2)*0.5*(1-tanh({k_bin}*(r-{cutoff})))", CustomGBForce.ParticlePair)
-    disulfide_bond.addComputedValue("dummy", f"0", CustomGBForce.SingleParticle)
+    # disulfide_bond.addComputedValue("dummy", f"0", CustomGBForce.SingleParticle)
 
     cysCount = 0
     for i in range(oa.natoms):

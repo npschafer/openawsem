@@ -43,7 +43,7 @@ def identify_terminal_residues(pdb_filename):
             terminal_residues[chain.id] = (residues[0].id[1], residues[-1].id[1])
         return terminal_residues
 
-def prepare_pdb(pdb_filename, chains_to_simulate):
+def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False):
     # for more information about PDB Fixer, see:
     # http://htmlpreview.github.io/?https://raw.github.com/pandegroup/pdbfixer/master/Manual.html
     # fix up input pdb
@@ -128,11 +128,11 @@ def prepare_pdb(pdb_filename, chains_to_simulate):
     output.close()
 
     #Fix Virtual Site Coordinates:
-    prepare_virtual_sites(input_pdb_filename)
+    prepare_virtual_sites(input_pdb_filename, use_cis_proline=use_cis_proline)
 
     return input_pdb_filename, cleaned_pdb_filename
 
-def prepare_virtual_sites(pdb_file):
+def prepare_virtual_sites(pdb_file, use_cis_proline=False):
     parser = PDBParser(QUIET=True)
     structure=parser.get_structure('X',pdb_file,)
     for model in structure:
@@ -144,12 +144,20 @@ def prepare_virtual_sites(pdb_file):
                 r_i={}
                 for atom in residue:
                     r_i[atom.get_name()]=atom
-                if 'N' in r_i:
-                    r_i['N'].set_coord( 0.48318*r_im['CA'].get_coord()+ 0.70328*r_i['CA'].get_coord()- 0.18643 *r_im['O'].get_coord())
-                if 'C' in r_im:
-                    r_im['C'].set_coord(0.44365*r_im['CA'].get_coord()+ 0.23520*r_i['CA'].get_coord()+ 0.32115 *r_im['O'].get_coord())
-                if 'H' in r_i:
-                    r_i['H'].set_coord( 0.84100*r_im['CA'].get_coord()+ 0.89296*r_i['CA'].get_coord()- 0.73389 *r_im['O'].get_coord())
+                if use_cis_proline and residue.get_resname() == "IPR":
+                    if 'N' in r_i:
+                        r_i['N'].set_coord(-0.2094*r_im['CA'].get_coord()+ 0.6908*r_i['CA'].get_coord() + 0.5190*r_im['O'].get_coord())
+                    if 'C' in r_im:
+                        r_im['C'].set_coord(0.2196*r_im['CA'].get_coord()+ 0.2300*r_i['CA'].get_coord() + 0.5507*r_im['O'].get_coord())
+                    if 'H' in r_i:
+                        r_i['H'].set_coord(-0.9871*r_im['CA'].get_coord()+ 0.9326*r_i['CA'].get_coord() + 1.0604*r_im['O'].get_coord())
+                else:
+                    if 'N' in r_i:
+                        r_i['N'].set_coord(0.48318*r_im['CA'].get_coord()+ 0.70328*r_i['CA'].get_coord()- 0.18643 *r_im['O'].get_coord())
+                    if 'C' in r_im:
+                        r_im['C'].set_coord(0.44365*r_im['CA'].get_coord()+ 0.23520*r_i['CA'].get_coord()+ 0.32115 *r_im['O'].get_coord())
+                    if 'H' in r_i:
+                        r_i['H'].set_coord(0.84100*r_im['CA'].get_coord()+ 0.89296*r_i['CA'].get_coord()- 0.73389 *r_im['O'].get_coord())
     io = PDBIO()
     io.set_structure(structure)
     io.save(pdb_file)
@@ -256,22 +264,37 @@ def get_chain_starts_and_ends(all_res):
     chain_ends.append(len(all_res)-1)
     return chain_starts, chain_ends
 
-def setup_virtual_sites(nres, system, n, h, ca, c, o, cb, res_type, chain_starts, chain_ends):
+def setup_virtual_sites(nres, system, n, h, ca, c, o, cb, res_type, chain_starts, chain_ends, use_cis_proline=False):
     # set virtual sites
     for i in range(nres):
-        if i not in chain_starts:
-            n_virtual_site = ThreeParticleAverageSite(ca[i-1], ca[i], o[i-1],
-                                                      0.48318, 0.70328, -0.18643)
-            system.setVirtualSite(n[i], n_virtual_site)
-            if not res_type[i] == "IPR":
-                h_virtual_site = ThreeParticleAverageSite(ca[i-1], ca[i], o[i-1],
-                                                          0.84100, 0.89296, -0.73389)
-                system.setVirtualSite(h[i], h_virtual_site)
-        if i not in chain_ends:
-            c_virtual_site = ThreeParticleAverageSite(ca[i], ca[i+1], o[i],
-                                                      0.44365, 0.23520, 0.32115)
-            # print("Virtual", c[i])
-            system.setVirtualSite(c[i], c_virtual_site)
+        if use_cis_proline and res_type[i] == "IPR":
+            if i not in chain_starts:
+                n_virtual_site = ThreeParticleAverageSite(ca[i-1], ca[i], o[i-1],
+                                                         -0.2094, 0.6908, 0.5190)
+                system.setVirtualSite(n[i], n_virtual_site)
+                if not res_type[i] == "IPR":
+                    h_virtual_site = ThreeParticleAverageSite(ca[i-1], ca[i], o[i-1],
+                                                            -0.9871, 0.9326, 1.0604)
+                    system.setVirtualSite(h[i], h_virtual_site)
+            if i not in chain_ends:
+                c_virtual_site = ThreeParticleAverageSite(ca[i], ca[i+1], o[i],
+                                                        0.2196, 0.2300, 0.5507)
+                # print("Virtual", c[i])
+                system.setVirtualSite(c[i], c_virtual_site)
+        else:
+            if i not in chain_starts:
+                n_virtual_site = ThreeParticleAverageSite(ca[i-1], ca[i], o[i-1],
+                                                        0.48318, 0.70328, -0.18643)
+                system.setVirtualSite(n[i], n_virtual_site)
+                if not res_type[i] == "IPR":
+                    h_virtual_site = ThreeParticleAverageSite(ca[i-1], ca[i], o[i-1],
+                                                            0.84100, 0.89296, -0.73389)
+                    system.setVirtualSite(h[i], h_virtual_site)
+            if i not in chain_ends:
+                c_virtual_site = ThreeParticleAverageSite(ca[i], ca[i+1], o[i],
+                                                        0.44365, 0.23520, 0.32115)
+                # print("Virtual", c[i])
+                system.setVirtualSite(c[i], c_virtual_site)
 
 def setup_bonds(nres, n, h, ca, c, o, cb, res_type, chain_starts, chain_ends):
     bonds = []

@@ -77,7 +77,7 @@ if chain == "-1":
     print("Chains to simulate: ", chain)
 
 # for compute Q
-input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb("crystal_structure.pdb", chain)
+input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb("crystal_structure.pdb", chain, use_cis_proline=False)
 openmmawsem.ensure_atom_order(input_pdb_filename)
 # get fasta, pdb, seq file ready
 openmmawsem.getSeqFromCleanPdb(input_pdb_filename, chains=chain, writeFastaFile=True)
@@ -86,7 +86,7 @@ do(f"cp crystal_structure.fasta {name}.fasta")
 if args.extended:
     do(f"python3 {__location__}/helperFunctions/fasta2pdb.py extended -f {name}.fasta")
     helperFunctions.myFunctions.add_chain_to_pymol_pdb("extended.pdb")  # only work for one chain only now
-    input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb("extended.pdb", "A")
+    input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb("extended.pdb", "A", use_cis_proline=False)
     openmmawsem.ensure_atom_order(input_pdb_filename)
 
 do(f"cp crystal_structure.pdb {pdb}")

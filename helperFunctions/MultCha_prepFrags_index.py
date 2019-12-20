@@ -20,7 +20,7 @@ import subprocess
 
 if len(sys.argv) != 6:
     print("\n######################################################################")
-    print("*.py database-prefix file.fasta N_mem brain_damage_flag (1/0.5/0 for yes/exclude self/no) frag_length > logfile")
+    print("*.py database-prefix file.fasta N_mem brain_damage_flag (2/1/0.5/0 for HO_only/yes/exclude self/no) frag_length > logfile")
     print("######################################################################")
     sys.exit()
 # read arguments into variables
@@ -240,6 +240,12 @@ for record in SeqIO.parse(handle, "fasta"):
         if len(entries):
             pdbfull = entries[0]
             pdbID = pdbfull[0:4].lower()
+            if brain_damage == 2:
+                identity = float(entries[5])
+                # exclude self(>90% identity)
+                if identity <= cutoff_identical:
+                    homo[pdbID] = 1
+                    homo_count[pdbID] = 0
             if brain_damage == 0.5:
                 identity = float(entries[5])
                 # check identity, add only self (>90% identity) to homo[]
@@ -284,11 +290,19 @@ for record in SeqIO.parse(handle, "fasta"):
 
             if failed_pdb[pdbID]:
                 continue  # failed-downloaded ones are still in matchlines, need to be ignored
+            if brain_damage == 2:
+                if homo[pdbID]:
+                    homo_count[pdbID] += 1
+                    pass
+                else:
+                    print(pdbID, "is not a homolog, discard")
+                    continue
+
             if homo[pdbID]:
                 if brain_damage == 0:
                     print(pdbID, " Using  a homolog.")
                     homo_count[pdbID] += 1
-                if brain_damage:
+                if brain_damage == 1:
                     print(pdbID, " is a homolog, discard")
                     continue
             residue_list = entries[6]  # sseq
@@ -425,11 +439,11 @@ for record in SeqIO.parse(handle, "fasta"):
             pdbfull = str(entry)
         # pdbfull = entries[0]
         pdbID = pdbfull[0:4].lower()
-        if brain_damage == 0:
+        if brain_damage == 0 or brain_damage == 2:
             total_homo_count += homo_count[pdbID]
             print("Homolog count =", homo_count[pdbID])
 
-    if brain_damage == 0:
+    if brain_damage == 0 or brain_damage == 2:
         print("Total homolog count = ", total_homo_count, round(total_homo_count / iterations, 2))
 
     print("memories per position that is fewer than expected:")

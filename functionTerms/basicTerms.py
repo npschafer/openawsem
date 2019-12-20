@@ -11,7 +11,7 @@ def con_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, .153], forceGroup
     con = HarmonicBondForce()
     for i in range(oa.nres):
         con.addBond(oa.ca[i], oa.o[i], bond_lengths[1], k_con)
-        if not oa.res_type[i] == "IGL": # Openawsem system doesn't have virtual HB atom for glycine, so con_term doesn't include C_alpha and HB interaction in LAMMPS
+        if not oa.res_type[i] == "IGL":  # OpenAWSEM system doesn't have virtual HB atom for glycine, so con_term doesn't include C_alpha and HB interaction in LAMMPS
             con.addBond(oa.ca[i], oa.cb[i], bond_lengths[3], k_con)
         if i not in oa.chain_ends:
             con.addBond(oa.ca[i], oa.ca[i+1], bond_lengths[0], k_con)

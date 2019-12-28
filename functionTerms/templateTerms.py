@@ -18,7 +18,7 @@ def read_reference_structure_for_q_calculation_4(oa, contact_threshold,rnative_d
         for j in range(oa.nres):
             count +=1
             # if abs(i-j) >= min_seq_sep and abs(i-j) <= max_seq_sep:  # taking the signed value to avoid double counting
-            if i-j >= min_seq_sep and i-j <= max_seq_sep:  # taking the signed value to avoid double counting
+            if j-i >= min_seq_sep and j-i <= max_seq_sep:  # taking the signed value to avoid double counting
                 r_ijN = in_rnative[i][j]/10.0 * nanometers  # convert to nm
                 if r_ijN < contact_threshold:
                     continue
@@ -27,6 +27,7 @@ def read_reference_structure_for_q_calculation_4(oa, contact_threshold,rnative_d
                 i_index = oa.ca[i]
                 j_index = oa.ca[j]
                 structure_interaction = [i_index, j_index, [gamma_ij, r_ijN, sigma_ij]]
+                # print(i, j, r_ijN)
                 structure_interactions.append(structure_interaction)
     return structure_interactions
 
@@ -36,12 +37,13 @@ def q_value_dat(oa, contact_threshold, rnative_dat="rnative.dat", min_seq_sep=3,
     ### Added by Mingchen
     ### this function is solely used for template based modelling from rnative.dat file
     ### for details, refer to Chen, Lin & Lu Wolynes JCTC 2018
-    qvalue_dat = CustomBondForce("(1/normalization)*gamma_ij*exp(-(r-r_ijN)^2/(2*sigma_ij^2))")
+    structure_interactions_tbm_q = read_reference_structure_for_q_calculation_4(oa, contact_threshold=contact_threshold,rnative_dat=rnative_dat, min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep)
+    normalization = len(structure_interactions_tbm_q)
+    qvalue_dat = CustomBondForce(f"(1/{normalization})*gamma_ij*exp(-(r-r_ijN)^2/(2*sigma_ij^2))")
     qvalue_dat.addPerBondParameter("gamma_ij")
     qvalue_dat.addPerBondParameter("r_ijN")
     qvalue_dat.addPerBondParameter("sigma_ij")
-    structure_interactions_tbm_q = read_reference_structure_for_q_calculation_4(oa, contact_threshold=contact_threshold,rnative_dat=rnative_dat, min_seq_sep=min_seq_sep, max_seq_sep=max_seq_sep)
-    qvalue_dat.addGlobalParameter("normalization", len(structure_interactions_tbm_q))
+
     for structure_interaction_tbm_q in structure_interactions_tbm_q:
         qvalue_dat.addBond(*structure_interaction_tbm_q)
     return qvalue_dat
@@ -52,11 +54,9 @@ def tbm_q_term(oa, k_tbm_q, rnative_dat="rnative.dat", tbm_q_min_seq_sep=3, tbm_
     ### this function is solely used for template based modelling from rnative.dat file
     ### for details, refer to Chen, Lin & Lu Wolynes JCTC 2018
     print("TBM_Q term ON")
-    tbm_q = CustomCVForce("k_tbm_q*(q-q0)^2")
+    tbm_q = CustomCVForce(f"{k_tbm_q}*(q-{target_q})^2")
     q = q_value_dat(oa, contact_threshold=tbm_q_cutoff, rnative_dat=rnative_dat, min_seq_sep=tbm_q_min_seq_sep, max_seq_sep=np.inf)
     tbm_q.addCollectiveVariable("q", q)
-    tbm_q.addGlobalParameter("k_tbm_q", k_tbm_q)
-    tbm_q.addGlobalParameter("q0", target_q)
     tbm_q.setForceGroup(forceGroup)
     return tbm_q
 

@@ -110,7 +110,9 @@ def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False):
             awsem_atoms.remove("H")
         if int(res_index) == terminal_residues[chain][1]:
             awsem_atoms.remove("C")
-
+        # GLY should not has CB.
+        if res_type == "GLY":
+            awsem_atoms.remove("CB")
         if atom_type in awsem_atoms:
             line=list(line)
             if res_type == "GLY":

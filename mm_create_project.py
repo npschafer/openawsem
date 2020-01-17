@@ -74,7 +74,7 @@ chain = args.chain.upper()
 # If the chain is not specified then select all the chains
 if chain == "-1":
     chain = helperFunctions.myFunctions.getAllChains("crystal_structure.pdb")
-    print("Chains to simulate: ", chain)
+    print("Chains read from crystal_structure.pdb to simulate: ", chain)
 
 # for compute Q
 input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb("crystal_structure.pdb", chain, use_cis_proline=False)

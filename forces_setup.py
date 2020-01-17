@@ -15,7 +15,7 @@ from openmmawsem import *
 from helperFunctions.myFunctions import *
 
 
-def set_up_forces(oa, computeQ=False, submode=0, contactParameterLocation=".", membrane_center=-0*angstrom):
+def set_up_forces(oa, computeQ=False, submode=-1, contactParameterLocation=".", membrane_center=-0*angstrom):
     # apply forces
     forces = [
         con_term(oa),

@@ -180,13 +180,13 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_file_list_file="./frag.mem", npy
 
     # for edge case, that r > frag_table_rmax
     max_r_index_1 = r_table_size - 2
-    fm = CustomCompoundBondForce(2, f"-k_fm*((v2-v1)*r+v1*r_2-v2*r_1)/(r_2-r_1); \
+    fm = CustomCompoundBondForce(2, f"-{k_fm}*((v2-v1)*r+v1*r_2-v2*r_1)/(r_2-r_1); \
                                 v1=frag_table(index, r_index_1);\
                                 v2=frag_table(index, r_index_2);\
-                                r_1=frag_table_rmin+frag_table_dr*r_index_1;\
-                                r_2=frag_table_rmin+frag_table_dr*r_index_2;\
+                                r_1={frag_table_rmin}+{frag_table_dr}*r_index_1;\
+                                r_2={frag_table_rmin}+{frag_table_dr}*r_index_2;\
                                 r_index_2=r_index_1+1;\
-                                r_index_1=min({max_r_index_1}, floor(r/frag_table_dr));\
+                                r_index_1=min({max_r_index_1}, floor(r/{frag_table_dr}));\
                                 r=distance(p1, p2);")
     for (i, j) in interaction_list:
         fm.addBond([i, j], [interaction_pair_to_bond_index[(i,j)]])
@@ -195,9 +195,7 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_file_list_file="./frag.mem", npy
 
     fm.addTabulatedFunction("frag_table",
             Discrete2DFunction(len(interaction_list), r_table_size, frag_table.T.flatten()))
-    fm.addGlobalParameter("k_fm", k_fm)
-    fm.addGlobalParameter("frag_table_dr", frag_table_dr)
-    fm.addGlobalParameter("frag_table_rmin", frag_table_rmin)
+
 
     fm.setForceGroup(forceGroup)
     return fm

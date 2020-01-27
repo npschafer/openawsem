@@ -423,19 +423,70 @@ def download(pdb_id):
         os.rename("pdb%s.ent" % pdb_id, f"{pdb_id}.pdb")
 
 class OpenMMAWSEMSystem:
-    def __init__(self, pdb_filename, chains='A', xml_filename='awsem.xml', k_awsem=1.0, seqFromPdb=None):
+    def __init__(self, pdb_filename, chains='A', xml_filename='awsem.xml', k_awsem=1.0, seqFromPdb=None, includeLigands=True):
         # read PDB
         self.pdb = PDBFile(pdb_filename)
         self.forcefield = ForceField(xml_filename)
-        self.system = self.forcefield.createSystem(self.pdb.topology)
-        # define convenience variables
-        self.nres = self.pdb.topology.getNumResidues()
-        self.natoms = self.pdb.topology.getNumAtoms()
-        self.residues = list(self.pdb.topology.residues())
-        self.resi = [x.residue.index for x in list(self.pdb.topology.atoms())]
-        # build lists of atoms and residue types
-        # self.atom_lists,self.res_type=build_lists_of_atoms(self.nres, self.residues)
-        self.atom_lists,self.res_type=build_lists_of_atoms_2(self.nres, self.residues, self.pdb.topology.atoms())
+        if not includeLigands:
+            self.system = self.forcefield.createSystem(self.pdb.topology)
+            # define convenience variables
+            self.nres = self.pdb.topology.getNumResidues()
+            self.natoms = self.pdb.topology.getNumAtoms()
+            self.residues = list(self.pdb.topology.residues())
+            self.resi = [x.residue.index for x in list(self.pdb.topology.atoms())]
+            # build lists of atoms and residue types
+            # self.atom_lists,self.res_type=build_lists_of_atoms(self.nres, self.residues)
+            self.atom_lists,self.res_type=build_lists_of_atoms_2(self.nres, self.residues, self.pdb.topology.atoms())
+        if includeLigands:
+            print(self.pdb.topology)
+            [templates, names] = self.forcefield.generateTemplatesForUnmatchedResidues(self.pdb.topology)
+            # a = templates[0]
+            for a in templates:
+                for a1 in a.atoms:
+                    if a1.element.symbol == "C":
+                        a1.type = "CA"
+                    else:
+                        a1.type = a1.element.symbol
+                    # a1.type = a1.element.symbol
+                self.forcefield.registerResidueTemplate(a)
+
+            res_list = list(self.pdb.topology.residues())
+            atom_list = list(self.pdb.topology.atoms())
+            protein_resNames = ["NGP", "IGL", "IPR", "NTER", "CTER"]
+            DNA_resNames = ["DA", "DC", "DT", "DG"]
+            protein_res_list = []
+            DNA_res_list = []
+            ligand_res_list = []
+            for res in res_list:
+                if res.name in protein_resNames:
+                    protein_res_list.append(res)
+                elif res.name in DNA_resNames:
+                    DNA_res_list.append(res)
+                else:
+                    ligand_res_list.append(res)
+
+            protein_atom_list = []
+            DNA_atom_list = []
+            ligand_atom_list = []
+            for atom in atom_list:
+                if atom.residue.name in protein_resNames:
+                    protein_atom_list.append(atom)
+                elif atom.residue.name in DNA_resNames:
+                    DNA_atom_list.append(atom)
+                else:
+                    ligand_atom_list.append(atom)
+            self.ligand_res_list = ligand_res_list
+            self.ligand_atom_list = ligand_atom_list
+            self.protein_atom_list = protein_atom_list
+            self.system = self.forcefield.createSystem(self.pdb.topology)
+            self.nres = len(protein_res_list)
+            self.residues = protein_res_list
+            # self.natoms = len(protein_atom_list)
+            self.natoms = self.pdb.topology.getNumAtoms()
+            self.resi = [x.residue.index if x in protein_atom_list else -1 for x in atom_list]
+            self.atom_lists,self.res_type=build_lists_of_atoms_2(self.nres, self.residues, protein_atom_list)
+
+
         # print(self.atom_lists,self.res_type)
         self.n =self.atom_lists['n']
         self.h =self.atom_lists['h']

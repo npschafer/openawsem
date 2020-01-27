@@ -21,22 +21,24 @@ def read_reference_structure_for_q_calculation_3(oa, pdb_file, reference_chain_n
             #  print(i, residue_i)
             count +=1
             for j, residue_j in enumerate(chain.get_residues()):
-                    if abs(i-j) >= min_seq_sep and abs(i-j) <= max_seq_sep:  # taking the signed value to avoid double counting
-                        ca_i = residue_i['CA']
+                if abs(i-j) >= min_seq_sep and abs(i-j) <= max_seq_sep:  # taking the signed value to avoid double counting
+                    ca_i = residue_i['CA']
 
-                        ca_j = residue_j['CA']
+                    ca_j = residue_j['CA']
 
-                        r_ijN = abs(ca_i - ca_j)/10.0*nanometers # convert to nm
-                        if Qflag ==1 and r_ijN >= contact_threshold: continue
-                        sigma_ij = a*(abs(i-j)**0.15)  # 0.1 nm = 1 A
-                        gamma_ij = 1.0
+                    r_ijN = abs(ca_i - ca_j)/10.0*nanometers # convert to nm
+                    if Qflag ==1 and r_ijN >= contact_threshold: continue
+                    sigma_ij = a*(abs(i-j)**0.15)  # 0.1 nm = 1 A
+                    gamma_ij = 1.0
 
-                        if reference_chain_name is not "ALL" and chain.id != reference_chain_name:
-                            continue
-                        i_index = oa.ca[i+chain_start]
-                        j_index = oa.ca[j+chain_start]
-                        structure_interaction = [i_index, j_index, [gamma_ij, r_ijN, sigma_ij]]
-                        structure_interactions.append(structure_interaction)
+                    if reference_chain_name != "ALL" and (chain.id not in reference_chain_name):
+                        continue
+                    i_index = oa.ca[i+chain_start]
+                    j_index = oa.ca[j+chain_start]
+                    structure_interaction = [i_index, j_index, [gamma_ij, r_ijN, sigma_ij]]
+                    structure_interactions.append(structure_interaction)
+    # print("Done reading")
+    # print(structure_interactions)
     return structure_interactions
 
 def read_reference_structure_for_qc_calculation(oa, pdb_file, min_seq_sep=3, a=0.1, startResidueIndex=0, endResidueIndex=-1, residueIndexGroup=None):

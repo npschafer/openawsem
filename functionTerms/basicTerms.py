@@ -68,9 +68,7 @@ def excl_term(oa, k_excl=8368, r_excl=0.35, periodic=False, forceGroup=20):
     # multiply interaction strength by overall scaling
     # Openawsem doesn't have the distance range (r_excl) change from 0.35 to 0.45 when the sequence separtation more than 5
     k_excl *= oa.k_awsem
-    excl = CustomNonbondedForce("k_excl*step(r0-r)*(r-r0)^2")
-    excl.addGlobalParameter("k_excl", k_excl)
-    excl.addGlobalParameter("r0", r_excl)
+    excl = CustomNonbondedForce(f"{k_excl}*step({r_excl}-r)*(r-{r_excl})^2")
     for i in range(oa.natoms):
         excl.addParticle()
     # print(oa.ca)

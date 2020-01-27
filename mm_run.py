@@ -106,7 +106,11 @@ if args.fromOpenMMPDB:
     seq=read_fasta("crystal_structure.fasta")
     print(f"Using Seq:\n{seq}")
 else:
-    input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
+    suffix = '-openmmawsem.pdb'
+    if pdb_id[-len(suffix):] == suffix:
+        input_pdb_filename = pdb_id
+    else:
+        input_pdb_filename = f"{pdb_id}-openmmawsem.pdb"
     seq=None
 
 if args.fasta == "":

@@ -141,18 +141,8 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
     contact.addPerParticleParameter("resName")
     contact.addPerParticleParameter("resId")
     contact.addPerParticleParameter("isCb")
-    contact.addGlobalParameter("k_contact", k_contact)
-    contact.addGlobalParameter("eta", eta)
-    contact.addGlobalParameter("eta_sigma", eta_sigma)
-    contact.addGlobalParameter("rho_0", rho_0)
-    contact.addGlobalParameter("min_sequence_separation", min_sequence_separation)
-    contact.addGlobalParameter("rmin", r_min)
-    contact.addGlobalParameter("rmax", r_max)
-    contact.addGlobalParameter("rminII", r_minII)
-    contact.addGlobalParameter("rmaxII", r_maxII)
-    contact.addGlobalParameter("burial_kappa", burial_kappa)
 
-    contact.addComputedValue("rho", "isCb1*isCb2*step(abs(resId1-resId2)-2)*0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))", CustomGBForce.ParticlePair)
+    contact.addComputedValue("rho", f"isCb1*isCb2*step(abs(resId1-resId2)-2)*0.25*(1+tanh({eta}*(r-{r_min})))*(1+tanh({eta}*({r_max}-r)))", CustomGBForce.ParticlePair)
 
     # if z_dependent:
     #     contact.addComputedValue("isInMembrane", f"step({z_m}-abs(z))", CustomGBForce.SingleParticle)
@@ -177,17 +167,17 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
         # contact.addComputedValue("isInMembrane", f"step({z_m}-abs(z))", CustomGBForce.SingleParticle)
 
         # mediated and direct term (write separately may lead to bug)
-        contact.addEnergyTerm("isCb1*isCb2*((1-alphaMembrane1*alphaMembrane2)*water_part+alphaMembrane1*alphaMembrane2*membrane_part);\
-                                water_part=-res_table(0, resId1, resId2)*k_contact*\
+        contact.addEnergyTerm(f"isCb1*isCb2*((1-alphaMembrane1*alphaMembrane2)*water_part+alphaMembrane1*alphaMembrane2*membrane_part);\
+                                water_part=-res_table(0, resId1, resId2)*{k_contact}*\
                                 (gamma_ijm(0, resName1, resName2)*theta+thetaII*(sigma_water*water_gamma_ijm(0, resName1, resName2)+\
                                 sigma_protein*protein_gamma_ijm(0, resName1, resName2)));\
-                                membrane_part=-res_table(1, resId1, resId2)*k_contact*\
+                                membrane_part=-res_table(1, resId1, resId2)*{k_contact}*\
                                 (gamma_ijm(1, resName1, resName2)*theta+thetaII*(sigma_water*water_gamma_ijm(1, resName1, resName2)+\
                                 sigma_protein*protein_gamma_ijm(1, resName1, resName2)));\
                                 sigma_protein=1-sigma_water;\
-                                theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)));\
-                                thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
-                                sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
+                                theta=0.25*(1+tanh({eta}*(r-{r_min})))*(1+tanh({eta}*({r_max}-r)));\
+                                thetaII=0.25*(1+tanh({eta}*(r-{r_minII})))*(1+tanh({eta}*({r_maxII}-r)));\
+                                sigma_water=0.25*(1-tanh({eta_sigma}*(rho1-{rho_0})))*(1-tanh({eta_sigma}*(rho2-{rho_0})))",
                                 CustomGBForce.ParticlePair)
         # # mediated term
         # contact.addEnergyTerm("isCb1*isCb2*((1-alphaMembrane1*alphaMembrane2)*water_part+alphaMembrane1*alphaMembrane2*membrane_part);\
@@ -198,8 +188,8 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
         #                         (sigma_water*water_gamma_ijm(1, resName1, resName2)+\
         #                         sigma_protein*protein_gamma_ijm(1, resName1, resName2));\
         #                         sigma_protein=1-sigma_water;\
-        #                         thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
-        #                         sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
+        #                         thetaII=0.25*(1+tanh(eta*(r-{r_minII})))*(1+tanh(eta*({r_maxII}-r)));\
+        #                         sigma_water=0.25*(1-tanh({eta_sigma}*(rho1-rho_0)))*(1-tanh({eta_sigma}*(rho2-rho_0)))",
         #                         CustomGBForce.ParticlePair)
         # # direct term
         # contact.addEnergyTerm("isCb1*isCb2*((1-alphaMembrane1*alphaMembrane2)*water_part+alphaMembrane1*alphaMembrane2*membrane_part);\
@@ -207,30 +197,30 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
         #                         gamma_ijm(0, resName1, resName2)*theta;\
         #                         membrane_part=-res_table(1, resId1, resId2)*k_contact*\
         #                         gamma_ijm(1, resName1, resName2)*theta;\
-        #                         theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))",
+        #                         theta=0.25*(1+tanh(eta*(r-r_min)))*(1+tanh(eta*(r_max-r)))",
         #                         CustomGBForce.ParticlePair)
     else:
         # mediated and direct term (write separately may lead to bug)
-        contact.addEnergyTerm(f"-isCb1*isCb2*res_table({inMembrane}, resId1, resId2)*k_contact*\
+        contact.addEnergyTerm(f"-isCb1*isCb2*res_table({inMembrane}, resId1, resId2)*{k_contact}*\
                                 (gamma_ijm({inMembrane}, resName1, resName2)*theta+thetaII*(sigma_water*water_gamma_ijm({inMembrane}, resName1, resName2)+\
                                 sigma_protein*protein_gamma_ijm({inMembrane}, resName1, resName2)));\
                                 sigma_protein=1-sigma_water;\
-                                theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)));\
-                                thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
-                                sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
+                                theta=0.25*(1+tanh({eta}*(r-{r_min})))*(1+tanh({eta}*({r_max}-r)));\
+                                thetaII=0.25*(1+tanh({eta}*(r-{r_minII})))*(1+tanh({eta}*({r_maxII}-r)));\
+                                sigma_water=0.25*(1-tanh({eta_sigma}*(rho1-{rho_0})))*(1-tanh({eta_sigma}*(rho2-{rho_0})))",
                                 CustomGBForce.ParticlePair)
         # # mediated term
         # contact.addEnergyTerm(f"-isCb1*isCb2*res_table({inMembrane}, resId1, resId2)*k_contact*thetaII*\
         #                         (sigma_water*water_gamma_ijm({inMembrane}, resName1, resName2)+\
         #                         sigma_protein*protein_gamma_ijm({inMembrane}, resName1, resName2));\
         #                         sigma_protein=1-sigma_water;\
-        #                         thetaII=0.25*(1+tanh(eta*(r-rminII)))*(1+tanh(eta*(rmaxII-r)));\
-        #                         sigma_water=0.25*(1-tanh(eta_sigma*(rho1-rho_0)))*(1-tanh(eta_sigma*(rho2-rho_0)))",
+        #                         thetaII=0.25*(1+tanh(eta*(r-r_minII)))*(1+tanh(eta*(r_maxII-r)));\
+        #                         sigma_water=0.25*(1-tanh({eta_sigma}*(rho1-{rho_0})))*(1-tanh({eta_sigma}*(rho2-{rho_0})))",
         #                         CustomGBForce.ParticlePair)
         # # direct term
         # contact.addEnergyTerm(f"-isCb1*isCb2*res_table({inMembrane}, resId1, resId2)*k_contact*\
         #                         gamma_ijm({inMembrane}, resName1, resName2)*theta;\
-        #                         theta=0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))",
+        #                         theta=0.25*(1+tanh(eta*(r-r_min)))*(1+tanh(eta*(r_max-r)))",
         #                         CustomGBForce.ParticlePair)
 
     if burialPartOn:
@@ -239,9 +229,9 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
             contact.addGlobalParameter(f"rho_min_{i}", burial_ro_min[i])
             contact.addGlobalParameter(f"rho_max_{i}", burial_ro_max[i])
         for i in range(3):
-            contact.addEnergyTerm(f"-0.5*isCb*k_contact*burial_gamma_ij(resName, {i})*\
-                                        (tanh(burial_kappa*(rho-rho_min_{i}))+\
-                                        tanh(burial_kappa*(rho_max_{i}-rho)))", CustomGBForce.SingleParticle)
+            contact.addEnergyTerm(f"-0.5*isCb*{k_contact}*burial_gamma_ij(resName, {i})*\
+                                        (tanh({burial_kappa}*(rho-rho_min_{i}))+\
+                                        tanh({burial_kappa}*(rho_max_{i}-rho)))", CustomGBForce.SingleParticle)
 
     print("Number of atom: ", oa.natoms, "Number of residue: ", len(cb_fixed))
     # print(len(none_cb_fixed), len(cb_fixed))

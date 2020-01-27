@@ -441,7 +441,7 @@ def downloadPdb(pdb_list, membrane_protein=False, location="original_pdbs/"):
 
 
 
-def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatName=False, verbose=False, removeTwoEndsMissingResidues=True, addMissingResidues=True):
+def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatName=False, verbose=False, removeTwoEndsMissingResidues=True, addMissingResidues=True, removeHeterogens=True):
     os.system(f"mkdir -p {toFolder}")
     for pdb_id in pdb_list:
         # print(chain)
@@ -488,6 +488,7 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
         chains = list(fixer.topology.chains())
         keys = fixer.missingResidues.keys()
         if verbose:
+            print("chains to remove", chains_to_remove)
             print("missing residues: ", keys)
         if not addMissingResidues:
             for key in list(keys):
@@ -501,7 +502,8 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
 
         fixer.findNonstandardResidues()
         fixer.replaceNonstandardResidues()
-        fixer.removeHeterogens(keepWater=False)
+        if removeHeterogens:
+            fixer.removeHeterogens(keepWater=False)
         fixer.findMissingAtoms()
         try:
             fixer.addMissingAtoms()
@@ -599,11 +601,16 @@ def convert_openMM_to_standard_pdb(fileName="last_frame.pdb", seq_dic=None, back
                     continue
                 i = int(line[22:26])
                 chain = line[21]
-                res = seq_dic[chain][i-1]
+
                 tmp = list(line)
-                tmp[17:20] = inv_code_map[res]
-                if line[:6] == "HETATM":
-                    tmp[:6] = "ATOM  "
+                if "".join(tmp[17:20]) in ["IGL", "NGP", "IPR"]:
+                    res = seq_dic[chain][i-1]
+                    tmp[17:20] = inv_code_map[res]
+                    if line[:6] == "HETATM":
+                        tmp[:6] = "ATOM  "
+                else:
+                    # no change
+                    pass
                 print("".join(tmp), end='')
             else:
                 print(line, end='')

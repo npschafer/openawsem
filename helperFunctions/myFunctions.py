@@ -720,3 +720,14 @@ def create_zim(fastaFile, tableLocation, isNew=False):
     data = read_hydrophobicity_scale(seq, tableLocation, isNew=isNew)
     z = data["DGwoct"].values
     np.savetxt("zim", z, fmt="%.2f")
+
+def read_fasta(fastaFile):
+    seq = ""
+    with open(fastaFile, "r") as f:
+        for line in f:
+            if line[0] == ">":
+                pass
+            else:
+                # print(line)
+                seq += line.strip()
+    return seq

@@ -23,6 +23,7 @@ parser.add_argument("--extended", action="store_true", default=False, help="Star
 parser.add_argument("--membrane", action="store_true", default=False)
 parser.add_argument("--hybrid", action="store_true", default=False)
 parser.add_argument("--verbose", action="store_true", default=False)
+parser.add_argument("--predict_ssweight_from_fasta", action="store_true", default=False)
 
 args = parser.parse_args()
 
@@ -105,7 +106,40 @@ do(f"python {__location__}/helperFunctions/Pdb2Gro.py crystal_structure.pdb {nam
 do("stride crystal_structure.pdb > ssweight.stride")
 do(f"python {__location__}/helperFunctions/stride2ssweight.py > ssweight")
 protein_length = helperFunctions.myFunctions.getFromTerminal("wc ssweight").split()[0]
+if int(protein_length) == 0:
+    seq = helperFunctions.myFunctions.read_fasta(f"{name}.fasta")
+    # print(len(seq))
+    protein_length = len(seq)
+    print("impose no secondary bias.")
+    print("you might want to install Predict_Property and use the predict_ssweight_from_fasta option.")
+    with open("ssweight", "w") as out:
+        for i in range(protein_length):
+            out.write("0.0 0.0\n")
 print(f"protein: {name}, length: {protein_length}")
+
+if args.predict_ssweight_from_fasta:
+    # another option for secondary prediction bias generation is using "Predict_Property.sh -i {name}.fasta" to predict from fasta file.
+    # but you need install it from https://github.com/realbigws/Predict_Property.
+    # after installation, you can do the following to generate ssweight.
+    # for me I put 'export Predict_Property="/Users/weilu/Research/Build/Predict_Property"' inside ~/.bash_profile file.
+    do(f"$Predict_Property/Predict_Property.sh -i {name}.fasta")
+    from_secondary = f"{name}_PROP/{name}.ss3"
+    toPre = "."
+    to_ssweight = f"{toPre}/ssweight"
+    print("convert ssweight")
+    import pandas as pd
+    data = pd.read_csv(from_secondary, comment="#", names=["i", "Res", "ss3", "Helix", "Sheet", "Coil"], sep="\s+")
+    # print(data)
+    with open(to_ssweight, "w") as out:
+        for i, line in data.iterrows():
+            if line["ss3"] == "H":
+                out.write("1.0 0.0\n")
+            if line["ss3"] == "E":
+                out.write("0.0 1.0\n")
+            if line["ss3"] == "C":
+                out.write("0.0 0.0\n")
+
+
 
 seq_data = helperFunctions.myFunctions.seq_length_from_pdb("crystal_structure-cleaned.pdb", chain)
 with open("single_frags.mem", "w") as out:

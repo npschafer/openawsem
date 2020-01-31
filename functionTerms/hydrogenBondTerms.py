@@ -43,7 +43,7 @@ def isChainEdge(residueId, chain_starts, chain_ends, n=2):
     # return (atBegin or atEnd)
 
 def inWhichChain(residueId, chain_ends):
-    chain_table = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    chain_table = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
     for i, end_of_chain_resId in enumerate(chain_ends):
         if end_of_chain_resId < residueId:
             pass

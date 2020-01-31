@@ -520,10 +520,10 @@ def getAllChains(pdbFile):
     chains = list(fixer.topology.chains())
     a = ""
     for i in chains:
-        if i.id in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+        if i.id in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789':
             a += i.id
-    return ''.join(sorted(set(a.upper().replace(" ", ""))))
-
+    # return ''.join(sorted(set(a.upper().replace(" ", ""))))
+    return ''.join(sorted(set(a.replace(" ", ""))))
 
 def add_chain_to_pymol_pdb(location):
     # location = "/Users/weilu/Research/server/nov_2018/openMM/random_start/1r69.pdb"

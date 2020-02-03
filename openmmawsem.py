@@ -43,7 +43,7 @@ def identify_terminal_residues(pdb_filename):
             terminal_residues[chain.id] = (residues[0].id[1], residues[-1].id[1])
         return terminal_residues
 
-def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False):
+def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False, keepIds=False):
     # for more information about PDB Fixer, see:
     # http://htmlpreview.github.io/?https://raw.github.com/pandegroup/pdbfixer/master/Manual.html
     # fix up input pdb
@@ -74,7 +74,7 @@ def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False):
 
     #Add Missing Hydrogens
     fixer.addMissingHydrogens(7.0)
-    PDBFile.writeFile(fixer.topology, fixer.positions, open(cleaned_pdb_filename, 'w'))
+    PDBFile.writeFile(fixer.topology, fixer.positions, open(cleaned_pdb_filename, 'w'), keepIds=keepIds)
 
     #Read sequence
     structure = PDBParser().get_structure('X', cleaned_pdb_filename)

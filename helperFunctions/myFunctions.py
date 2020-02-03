@@ -441,7 +441,7 @@ def downloadPdb(pdb_list, membrane_protein=False, location="original_pdbs/"):
 
 
 
-def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatName=False, verbose=False, removeTwoEndsMissingResidues=True, addMissingResidues=True, removeHeterogens=True):
+def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatName=False, verbose=False, removeTwoEndsMissingResidues=True, addMissingResidues=True, removeHeterogens=True, keepIds=False):
     os.system(f"mkdir -p {toFolder}")
     for pdb_id in pdb_list:
         # print(chain)
@@ -465,7 +465,7 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
         # remove unwanted chains
         chains = list(fixer.topology.chains())
         print(chains)
-        if chain is None:  # None mean deafult is chain A unless specified.
+        if chain is None:  # 'None' means deafult is chain A unless specified.
             if len(pdb_id) >= 5:
                 Chosen_chain = pdb_id[4]
                 # Chosen_chain = pdb_id[4].upper()
@@ -511,7 +511,7 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
             print("Unable to add missing atoms")
             continue
         fixer.addMissingHydrogens(7.0)
-        PDBFile.writeFile(fixer.topology, fixer.positions, open(os.path.join(toFolder, pdbFile), 'w'))
+        PDBFile.writeFile(fixer.topology, fixer.positions, open(os.path.join(toFolder, pdbFile), 'w'), keepIds=keepIds)
 
 
 def getAllChains(pdbFile):

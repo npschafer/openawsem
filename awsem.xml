@@ -50,7 +50,7 @@
   <Atom name="CB" type="CB"/>
  </Residue>
   <Residue name="IGLNTER">
-  <AllowPatch name="IGL"/>
+  <AllowPatch name="GLY"/>
   <Atom name="CA" type="CA"/>
   <Atom name="C" type="C"/>
   <Atom name="O" type="O"/>

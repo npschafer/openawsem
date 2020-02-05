@@ -49,11 +49,22 @@
   <Atom name="O" type="O"/>
   <Atom name="CB" type="CB"/>
  </Residue>
-  <Residue name="IGLNTER">
-  <AllowPatch name="GLY"/>
+  <Residue name="IGL_NTER">
   <Atom name="CA" type="CA"/>
   <Atom name="C" type="C"/>
   <Atom name="O" type="O"/>
+ </Residue>
+  <Residue name="IGL_CTER">
+  <Atom name="N" type="N"/>
+  <Atom name="H" type="H"/>
+  <Atom name="CA" type="CA"/>
+  <Atom name="O" type="O"/>
+ </Residue>
+  <Residue name="IPR_CTER">
+  <Atom name="N" type="N"/>
+  <Atom name="CA" type="CA"/>
+  <Atom name="O" type="O"/>
+  <Atom name="CB" type="CB"/>
  </Residue>
 </Residues>
 

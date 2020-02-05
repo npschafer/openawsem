@@ -452,7 +452,7 @@ class OpenMMAWSEMSystem:
 
             res_list = list(self.pdb.topology.residues())
             atom_list = list(self.pdb.topology.atoms())
-            protein_resNames = ["NGP", "IGL", "IPR", "NTER", "CTER"]
+            protein_resNames = ["NGP", "IGL", "IPR"]
             DNA_resNames = ["DA", "DC", "DT", "DG"]
             protein_res_list = []
             DNA_res_list = []

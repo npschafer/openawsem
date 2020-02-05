@@ -423,7 +423,7 @@ def download(pdb_id):
         os.rename("pdb%s.ent" % pdb_id, f"{pdb_id}.pdb")
 
 class OpenMMAWSEMSystem:
-    def __init__(self, pdb_filename, chains='A', xml_filename='awsem.xml', k_awsem=1.0, seqFromPdb=None, includeLigands=True):
+    def __init__(self, pdb_filename, chains='A', xml_filename='awsem.xml', k_awsem=1.0, seqFromPdb=None, includeLigands=False):
         # read PDB
         self.pdb = PDBFile(pdb_filename)
         self.forcefield = ForceField(xml_filename)

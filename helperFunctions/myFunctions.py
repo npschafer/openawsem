@@ -461,7 +461,12 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
             fromFile = os.path.join(source, pdbFile)
 
         # clean pdb
-        fixer = PDBFixer(filename=fromFile)
+        try:
+            fixer = PDBFixer(filename=fromFile)
+        except Exception as inst:
+            print(inst)
+            print(f"{fromFile} not found. skipped")
+            continue
         # remove unwanted chains
         chains = list(fixer.topology.chains())
         print(chains)

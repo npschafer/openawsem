@@ -49,6 +49,12 @@
   <Atom name="O" type="O"/>
   <Atom name="CB" type="CB"/>
  </Residue>
+  <Residue name="IGLNTER">
+  <AllowPatch name="IGL"/>
+  <Atom name="CA" type="CA"/>
+  <Atom name="C" type="C"/>
+  <Atom name="O" type="O"/>
+ </Residue>
 </Residues>
 
 <!-- Setup Patches-->

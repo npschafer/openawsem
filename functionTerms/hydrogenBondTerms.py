@@ -190,8 +190,18 @@ def get_Lambda_3(i, j, p_par, p_anti, p_antihb, p_antinhb, p_parhb, a):
 #     # beta_3.setForceGroup(25)
 #     return beta_1
 
-def beta_term_1(oa, k_beta=4.184, forceGroup=27):
+def convert_units(k):
+    if isinstance(k, float) or isinstance(k, int):
+        k = k   # just for backward comptable
+    elif isinstance(k, Quantity):
+        k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
+    else:
+        print(f"Unknown input, {k}, {type(k)}")
+    return k
+
+def beta_term_1(oa, k=0.5*kilocalories_per_mole, forceGroup=27):
     print("beta_1 term ON")
+    k_beta = convert_units(k) * oa.k_awsem
     nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
     # print(lambda_1)
     r_ON = .298
@@ -232,8 +242,9 @@ def beta_term_1(oa, k_beta=4.184, forceGroup=27):
     # beta_3.setForceGroup(25)
     return beta_1
 
-def beta_term_2(oa, k_beta=4.184, forceGroup=27):
+def beta_term_2(oa, k=0.5*kilocalories_per_mole, forceGroup=27):
     print("beta_2 term ON")
+    k_beta = convert_units(k) * oa.k_awsem
     nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
     # print(lambda_1)
     r_ON = .298
@@ -282,8 +293,9 @@ def beta_term_2(oa, k_beta=4.184, forceGroup=27):
     return beta_2
 
 
-def beta_term_3(oa, k_beta=4.184, forceGroup=27):
+def beta_term_3(oa, k=0.5*kilocalories_per_mole, forceGroup=27):
     print("beta_3 term ON")
+    k_beta = convert_units(k) * oa.k_awsem
     nres, n, h, ca, o, res_type = oa.nres, oa.n, oa.h, oa.ca, oa.o, oa.res_type
     # print(lambda_1)
     r_ON = .298
@@ -338,8 +350,9 @@ def beta_term_3(oa, k_beta=4.184, forceGroup=27):
     return beta_3
 
 
-def pap_term_1(oa, k_pap=4.184, dis_i_to_i4=1.2, forceGroup=28, ssweightFileName="ssweight"):
+def pap_term_1(oa, k=0.5*kilocalories_per_mole, dis_i_to_i4=1.2, forceGroup=28, ssweightFileName="ssweight"):
     print("pap_1 term ON")
+    k_pap = convert_units(k) * oa.k_awsem
     # dis_i_to_i4 should be in nm, it disfavor hydrogen bond when ca_i and ca_i+4 are 1.2 nm apart away.
     nres, ca = oa.nres, oa.ca
     # r0 = 2.0 # nm
@@ -401,8 +414,9 @@ def pap_term_1(oa, k_pap=4.184, dis_i_to_i4=1.2, forceGroup=28, ssweightFileName
     pap.setForceGroup(forceGroup)
     return pap
 
-def pap_term_2(oa, k_pap=4.184, dis_i_to_i4=1.2, forceGroup=28, ssweightFileName="ssweight"):
+def pap_term_2(oa, k=0.5*kilocalories_per_mole, dis_i_to_i4=1.2, forceGroup=28, ssweightFileName="ssweight"):
     print("pap_2 term ON")
+    k_pap = convert_units(k) * oa.k_awsem
     nres, ca = oa.nres, oa.ca
     # r0 = 2.0 # nm
     r0 = 0.8  # nm

@@ -45,4 +45,9 @@ def set_up_forces(oa, computeQ=False, submode=-1, contactParameterLocation=".", 
         forces.append(rg_term(oa))
         forces.append(q_value(oa, "crystal_structure-cleaned.pdb", forceGroup=1))
         # forces.append(qc_value(oa, "crystal_structure-cleaned.pdb"))
+    if submode == 0:
+        additional_forces = [
+            # contact_term(oa),
+        ]
+        forces += additional_forces
     return forces

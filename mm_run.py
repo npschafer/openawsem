@@ -195,7 +195,7 @@ start_time = time.time()
 if args.simulation_mode == 0:
     simulation.step(int(args.steps))
 elif args.simulation_mode == 1:
-    deltaT = int((Tend - Tstart) / snapShotCount)
+    deltaT = (Tend - Tstart) / snapShotCount
     for i in range(snapShotCount):
         integrator.setTemperature((Tstart + deltaT*i)*kelvin)
         simulation.step(stepsPerT)

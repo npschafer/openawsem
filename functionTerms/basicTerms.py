@@ -2,6 +2,7 @@ from simtk.openmm.app import *
 from simtk.openmm import *
 from simtk.unit import *
 import numpy as np
+from Bio.PDB.Polypeptide import one_to_three
 
 def con_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, .153], forceGroup=20):
     # add con forces
@@ -174,3 +175,103 @@ def rama_ssweight_term(oa, k_rama_ssweight=8.368, num_rama_wells=2, w=[2.0, 2.0]
     ramaSS.addTabulatedFunction("ssweight", Discrete2DFunction(2, oa.nres, ssweight.flatten()))
     ramaSS.setForceGroup(forceGroup)
     return ramaSS
+
+
+
+def side_chain_term(oa, k=1*kilocalorie_per_mole, gmmFileFolder="/Users/weilu/opt/parameters/side_chain", forceGroup=25):
+    # add chi forces
+    # The sign of the equilibrium value is opposite and magnitude differs slightly
+    # 251.04 = 60 * 4.184 kJ, converted from default value in LAMMPS AWSEM
+    # multiply interaction strength by overall scaling
+    k = k.value_in_unit(kilojoule_per_mole)
+    k_side_chain = k * oa.k_awsem
+    n_components = 3
+
+    means_all_res = np.zeros((20, 3, 3))
+    precisions_chol_all_res = np.zeros((20, 3, 3, 3))
+    log_det_all_res = np.zeros((20, 3))
+    weights_all_res = np.zeros((20, 3))
+    mean_dot_precisions_chol_all_res = np.zeros((20, 3, 3))
+
+    res_type_map_letters = ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G',
+                            'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V']
+    gamma_se_map_1_letter = {   'A': 0,  'R': 1,  'N': 2,  'D': 3,  'C': 4,
+                                'Q': 5,  'E': 6,  'G': 7,  'H': 8,  'I': 9,
+                                'L': 10, 'K': 11, 'M': 12, 'F': 13, 'P': 14,
+                                'S': 15, 'T': 16, 'W': 17, 'Y': 18, 'V': 19}
+    for i, res_type_one_letter in enumerate(res_type_map_letters):
+        res_type = one_to_three(res_type_one_letter)
+        if res_type == "GLY":
+            weights_all_res[i] = np.array([1/3, 1/3, 1/3])
+            continue
+
+        means = np.loadtxt(f"{gmmFileFolder}/{res_type}_means.txt")
+        precisions_chol = np.loadtxt(f"{gmmFileFolder}/{res_type}_precisions_chol.txt").reshape(3,3,3)
+        log_det = np.loadtxt(f"{gmmFileFolder}/{res_type}_log_det.txt")
+        weights = np.loadtxt(f"{gmmFileFolder}/{res_type}_weights.txt")
+        means_all_res[i] = means
+
+        precisions_chol_all_res[i] = precisions_chol
+        log_det_all_res[i] = log_det
+        weights_all_res[i] = weights
+
+
+        for j in range(n_components):
+            mean_dot_precisions_chol_all_res[i][j] = np.dot(means[j], precisions_chol[j])
+
+    means_all_res = means_all_res.reshape(20, 9)
+    precisions_chol_all_res = precisions_chol_all_res.reshape(20, 27)
+    mean_dot_precisions_chol_all_res = mean_dot_precisions_chol_all_res.reshape(20, 9)
+
+    log_weights = np.log(weights_all_res)
+    sumexp_line = "+".join([f"exp(log_gaussian_and_weights_{i}-c)" for i in range(n_components)])
+    const = 3 * np.log(2 * np.pi)
+    side_chain = CustomCompoundBondForce(4, f"-{k_side_chain}*(log({sumexp_line})+c);\
+                                        c=max(log_gaussian_and_weights_0,max(log_gaussian_and_weights_1,log_gaussian_and_weights_2));\
+                                        log_gaussian_and_weights_0=log_gaussian_prob_0+log_weights(res,0);\
+                                        log_gaussian_and_weights_1=log_gaussian_prob_1+log_weights(res,1);\
+                                        log_gaussian_and_weights_2=log_gaussian_prob_2+log_weights(res,2);\
+                                        log_gaussian_prob_0=-.5*({const}+log_prob_0)+log_det(res,0);\
+                                        log_gaussian_prob_1=-.5*({const}+log_prob_1)+log_det(res,1);\
+                                        log_gaussian_prob_2=-.5*({const}+log_prob_2)+log_det(res,2);\
+                                        log_prob_0=((r1*pc(res,0)+r2*pc(res,3)+r3*pc(res,6)-mdpc(res,0))^2+\
+                                        (r1*pc(res,1)+r2*pc(res,4)+r3*pc(res,7)-mdpc(res,1))^2+\
+                                        (r1*pc(res,2)+r2*pc(res,5)+r3*pc(res,8)-mdpc(res,2))^2);\
+                                        log_prob_1=((r1*pc(res,9)+r2*pc(res,12)+r3*pc(res,15)-mdpc(res,3))^2+\
+                                        (r1*pc(res,10)+r2*pc(res,13)+r3*pc(res,16)-mdpc(res,4))^2+\
+                                        (r1*pc(res,11)+r2*pc(res,14)+r3*pc(res,17)-mdpc(res,5))^2);\
+                                        log_prob_2=((r1*pc(res,18)+r2*pc(res,21)+r3*pc(res,24)-mdpc(res,6))^2+\
+                                        (r1*pc(res,19)+r2*pc(res,22)+r3*pc(res,25)-mdpc(res,7))^2+\
+                                        (r1*pc(res,20)+r2*pc(res,23)+r3*pc(res,26)-mdpc(res,8))^2);\
+                                        r1=10*distance(p1,p4);\
+                                        r2=10*distance(p2,p4);\
+                                        r3=10*distance(p3,p4)")
+
+    side_chain.addPerBondParameter("res")
+    side_chain.addTabulatedFunction("pc", Discrete2DFunction(20, 27, precisions_chol_all_res.T.flatten()))
+    side_chain.addTabulatedFunction("log_weights", Discrete2DFunction(20, 3, log_weights.T.flatten()))
+    side_chain.addTabulatedFunction("log_det", Discrete2DFunction(20, 3, log_det_all_res.T.flatten()))
+    side_chain.addTabulatedFunction("mdpc", Discrete2DFunction(20, 9, mean_dot_precisions_chol_all_res.T.flatten()))
+    for i in range(oa.nres):
+        if i not in oa.chain_starts and i not in oa.chain_ends and not oa.res_type[i] == "IGL":
+            # print(i)
+            # if i != 1:
+            #     continue
+            # print(oa.n[i], oa.ca[i], oa.c[i], oa.cb[i])
+            # print(i, oa.seq[i], gamma_se_map_1_letter[oa.seq[i]], precisions_chol_all_res[gamma_se_map_1_letter[oa.seq[i]]])
+
+            side_chain.addBond([oa.n[i], oa.ca[i], oa.c[i], oa.cb[i]], [gamma_se_map_1_letter[oa.seq[i]]])
+    side_chain.setForceGroup(forceGroup)
+    return side_chain
+
+def chain_no_cb_constraint_term(oa, k_chain=50208, bond_lengths=[0.2459108, 0.2519591, 0.2466597], forceGroup=20):
+    # add chain forces
+    # 50208 = 60 * 2 * 4.184 * 100. kJ/nm^2, converted from default value in LAMMPS AWSEM
+    # multiply interaction strength by overall scaling
+    k_chain *= oa.k_awsem
+    chain = HarmonicBondForce()
+    for i in range(oa.nres):
+        if i not in oa.chain_starts and i not in oa.chain_ends:
+            chain.addBond(oa.n[i], oa.c[i], bond_lengths[2], k_chain)
+    chain.setForceGroup(forceGroup)
+    return chain

@@ -18,7 +18,7 @@ import os
 import textwrap
 
 
-from functionTerms.basicTerms import con_term, chain_term, chi_term, excl_term, rama_term, rama_proline_term, rama_ssweight_term
+from functionTerms.basicTerms import *
 from functionTerms.contactTerms import *
 from functionTerms.hydrogenBondTerms import *
 from functionTerms.qBiasTerms import *

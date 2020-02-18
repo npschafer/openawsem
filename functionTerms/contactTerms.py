@@ -26,7 +26,7 @@ def inWhichChain(residueId, chain_ends):
 
 
 def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0*angstrom, k_relative_mem=1.0, periodic=False, parametersLocation=".", burialPartOn=True, withExclusion=True, forceGroup=22,
-                gammaName="gamma.dat", burialGammaName="burial_gamma.dat", membraneGammaName="membrane_gamma.dat"):
+                gammaName="gamma.dat", burialGammaName="burial_gamma.dat", membraneGammaName="membrane_gamma.dat", r_min=0.45):
     if isinstance(k_contact, float) or isinstance(k_contact, int):
         k_contact = k_contact * oa.k_awsem   # just for backward comptable
     elif isinstance(k_contact, Quantity):
@@ -38,7 +38,7 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
     # default membrane thickness 1.5 nm
     membrane_center = membrane_center.value_in_unit(nanometer)   # convert to nm
 
-    r_min = .45
+    # r_min = .45
     r_max = .65
     r_minII = .65
     r_maxII = .95

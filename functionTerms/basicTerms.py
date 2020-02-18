@@ -275,3 +275,18 @@ def chain_no_cb_constraint_term(oa, k_chain=50208, bond_lengths=[0.2459108, 0.25
             chain.addBond(oa.n[i], oa.c[i], bond_lengths[2], k_chain)
     chain.setForceGroup(forceGroup)
     return chain
+
+def con_no_cb_constraint_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, .153], forceGroup=20):
+    # add con forces
+    # 50208 = 60 * 2 * 4.184 * 100. kJ/nm^2, converted from default value in LAMMPS AWSEM
+    # multiply interaction strength by overall scaling
+    k_con *= oa.k_awsem
+    con = HarmonicBondForce()
+    for i in range(oa.nres):
+        con.addBond(oa.ca[i], oa.o[i], bond_lengths[1], k_con)
+
+        if i not in oa.chain_ends:
+            con.addBond(oa.ca[i], oa.ca[i+1], bond_lengths[0], k_con)
+            con.addBond(oa.o[i], oa.ca[i+1], bond_lengths[2], k_con)
+    con.setForceGroup(forceGroup)   # start with 11, so that first 10 leave for user defined force.
+    return con

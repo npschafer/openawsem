@@ -63,7 +63,7 @@ def tbm_q_term(oa, k_tbm_q, rnative_dat="rnative.dat", tbm_q_min_seq_sep=3, tbm_
 
 
 def fragment_memory_term(oa, k_fm=0.04184, frag_file_list_file="./frag.mem", npy_frag_table="./frag_table.npy",
-                    min_seq_sep=3, max_seq_sep=9, fm_well_width=0.1, UseSavedFragTable=True, forceGroup=23):
+                    min_seq_sep=3, max_seq_sep=9, fm_well_width=0.1, UseSavedFragTable=True, caOnly=False, forceGroup=23):
     # 0.8368 = 0.01 * 4.184 # in kJ/mol, converted from default value in LAMMPS AWSEM
     k_fm *= oa.k_awsem
     frag_table_rmin = 0
@@ -189,6 +189,8 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_file_list_file="./frag.mem", npy
                                 r_index_1=min({max_r_index_1}, floor(r/{frag_table_dr}));\
                                 r=distance(p1, p2);")
     for (i, j) in interaction_list:
+        if caOnly and ((i not in oa.ca) or (j not in oa.ca)):
+            continue
         fm.addBond([i, j], [interaction_pair_to_bond_index[(i,j)]])
 
     fm.addPerBondParameter("index")

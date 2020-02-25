@@ -284,7 +284,9 @@ def con_no_cb_constraint_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, 
     con = HarmonicBondForce()
     for i in range(oa.nres):
         con.addBond(oa.ca[i], oa.o[i], bond_lengths[1], k_con)
-
+        if ((i in oa.chain_starts) or (i in oa.chain_ends)) and (not oa.res_type[i] == "IGL"):
+            # start doesn't have N, end doesn't have C. so only give a naive bond
+            con.addBond(oa.ca[i], oa.cb[i], bond_lengths[3], k_con)
         if i not in oa.chain_ends:
             con.addBond(oa.ca[i], oa.ca[i+1], bond_lengths[0], k_con)
             con.addBond(oa.o[i], oa.ca[i+1], bond_lengths[2], k_con)

@@ -353,7 +353,7 @@ def getSeqFromCleanPdb(input_pdb_filename, chains='A', writeFastaFile=False):
     if writeFastaFile:
         with open(fastaFile, "w") as out:
             for chain in chains:
-                out.write(f">{pdb.upper()}:{chain.upper()}\n")
+                out.write(f">{pdb.upper()}:{chain}\n")
                 c = m[chain]
                 chain_seq = ""
                 for residue in c:

@@ -148,7 +148,7 @@ myForces = forces.set_up_forces(oa, submode=args.subMode, contactParameterLocati
 oa.addForcesWithDefaultForceGroup(myForces)
 
 if args.fromCheckPoint:
-    integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, 5*femtoseconds)
+    integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, 2*femtoseconds)
     simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
     simulation.loadCheckpoint(checkPointPath)
 else:

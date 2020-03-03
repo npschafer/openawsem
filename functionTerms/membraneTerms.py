@@ -28,6 +28,35 @@ def membrane_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, membrane_center
 
 
 
+def membrane_with_pore_term(oa, k=1*kilocalorie_per_mole, pore_center_x=0, pore_center_y=0, pore_radius=10, k_pore=0.1, k_m=20, z_m=1.5, membrane_center=0*angstrom, forceGroup=24):
+    # inside the pore, the energy is zero, as if the residue is in the water.
+    # pore_center_x, pore_center_y, pore_radius in unit of nanometer.
+
+    # k_m in units of nm^-1, z_m in units of nm.
+    # z_m is half of membrane thickness
+    # membrane_center is the membrane center plane shifted in z axis.
+    # add membrane forces
+    # 1 Kcal = 4.184 kJ strength by overall scaling
+    membrane_center = membrane_center.value_in_unit(nanometer)   # convert to nm
+    k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
+    k_membrane = k * oa.k_awsem
+
+    membrane = CustomExternalForce(f"{k_membrane}*\
+            (0.5*tanh({k_m}*((z-{membrane_center})+{z_m}))+0.5*tanh({k_m}*({z_m}-(z-{membrane_center}))))*(1-alpha)*hydrophobicityScale;\
+            alpha=0.5*(1+tanh({k_pore}*({pore_radius}-rho)));\
+            rho=((x-{pore_center_x})^2+(y-{pore_center_y})^2)^0.5")
+
+    membrane.addPerParticleParameter("hydrophobicityScale")
+    zim = np.loadtxt("zim")
+    # cb_fixed = [x if x > 0 else y for x,y in zip(oa.cb,oa.ca)]
+    ca = oa.ca
+    for i in ca:
+        # print(oa.resi[i] , oa.seq[oa.resi[i]])
+        membrane.addParticle(i, [zim[oa.resi[i]]])
+    membrane.setForceGroup(forceGroup)
+    return membrane
+
+
 def membrane_preassigned_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, membrane_center=0*angstrom, zimFile="zimPosition", forceGroup=24):
     # k_m in units of nm^-1, z_m in units of nm.
     # z_m is half of membrane thickness

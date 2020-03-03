@@ -62,7 +62,7 @@ def chi_term(oa, k_chi=251.04, chi0=-0.71, forceGroup=20):
     chi.setForceGroup(forceGroup)
     return chi
 
-def excl_term(oa, k_excl=8368, r_excl=0.35, periodic=False, forceGroup=20):
+def excl_term(oa, k_excl=8368, r_excl=0.35, periodic=False, excludeCB=False, forceGroup=20):
     # add excluded volume
     # Still need to add element specific parameters
     # 8368 = 20 * 4.184 * 100 kJ/nm^2, converted from default value in LAMMPS AWSEM
@@ -76,7 +76,8 @@ def excl_term(oa, k_excl=8368, r_excl=0.35, periodic=False, forceGroup=20):
     # print(oa.bonds)
     # print(oa.cb)
     excl.addInteractionGroup(oa.ca, oa.ca)
-    excl.addInteractionGroup([x for x in oa.cb if x > 0], [x for x in oa.cb if x > 0])
+    if not excludeCB:
+        excl.addInteractionGroup([x for x in oa.cb if x > 0], [x for x in oa.cb if x > 0])
     excl.addInteractionGroup(oa.ca, [x for x in oa.cb if x > 0])
     excl.addInteractionGroup(oa.o, oa.o)
 

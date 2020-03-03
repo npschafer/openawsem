@@ -47,7 +47,8 @@ parser.add_argument("-f", "--forces", default="forces_setup.py")
 parser.add_argument("--parameters", default=None)
 parser.add_argument("--reportFrequency", type=int, default=-1, help="default value step/400")
 parser.add_argument("--fromOpenMMPDB", action="store_true", default=False)
-parser.add_argument("--fasta", type=str, default="")
+parser.add_argument("--fasta", type=str, default="crystal_structure.fasta")
+parser.add_argument("--timeStep", type=int, default=2)
 
 args = parser.parse_args()
 
@@ -152,7 +153,7 @@ myForces = forces.set_up_forces(oa, submode=args.subMode, contactParameterLocati
 oa.addForcesWithDefaultForceGroup(myForces)
 
 if args.fromCheckPoint:
-    integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, 5*femtoseconds)
+    integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, args.timeStep*femtoseconds)
     simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
     simulation.loadCheckpoint(checkPointPath)
 else:
@@ -172,7 +173,7 @@ else:
     # myForces = forces.set_up_forces(oa, submode=args.subMode, contactParameterLocation=parametersLocation)
     # oa.addForces(myForces)
 
-    integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, 2*femtoseconds)
+    integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, args.timeStep*femtoseconds)
     # integrator = CustomIntegrator(0.001)
     simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
     # simulation.loadState(os.path.join(toPath, 'output.xml'))

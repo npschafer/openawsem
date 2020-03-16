@@ -87,6 +87,7 @@ def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False, keepIds
     output = open(input_pdb_filename, 'w')
     counter=0
     for line in open(cleaned_pdb_filename):
+        # print(line)
         splitline = line.split()
         if len(line)>4 and line[0:4] == "ATOM":
             try:
@@ -130,9 +131,81 @@ def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False, keepIds
     output.close()
 
     #Fix Virtual Site Coordinates:
-    prepare_virtual_sites(input_pdb_filename, use_cis_proline=use_cis_proline)
-
+    # prepare_virtual_sites(input_pdb_filename, use_cis_proline=use_cis_proline)
+    prepare_virtual_sites_v2(input_pdb_filename, use_cis_proline=use_cis_proline)
     return input_pdb_filename, cleaned_pdb_filename
+
+def prepare_virtual_sites_v2(pdb_file, use_cis_proline=False):
+    parser = PDBParser(QUIET=True)
+    structure=parser.get_structure('X',pdb_file,)
+    res = list(structure.get_residues())
+    output_file = pdb_file
+    f = open(pdb_file)
+    all_lines = f.readlines()
+    f.close()
+    output = open(output_file, "w")
+    index = 0
+    for line in all_lines:
+        # print(line)
+        splitline = line.split()
+        if len(line)>4 and line[0:4] == "ATOM":
+            try:
+                atom_index=line[6:11].strip()
+                atom_type=line[12:16].strip()
+                res_type=line[17:20].strip()
+                chain=line[21].strip()
+                res_index=line[22:26].strip()
+                x=line[30:38].strip()
+                y=line[38:46].strip()
+                z=line[46:54].strip()
+                element = line[76:78].strip()
+            except ValueError:
+                print(line)
+                raise
+        else:
+            continue
+        res_index_zero_base = int(res_index) - 1
+
+        r_im = res[res_index_zero_base-1]
+        r_i = res[res_index_zero_base]
+        try:
+            r_ip = res[res_index_zero_base+1]
+        except:
+            r_ip = res[res_index_zero_base]  # won't be used
+        if use_cis_proline and res_type == "IPR":
+            n_coord = -0.2094*r_im['CA'].get_coord()+ 0.6908*r_i['CA'].get_coord() + 0.5190*r_im['O'].get_coord()
+            c_coord = 0.2196*r_i['CA'].get_coord()+ 0.2300*r_ip['CA'].get_coord() + 0.5507*r_i['O'].get_coord()
+            h_coord = -0.9871*r_im['CA'].get_coord()+ 0.9326*r_i['CA'].get_coord() + 1.0604*r_im['O'].get_coord()
+        else:
+            n_coord = 0.48318*r_im['CA'].get_coord()+ 0.70328*r_i['CA'].get_coord()- 0.18643 *r_im['O'].get_coord()
+            c_coord = 0.44365*r_i['CA'].get_coord()+ 0.23520*r_ip['CA'].get_coord()+ 0.32115 *r_i['O'].get_coord()
+            h_coord = 0.84100*r_im['CA'].get_coord()+ 0.89296*r_i['CA'].get_coord()- 0.73389 *r_im['O'].get_coord()
+
+        line_list=list(line)
+        index += 1
+        line_list[6:11] = "{:5d}".format(index)
+        if atom_type == "N":
+            line_list[30:38] = '{:.8s}'.format('{:8.3f}'.format(n_coord[0]))
+            line_list[38:46] = '{:.8s}'.format('{:8.3f}'.format(n_coord[1]))
+            line_list[46:54] = list('{:.8s}'.format('{:8.3f}'.format(n_coord[2])))
+        if atom_type == "C":
+            line_list[30:38] = '{:.8s}'.format('{:8.3f}'.format(c_coord[0]))
+            line_list[38:46] = '{:.8s}'.format('{:8.3f}'.format(c_coord[1]))
+            line_list[46:54] = list('{:.8s}'.format('{:8.3f}'.format(c_coord[2])))
+        if atom_type == "H":
+            line_list[30:38] = '{:.8s}'.format('{:8.3f}'.format(h_coord[0]))
+            line_list[38:46] = '{:.8s}'.format('{:8.3f}'.format(h_coord[1]))
+            line_list[46:54] = list('{:.8s}'.format('{:8.3f}'.format(h_coord[2])))
+        new_line=''.join(line_list)
+        output.write(new_line)
+    index += 1
+    line_list[6:11] = "{:5d}".format(index)
+    line_list[0:4] = "TER "
+    line_list[30:78] = " " * 48
+    new_line=''.join(line_list)
+    output.write(new_line)
+    output.write("END\n")
+    output.close()
 
 def prepare_virtual_sites(pdb_file, use_cis_proline=False):
     parser = PDBParser(QUIET=True)
@@ -248,6 +321,9 @@ def ensure_atom_order(input_pdb_filename, quiet=1):
                     one_residue = []
                 atomType = info[2]
                 one_residue.append((order_table[atomType], line, info[1], atomType))
+            sorted_residue = sorted(one_residue, key=first)
+            for a in sorted_residue:
+                out.write(a[1])
     os.system(f"mv tmp.pdb {input_pdb_filename}")
 
 

@@ -3,6 +3,8 @@ from simtk.openmm import *
 from simtk.unit import *
 import numpy as np
 from Bio.PDB.Polypeptide import one_to_three
+import pandas as pd
+from Bio.PDB.Polypeptide import three_to_one
 
 def con_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, .153], forceGroup=20):
     # add con forces
@@ -293,3 +295,55 @@ def con_no_cb_constraint_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, 
             con.addBond(oa.o[i], oa.ca[i+1], bond_lengths[2], k_con)
     con.setForceGroup(forceGroup)   # start with 11, so that first 10 leave for user defined force.
     return con
+
+
+
+def cbd_excl_term(oa, k=1*kilocalorie_per_mole, periodic=False, r_excl=0.7, fileLocation='cbd_cbd_real_contact_symmetric.csv', forceGroup=24):
+    # Cb domain Excluded volume
+    # With residue specific parameters
+    # a harmonic well with minimum at the database histogram peak.
+    # and 1 kT(0.593 kcal/mol) penalty when the distance is at r_min of the database.
+    # multiply interaction strength by overall scaling
+    # Openawsem doesn't have the distance range (r_excl) change from 0.35 to 0.45 when the sequence separtation more than 5
+    k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
+    k_excl = k * oa.k_awsem
+    excl = CustomNonbondedForce(f"{k_excl}*step(r_max(res1,res2)-r)*((r-r_max(res1,res2))/(r_max(res1,res2)-r_min(res1,res2)))^2")
+    excl.addPerParticleParameter("res")
+
+    gamma_se_map_1_letter = {   'A': 0,  'R': 1,  'N': 2,  'D': 3,  'C': 4,
+                                'Q': 5,  'E': 6,  'G': 7,  'H': 8,  'I': 9,
+                                'L': 10, 'K': 11, 'M': 12, 'F': 13, 'P': 14,
+                                'S': 15, 'T': 16, 'W': 17, 'Y': 18, 'V': 19}
+    for i in range(oa.natoms):
+        excl.addParticle([gamma_se_map_1_letter[oa.seq[oa.resi[i]]]])
+    # print(oa.ca)
+    # print(oa.bonds)
+    # print(oa.cb)
+
+    r_min_table = np.zeros((20,20))
+    r_max_table = np.zeros((20,20))
+    # fileLocation = '/Users/weilu/Research/server/mar_2020/cmd_cmd_exclude_volume/cbd_cbd_real_contact_symmetric.csv'
+    df = pd.read_csv(fileLocation)
+    for i, line in df.iterrows():
+        res1 = line["ResName1"]
+        res2 = line["ResName2"]
+        r_min_table[gamma_se_map_1_letter[three_to_one(res1)]][gamma_se_map_1_letter[three_to_one(res2)]] = line["r_min"] / 10.0   # A to nm
+        r_min_table[gamma_se_map_1_letter[three_to_one(res2)]][gamma_se_map_1_letter[three_to_one(res1)]] = line["r_min"] / 10.0
+        r_max_table[gamma_se_map_1_letter[three_to_one(res1)]][gamma_se_map_1_letter[three_to_one(res2)]] = line["r_max"] / 10.0
+        r_max_table[gamma_se_map_1_letter[three_to_one(res2)]][gamma_se_map_1_letter[three_to_one(res1)]] = line["r_max"] / 10.0
+
+    excl.addTabulatedFunction("r_min", Discrete2DFunction(20, 20, r_min_table.T.flatten()))
+    excl.addTabulatedFunction("r_max", Discrete2DFunction(20, 20, r_max_table.T.flatten()))
+    excl.addInteractionGroup([x for x in oa.cb if x > 0], [x for x in oa.cb if x > 0])
+
+    excl.setCutoffDistance(r_excl)
+    if periodic:
+        excl.setNonbondedMethod(excl.CutoffPeriodic)
+    else:
+        excl.setNonbondedMethod(excl.CutoffNonPeriodic)
+
+    # excl.setNonbondedMethod(excl.CutoffNonPeriodic)
+    excl.createExclusionsFromBonds(oa.bonds, 1)
+    excl.setForceGroup(forceGroup)
+    print("cb domain exlcude volume term On")
+    return excl

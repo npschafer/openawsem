@@ -174,11 +174,13 @@ else:
     # oa.addForces(myForces)
 
     integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, args.timeStep*femtoseconds)
+    # integrator.setRandomNumberSeed(A_NUMBER_AS_RANDOM_SEED)
     # integrator = CustomIntegrator(0.001)
     simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
     # simulation.loadState(os.path.join(toPath, 'output.xml'))
     simulation.context.setPositions(oa.pdb.positions)  # set the initial positions of the atoms
     simulation.context.setVelocitiesToTemperature(Tstart*kelvin)  # set the initial velocities of the atoms according to the desired starting temperature
+    # simulation.context.setVelocitiesToTemperature(Tstart*kelvin, A_RANDOM_SEED_NUMBER)
     simulation.minimizeEnergy()  # first, minimize the energy to a local minimum to reduce any large forces that might be present
 
 
@@ -200,8 +202,8 @@ elif args.simulation_mode == 1:
     for i in range(snapShotCount):
         integrator.setTemperature((Tstart + deltaT*i)*kelvin)
         simulation.step(stepsPerT)
+        # simulation.saveCheckpoint('step_%d.chk' % i)
         # simulation.context.setParameter("k_membrane", 0)
-
         # if i < snapShotCount/2:
         #     simulation.context.setParameter("k_membrane", (i % 2) * k_mem)
         #     simulation.context.setParameter("k_single_helix_orientation_bias", (i % 2) * k_single_helix_orientation_bias)

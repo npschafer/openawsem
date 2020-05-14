@@ -464,6 +464,7 @@ def er_term(oa, k_er=4.184, er_min_seq_sep=2, er_cutoff=99.0, er_well_width=0.1,
 def machine_learning_term(oa, k=1*kilocalorie_per_mole, dataFile="dist.npz", forceGroup=4):
     k_ml = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
     k_ml = k_ml * oa.k_awsem
+    
     print("Machine learning term is on")
     # spline fit
     a = np.load(dataFile)

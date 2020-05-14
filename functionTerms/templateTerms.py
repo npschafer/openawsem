@@ -506,7 +506,8 @@ def machine_learning_term(oa, k=1*kilocalorie_per_mole, dataFile="dist.npz", for
                                 r_2={r_min}+{dr}*r_index_2;\
                                 r_index_2=r_index_1+1;\
                                 r_index_1=min({max_r_index_1}, floor(r/{dr}));\
-                                r=distance(p1, p2)*10;")
+                                r=min(r_raw, {r_max});\
+                                r_raw=distance(p1, p2)*10;")
 
     cb_fixed = [x if x > 0 else y for x,y in zip(oa.cb,oa.ca)]
 

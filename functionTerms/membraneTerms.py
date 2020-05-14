@@ -129,7 +129,8 @@ def single_helix_orientation_bias_term(oa, k=1*kilocalorie_per_mole, membrane_ce
     theta_z1 = f"(0.5*tanh({k_m}*((z1-{membrane_center})+{z_m}))+0.5*tanh({k_m}*({z_m}-(z1-{membrane_center}))))"
     theta_z2 = f"(0.5*tanh({k_m}*((z2-{membrane_center})+{z_m}))+0.5*tanh({k_m}*({z_m}-(z2-{membrane_center}))))"
     normalization = n * (n - 1) / 2
-    v_orientation = CustomCompoundBondForce(2, f"{k_single_helix_orientation_bias}/{normalization}*((x1-x2)^2+(y1-y2)^2)*{theta_z1}*{theta_z2}")
+    v_orientation = CustomCompoundBondForce(2, f"helix_orientation*{k_single_helix_orientation_bias}/{normalization}*((x1-x2)^2+(y1-y2)^2)*{theta_z1}*{theta_z2}")
+    v_orientation.addGlobalParameter("helix_orientation", 1)
     # rcm_square = CustomCompoundBondForce(2, "1/normalization*(x1*x2)")
     # v_orientation.addGlobalParameter("k_single_helix_orientation_bias", k_single_helix_orientation_bias)
     # rg_square = CustomBondForce("1/normalization*(sqrt(x^2+y^2)-rcm))^2")

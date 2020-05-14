@@ -37,7 +37,7 @@ def set_up_forces(oa, computeQ=False, submode=-1, contactParameterLocation=".", 
         # membrane_term(oa, k=1*kilocalorie_per_mole, membrane_center=membrane_center),
         # membrane_preassigned_term(oa, k=1*kilocalorie_per_mole, membrane_center=membrane_center, zimFile="PredictedZim"),
         # fragment_memory_term(oa, frag_file_list_file="./frags.mem", npy_frag_table="./frags.npy", UseSavedFragTable=True),
-        fragment_memory_term(oa, frag_file_list_file="./single_frags.mem", npy_frag_table="./single_frags.npy", UseSavedFragTable=True),
+        fragment_memory_term(oa, frag_file_list_file="./single_frags.mem", npy_frag_table="./single_frags.npy", UseSavedFragTable=False),
         # debye_huckel_term(oa, chargeFile="charge.txt"),
         # debye_huckel_term(oa)
     ]

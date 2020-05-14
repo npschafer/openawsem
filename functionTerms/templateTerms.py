@@ -95,7 +95,7 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_file_list_file="./frag.mem", npy
         print(f"Fragment table loaded, number of bonds: {len(interaction_list)}")
         frag_file_list = []
     else:
-        print(f"Fragment table file is not found. Reading fragments files.")
+        print(f"Loading Fragment files(Gro files)")
         frag_file_list = pd.read_csv(frag_file_list_file, skiprows=4, sep="\s+", names=["location", "target_start", "fragment_start", "frag_len", "weight"])
         interaction_list = set()
     for frag_index in range(len(frag_file_list)):
@@ -158,7 +158,7 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_file_list_file="./frag.mem", npy
             frag_table[index] = raw_frag_table[i][ij_sep]
             interaction_pair_to_bond_index[(i,j)] = index
         np.save(frag_table_file, (frag_table, interaction_list, interaction_pair_to_bond_index))
-
+        print(f"All gro files information have been stored in the {frag_table_file}. You might want to set the 'UseSavedFragTable'=True to speed up the loading next time.")
     # fm = CustomNonbondedForce(f"-k_fm*((v2-v1)*r+v1*r_2-v2*r_1)/(r_2-r_1); \
     #                             v1=frag_table(index_smaller, sep, r_index_1);\
     #                             v2=frag_table(index_smaller, sep, r_index_2);\

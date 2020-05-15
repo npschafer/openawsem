@@ -461,36 +461,39 @@ def er_term(oa, k_er=4.184, er_min_seq_sep=2, er_cutoff=99.0, er_well_width=0.1,
     er.setForceGroup(forceGroup)
     return er
 
-def machine_learning_term(oa, k=1*kilocalorie_per_mole, dataFile="dist.npz", forceGroup=4):
+def machine_learning_term(oa, k=1*kilocalorie_per_mole, dataFile="dist.npz", UseSavedFile=False, saved_file="ml_data.npz", forceGroup=4):
     k_ml = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
     k_ml = k_ml * oa.k_awsem
-    
-    print("Machine learning term is on")
-    # spline fit
-    a = np.load(dataFile)
-    distspline = a['distspline']
 
-    num_of_points = 100
-    n = distspline.shape[0]
-    interaction_list = []
-    index_list = []
     x = [0.0, 2.0, 3.5, 4.25, 4.75, 5.25, 5.75, 6.25, 6.75, 7.25, 7.75, 8.25, 8.75, 9.25, 9.75, 10.25, 10.75, 11.25, 11.75, 12.25, 12.75, 13.25, 13.75, 14.25, 14.75, 15.25, 15.75, 16.25, 16.75, 17.25, 17.75, 18.25, 18.75, 19.25, 19.75]
-    xnew = np.linspace(min(x), max(x), num=num_of_points, endpoint=True)
-    for i in range(n):
-        for j in range(i+1, n):
-            if np.alltrue(distspline[i][j] == 0):
-                continue
-            y = distspline[i][j]
-            f = interp1d(x, y)
-            ynew = f(xnew)
-            interaction_list.append(ynew)
-            index_list.append([i, j])
-    index_array = np.array(index_list)
-    interaction_array = np.array(interaction_list)
-    # dataFile="ml_data.npz"
-    # data = np.load(dataFile)
-    # index_array = data["index_array"]
-    # interaction_array = data["interaction_array"]
+    num_of_points = 100
+
+    if UseSavedFile and os.path.isfile(saved_file):
+        data = np.load(saved_file)
+        index_array = data["index_array"]
+        interaction_array = data["interaction_array"]
+    else:
+        # spline fit
+        a = np.load(dataFile)
+        distspline = a['distspline']
+
+        n = distspline.shape[0]
+        interaction_list = []
+        index_list = []
+        xnew = np.linspace(min(x), max(x), num=num_of_points, endpoint=True)
+        for i in range(n):
+            for j in range(i+1, n):
+                if np.alltrue(distspline[i][j] == 0):
+                    continue
+                y = distspline[i][j]
+                f = interp1d(x, y)
+                ynew = f(xnew)
+                interaction_list.append(ynew)
+                index_list.append([i, j])
+        index_array = np.array(index_list)
+        interaction_array = np.array(interaction_list)
+        np.savez(saved_file, index_array=index_array, interaction_array=interaction_array)
+
     interaction_n = index_array.shape[0]
 
     r_max = max(x)

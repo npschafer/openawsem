@@ -532,7 +532,7 @@ def machine_learning_term(oa, k=1*kilocalorie_per_mole, dataFile="dist.npz", Use
 
 
 
-def machine_learning_dihedral_omega_angle_term(oa, k=1*kilocalorie_per_mole, dataFile="../T0958/omega.npz", UseSavedFile=False, saved_file="ml_data.npz", forceGroup=4):
+def machine_learning_dihedral_omega_angle_term(oa, k=1*kilocalorie_per_mole, dataFile="omega.npz", UseSavedFile=False, saved_file="ml_data.npz", forceGroup=4):
     k_ml_angle = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
     k_ml_angle = k_ml_angle * oa.k_awsem
 
@@ -613,7 +613,7 @@ def machine_learning_dihedral_omega_angle_term(oa, k=1*kilocalorie_per_mole, dat
     return ml
 
 
-def machine_learning_dihedral_theta_angle_term(oa, k=1*kilocalorie_per_mole, dataFile="../T0958/theta.npz", forceGroup=4):
+def machine_learning_dihedral_theta_angle_term(oa, k=1*kilocalorie_per_mole, dataFile="theta.npz", forceGroup=4):
     k_ml_angle = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
     k_ml_angle = k_ml_angle * oa.k_awsem
 
@@ -693,7 +693,7 @@ def machine_learning_dihedral_theta_angle_term(oa, k=1*kilocalorie_per_mole, dat
     return ml
 
 
-def machine_learning_dihedral_phi_angle_term(oa, k=1*kilocalorie_per_mole, dataFile="../T0958/phi.npz", forceGroup=4):
+def machine_learning_dihedral_phi_angle_term(oa, k=1*kilocalorie_per_mole, dataFile="phi.npz", forceGroup=4):
     k_ml_angle = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
     k_ml_angle = k_ml_angle * oa.k_awsem
 
@@ -769,7 +769,7 @@ def machine_learning_dihedral_phi_angle_term(oa, k=1*kilocalorie_per_mole, dataF
 
     ml.setForceGroup(forceGroup)
     return ml
-    
+
 '''
 # will be deleted in the future.
 def read_reference_structure_for_q_calculation(oa, pdb_file, chain_name, min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.8*nanometers):

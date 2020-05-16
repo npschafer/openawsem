@@ -531,6 +531,245 @@ def machine_learning_term(oa, k=1*kilocalorie_per_mole, dataFile="dist.npz", Use
     return ml
 
 
+
+def machine_learning_dihedral_omega_angle_term(oa, k=1*kilocalorie_per_mole, dataFile="../T0958/omega.npz", UseSavedFile=False, saved_file="ml_data.npz", forceGroup=4):
+    k_ml_angle = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
+    k_ml_angle = k_ml_angle * oa.k_awsem
+
+
+    omega = np.load(dataFile)
+
+
+    omegaspline = omega["omegaspline"]
+
+
+    omega = "-3.53429174 -3.27249235 -3.01069296 -2.74889357 -2.48709418 -2.2252948\
+    -1.96349541 -1.70169602 -1.43989663 -1.17809725 -0.91629786 -0.65449847\
+    -0.39269908 -0.13089969  0.13089969  0.39269908  0.65449847  0.91629786\
+    1.17809725  1.43989663  1.70169602  1.96349541  2.2252948   2.48709418\
+    2.74889357  3.01069296  3.27249235  3.53429174"
+
+    omega_x = [float(a) for a in omega.split()]
+
+
+    # spline fit
+    x = omega_x
+    spline = omegaspline
+
+    num_of_points = 100
+    n = spline.shape[0]
+    interaction_list = []
+    index_list = []
+
+    xnew = np.linspace(min(x), max(x), num=num_of_points, endpoint=True)
+    for i in range(n):
+        for j in range(i+1, n):
+            if np.alltrue(spline[i][j] == 0):
+                continue
+            y = spline[i][j]
+            f = interp1d(x, y, kind='cubic')
+            ynew = f(xnew)
+            interaction_list.append(ynew)
+            index_list.append([i, j])
+    index_array = np.array(index_list)
+    interaction_array = np.array(interaction_list)
+
+    angle_max = max(x)
+    angle_min = min(x)
+    dangle = (angle_max-angle_min)/(num_of_points-1)
+
+    max_angle_index_1 = num_of_points - 2
+    interaction_n = index_array.shape[0]
+
+    ml = CustomCompoundBondForce(4, f"{k_ml_angle}*omegaEnergy;\
+                                omegaEnergy=((v2-v1)*angle+v1*angle_2-v2*angle_1)/(angle_2-angle_1); \
+                                v1=ml_table(index, angle_index_1);\
+                                v2=ml_table(index, angle_index_2);\
+                                angle_1={angle_min}+{dangle}*angle_index_1;\
+                                angle_2={angle_min}+{dangle}*angle_index_2;\
+                                angle_index_2=angle_index_1+1;\
+                                angle_index_1=min({max_angle_index_1}, floor((angle-{angle_min})/{dangle}));\
+                                angle=dihedral(p1, p2, p3, p4);")
+
+
+    for idx, index_pair in enumerate(index_array):
+        
+        resi,resj = index_pair
+        p0 = oa.ca[resi]
+        p1 = oa.cb[resi]
+        p2 = oa.cb[resj]
+        p3 = oa.ca[resj]
+        if p1 == -1 or p2 == -1:
+            continue
+        ml.addBond([p0, p1, p2, p3], [idx])
+
+    ml.addPerBondParameter("index")
+
+    ml.addTabulatedFunction("ml_table",
+            Discrete2DFunction(interaction_n, num_of_points, interaction_array.T.flatten()))
+
+
+    ml.setForceGroup(forceGroup)
+    return ml
+
+
+def machine_learning_dihedral_theta_angle_term(oa, k=1*kilocalorie_per_mole, dataFile="../T0958/theta.npz", forceGroup=4):
+    k_ml_angle = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
+    k_ml_angle = k_ml_angle * oa.k_awsem
+
+    theta = np.load(dataFile)
+
+
+    thetaspline = theta["thetaspline"]
+
+
+    theta = "-3.53429174 -3.27249235 -3.01069296 -2.74889357 -2.48709418 -2.2252948\
+    -1.96349541 -1.70169602 -1.43989663 -1.17809725 -0.91629786 -0.65449847\
+    -0.39269908 -0.13089969  0.13089969  0.39269908  0.65449847  0.91629786\
+    1.17809725  1.43989663  1.70169602  1.96349541  2.2252948   2.48709418\
+    2.74889357  3.01069296  3.27249235  3.53429174"
+
+    theta_x = [float(a) for a in theta.split()]
+
+
+    # spline fit
+    x = theta_x
+    spline = thetaspline
+
+    num_of_points = 100
+    n = spline.shape[0]
+    interaction_list = []
+    index_list = []
+
+    xnew = np.linspace(min(x), max(x), num=num_of_points, endpoint=True)
+    for i in range(n):
+        for j in range(i+1, n):
+            if np.alltrue(spline[i][j] == 0):
+                continue
+            y = spline[i][j]
+            f = interp1d(x, y, kind='cubic')
+            ynew = f(xnew)
+            interaction_list.append(ynew)
+            index_list.append([i, j])
+    index_array = np.array(index_list)
+    interaction_array = np.array(interaction_list)
+
+    angle_max = max(x)
+    angle_min = min(x)
+    dangle = (angle_max-angle_min)/(num_of_points-1)
+
+    max_angle_index_1 = num_of_points - 2
+    interaction_n = index_array.shape[0]
+
+    ml = CustomCompoundBondForce(4, f"{k_ml_angle}*omegaEnergy;\
+                                omegaEnergy=((v2-v1)*angle+v1*angle_2-v2*angle_1)/(angle_2-angle_1); \
+                                v1=ml_table(index, angle_index_1);\
+                                v2=ml_table(index, angle_index_2);\
+                                angle_1={angle_min}+{dangle}*angle_index_1;\
+                                angle_2={angle_min}+{dangle}*angle_index_2;\
+                                angle_index_2=angle_index_1+1;\
+                                angle_index_1=min({max_angle_index_1}, floor((angle-{angle_min})/{dangle}));\
+                                angle=dihedral(p1, p2, p3, p4);")
+
+
+    for idx, index_pair in enumerate(index_array):
+        
+        resi,resj = index_pair
+        p0 = oa.n[resi]
+        p1 = oa.ca[resi]
+        p2 = oa.cb[resi]
+        p3 = oa.cb[resj]
+        if p0 == -1 or p2 == -1 or p3 == -1:
+            continue
+        ml.addBond([p0, p1, p2, p3], [idx])
+
+    ml.addPerBondParameter("index")
+
+    ml.addTabulatedFunction("ml_table",
+            Discrete2DFunction(interaction_n, num_of_points, interaction_array.T.flatten()))
+
+
+    ml.setForceGroup(forceGroup)
+    return ml
+
+
+def machine_learning_dihedral_phi_angle_term(oa, k=1*kilocalorie_per_mole, dataFile="../T0958/phi.npz", forceGroup=4):
+    k_ml_angle = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
+    k_ml_angle = k_ml_angle * oa.k_awsem
+
+    phi = np.load(dataFile)
+
+
+    phispline = phi["phispline"]
+
+
+    phi = "-0.39269908 -0.13089969  0.13089969  0.39269908  0.65449847  0.91629786\
+    1.17809725  1.43989663  1.70169602  1.96349541  2.2252948   2.48709418\
+    2.74889357  3.01069296  3.27249235  3.53429174"
+
+
+    phi_x = [float(a) for a in phi.split()]
+
+
+    # spline fit
+    x = phi_x
+    spline = phispline
+
+    num_of_points = 100
+    n = spline.shape[0]
+    interaction_list = []
+    index_list = []
+
+    xnew = np.linspace(min(x), max(x), num=num_of_points, endpoint=True)
+    for i in range(n):
+        for j in range(i+1, n):
+            if np.alltrue(spline[i][j] == 0):
+                continue
+            y = spline[i][j]
+            f = interp1d(x, y, kind='cubic')
+            ynew = f(xnew)
+            interaction_list.append(ynew)
+            index_list.append([i, j])
+    index_array = np.array(index_list)
+    interaction_array = np.array(interaction_list)
+
+    angle_max = max(x)
+    angle_min = min(x)
+    dangle = (angle_max-angle_min)/(num_of_points-1)
+
+    max_angle_index_1 = num_of_points - 2
+    interaction_n = index_array.shape[0]
+
+    ml = CustomCompoundBondForce(3, f"{k_ml_angle}*omegaEnergy;\
+                                omegaEnergy=((v2-v1)*angle+v1*angle_2-v2*angle_1)/(angle_2-angle_1); \
+                                v1=ml_table(index, angle_index_1);\
+                                v2=ml_table(index, angle_index_2);\
+                                angle_1={angle_min}+{dangle}*angle_index_1;\
+                                angle_2={angle_min}+{dangle}*angle_index_2;\
+                                angle_index_2=angle_index_1+1;\
+                                angle_index_1=min({max_angle_index_1}, floor((angle-{angle_min})/{dangle}));\
+                                angle=angle(p1, p2, p3);")
+
+
+    for idx, index_pair in enumerate(index_array):
+        
+        resi,resj = index_pair
+        p0 = oa.ca[resi]
+        p1 = oa.cb[resi]
+        p2 = oa.cb[resj]
+        if p1 == -1 or p2 == -1:
+            continue
+        ml.addBond([p0, p1, p2], [idx])
+
+    ml.addPerBondParameter("index")
+
+    ml.addTabulatedFunction("ml_table",
+            Discrete2DFunction(interaction_n, num_of_points, interaction_array.T.flatten()))
+
+
+    ml.setForceGroup(forceGroup)
+    return ml
+    
 '''
 # will be deleted in the future.
 def read_reference_structure_for_q_calculation(oa, pdb_file, chain_name, min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.8*nanometers):

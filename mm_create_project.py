@@ -84,7 +84,10 @@ if chain == "-1":
 # for compute Q
 input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb("crystal_structure.pdb", chain, use_cis_proline=False, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
 openmmawsem.ensure_atom_order(input_pdb_filename)
+
+
 # get fasta, pdb, seq file ready
+chain = helperFunctions.myFunctions.getAllChains("crystal_structure-cleaned.pdb")
 openmmawsem.getSeqFromCleanPdb(input_pdb_filename, chains=chain, writeFastaFile=True)
 do(f"cp crystal_structure.fasta {name}.fasta")
 

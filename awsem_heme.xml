@@ -1,0 +1,83 @@
+<ForceField>
+<!-- Specify atom types -->
+<AtomTypes>
+ <Type name="N" class="N" element="N" mass="0"/>
+ <Type name="H" class="H" element="H" mass="0"/>
+ <Type name="CA" class="CA" element="C" mass="12"/>
+ <Type name="C" class="C" element="C" mass="0"/>
+ <Type name="O" class="O" element="O" mass="16"/>
+ <Type name="CB" class="CB" element="B" mass="12"/>
+ <Type name="Ni" class="Ni" element="Ni" mass="58.6934"/>
+ <Type name="Fe" class="Fe" element="Fe" mass="55.845"/>
+</AtomTypes>
+
+<!-- Setup residue templates -->
+<Residues>
+ <Residue name="NGP">
+  <Atom name="N" type="N"/>
+  <Atom name="H" type="H"/>
+  <Atom name="CA" type="CA"/>
+  <Atom name="C" type="C"/>
+  <Atom name="O" type="O"/>
+  <Atom name="CB" type="CB"/>
+ </Residue>
+ <Residue name="IGL">
+  <Atom name="N" type="N"/>
+  <Atom name="H" type="H"/>
+  <Atom name="CA" type="CA"/>
+  <Atom name="C" type="C"/>
+  <Atom name="O" type="O"/>
+ </Residue>
+ <Residue name="IPR">
+  <Atom name="N" type="N"/>
+  <Atom name="CA" type="CA"/>
+  <Atom name="C" type="C"/>
+  <Atom name="O" type="O"/>
+  <Atom name="CB" type="CB"/>
+ </Residue>
+ <Residue name="NTER">
+  <AllowPatch name="GLY"/>
+  <Atom name="CA" type="CA"/>
+  <Atom name="C" type="C"/>
+  <Atom name="O" type="O"/>
+  <Atom name="CB" type="CB"/>
+ </Residue>
+ <Residue name="CTER">
+  <AllowPatch name="GLY"/>
+  <AllowPatch name="PRO"/>
+  <Atom name="N" type="N"/>
+  <Atom name="H" type="H"/>
+  <Atom name="CA" type="CA"/>
+  <Atom name="O" type="O"/>
+  <Atom name="CB" type="CB"/>
+ </Residue>
+  <Residue name="IGL_NTER">
+  <Atom name="CA" type="CA"/>
+  <Atom name="C" type="C"/>
+  <Atom name="O" type="O"/>
+ </Residue>
+  <Residue name="IGL_CTER">
+  <Atom name="N" type="N"/>
+  <Atom name="H" type="H"/>
+  <Atom name="CA" type="CA"/>
+  <Atom name="O" type="O"/>
+ </Residue>
+  <Residue name="IPR_CTER">
+  <Atom name="N" type="N"/>
+  <Atom name="CA" type="CA"/>
+  <Atom name="O" type="O"/>
+  <Atom name="CB" type="CB"/>
+ </Residue>
+</Residues>
+
+<!-- Setup Patches-->
+<Patches>
+ <Patch name="GLY">
+  <RemoveAtom name="CB"/>
+ </Patch>
+ <Patch name="PRO">
+  <RemoveAtom name="H"/>
+ </Patch>
+</Patches>
+
+</ForceField>

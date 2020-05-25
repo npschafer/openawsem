@@ -25,6 +25,7 @@ parser.add_argument("--hybrid", action="store_true", default=False)
 parser.add_argument("--verbose", action="store_true", default=False)
 parser.add_argument("--predict_ssweight_from_fasta", action="store_true", default=False)
 parser.add_argument("--keepIds", action="store_true", default=False, help="Set to True if you want to preserve the chain and residue index. default will rename chains from 'A', and index from 1")
+parser.add_argument("--keepLigands", action="store_true", default=False)
 args = parser.parse_args()
 
 # Print if in debug
@@ -67,18 +68,21 @@ else:
     pdb_list = [name]
     helperFunctions.myFunctions.downloadPdb(pdb_list)
 
+removeHeterogens = False if args.keepLigands is True else True
+chain = args.chain
+
 if not os.path.exists(f"crystal_structure.pdb"):
-    helperFunctions.myFunctions.cleanPdb([name], chain="-1", toFolder="cleaned_pdbs", verbose=args.verbose, keepIds=args.keepIds)
+    helperFunctions.myFunctions.cleanPdb([name], chain=chain, toFolder="cleaned_pdbs", verbose=args.verbose, keepIds=True, removeHeterogens=removeHeterogens)
     do(f"cp cleaned_pdbs/{pdb} crystal_structure.pdb")
 
-chain = args.chain.upper()
+
 # If the chain is not specified then select all the chains
 if chain == "-1":
     chain = helperFunctions.myFunctions.getAllChains("crystal_structure.pdb")
     print("Chains info read from crystal_structure.pdb, chains to simulate: ", chain)
 
 # for compute Q
-input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb("crystal_structure.pdb", chain, use_cis_proline=False, keepIds=args.keepIds)
+input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb("crystal_structure.pdb", chain, use_cis_proline=False, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
 openmmawsem.ensure_atom_order(input_pdb_filename)
 # get fasta, pdb, seq file ready
 openmmawsem.getSeqFromCleanPdb(input_pdb_filename, chains=chain, writeFastaFile=True)
@@ -87,11 +91,11 @@ do(f"cp crystal_structure.fasta {name}.fasta")
 if args.extended:
     do(f"python3 {__location__}/helperFunctions/fasta2pdb.py extended -f {name}.fasta")
     helperFunctions.myFunctions.add_chain_to_pymol_pdb("extended.pdb")  # only work for one chain only now
-    input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb("extended.pdb", "A", use_cis_proline=False, keepIds=args.keepIds)
+    input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb("extended.pdb", "A", use_cis_proline=False, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
     openmmawsem.ensure_atom_order(input_pdb_filename)
 
 do(f"cp crystal_structure.pdb {pdb}")
-input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb(pdb, chain, keepIds=args.keepIds)
+input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb(pdb, chain, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
 openmmawsem.ensure_atom_order(input_pdb_filename)
 
 os.system(f"cp {__location__}/parameters/burial_gamma.dat .")

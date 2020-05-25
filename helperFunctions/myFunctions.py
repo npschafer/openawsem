@@ -712,7 +712,7 @@ def read_hydrophobicity_scale(seq, tableLocation, isNew=False):
     data = seq_dataFrame.merge(HFscales_with_oneLetterCode, on="oneLetterCode", how="left")
     return data
 
-def create_zim(fastaFile, tableLocation, isNew=False):
+def create_zim(fastaFile, tableLocation, isNew=True):
     # print("creating zim file for membrane potential")
     seq = ""
     with open(fastaFile, "r") as f:

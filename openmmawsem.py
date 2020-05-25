@@ -43,7 +43,7 @@ def identify_terminal_residues(pdb_filename):
             terminal_residues[chain.id] = (residues[0].id[1], residues[-1].id[1])
         return terminal_residues
 
-def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False, keepIds=False):
+def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False, keepIds=False, removeHeterogens=True):
     # for more information about PDB Fixer, see:
     # http://htmlpreview.github.io/?https://raw.github.com/pandegroup/pdbfixer/master/Manual.html
     # fix up input pdb
@@ -66,7 +66,8 @@ def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False, keepIds
     fixer.replaceNonstandardResidues()
 
     #Remove Heterogens
-    fixer.removeHeterogens(False)
+    if removeHeterogens:
+        fixer.removeHeterogens(keepWater=False)
 
     #Add Missing Heavy Atoms
     fixer.findMissingAtoms()
@@ -557,6 +558,7 @@ class OpenMMAWSEMSystem:
             self.system = self.forcefield.createSystem(self.pdb.topology)
             self.nres = len(protein_res_list)
             self.residues = protein_res_list
+            print(f"Number of residues: {self.nres}, Number of ligands: {len(ligand_res_list)}")
             # self.natoms = len(protein_atom_list)
             self.natoms = self.pdb.topology.getNumAtoms()
             self.resi = [x.residue.index if x in protein_atom_list else -1 for x in atom_list]

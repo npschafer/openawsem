@@ -47,7 +47,7 @@ parser.add_argument("-f", "--forces", default="forces_setup.py")
 parser.add_argument("--parameters", default=None)
 parser.add_argument("--reportFrequency", type=int, default=-1)
 parser.add_argument("--fromOpenMMPDB", action="store_true", default=False)
-parser.add_argument("--fasta", type=str, default="")
+parser.add_argument("--fasta", type=str, default="crystal_structure.fasta")
 
 args = parser.parse_args()
 

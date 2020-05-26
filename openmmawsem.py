@@ -140,6 +140,7 @@ def prepare_virtual_sites_v2(pdb_file, use_cis_proline=False):
     parser = PDBParser(QUIET=True)
     structure=parser.get_structure('X',pdb_file,)
     res = list(structure.get_residues())
+    model = structure[0]
     output_file = pdb_file
     f = open(pdb_file)
     all_lines = f.readlines()
@@ -165,14 +166,14 @@ def prepare_virtual_sites_v2(pdb_file, use_cis_proline=False):
                 raise
         else:
             continue
-        res_index_zero_base = int(res_index) - 1
+        res_index = int(res_index)
 
-        r_im = res[res_index_zero_base-1]
-        r_i = res[res_index_zero_base]
+        r_im = model[chain][max(res_index-1,1)]
+        r_i = model[chain][res_index]
         try:
-            r_ip = res[res_index_zero_base+1]
+            r_ip = model[chain][res_index+1]
         except:
-            r_ip = res[res_index_zero_base]  # won't be used
+            r_ip = model[chain][res_index]  # won't be used
         if use_cis_proline and res_type == "IPR":
             n_coord = -0.2094*r_im['CA'].get_coord()+ 0.6908*r_i['CA'].get_coord() + 0.5190*r_im['O'].get_coord()
             c_coord = 0.2196*r_i['CA'].get_coord()+ 0.2300*r_ip['CA'].get_coord() + 0.5507*r_i['O'].get_coord()

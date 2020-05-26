@@ -521,6 +521,8 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
 
 def getAllChains(pdbFile):
     fixer = PDBFixer(filename=pdbFile)
+    # we only want pdb chains, ligands or DNA chain will be ignored here.
+    fixer.removeHeterogens(keepWater=False)
     # remove unwanted chains
     chains = list(fixer.topology.chains())
     a = ""

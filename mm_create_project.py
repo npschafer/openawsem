@@ -113,7 +113,7 @@ os.system(f"cp {__location__}/parameters/membrane_gamma.dat .")
 os.system(f"cp {__location__}/parameters/anti_* .")
 os.system(f"cp {__location__}/parameters/para_* .")
 
-do(f"python {__location__}/helperFunctions/Pdb2Gro.py crystal_structure.pdb {name}.gro")
+do(f"python {__location__}/helperFunctions/Pdb2Gro.py crystal_structure-cleaned.pdb {name}.gro")
 
 ## ssweight
 do("stride crystal_structure.pdb > ssweight.stride")

@@ -113,7 +113,9 @@ os.system(f"cp {__location__}/parameters/membrane_gamma.dat .")
 os.system(f"cp {__location__}/parameters/anti_* .")
 os.system(f"cp {__location__}/parameters/para_* .")
 
-do(f"python {__location__}/helperFunctions/Pdb2Gro.py crystal_structure-cleaned.pdb {name}.gro")
+for c in chain:
+    # print(f"convert chain {c} of crystal structure to Gro file")
+    do(f"python {__location__}/helperFunctions/Pdb2Gro.py crystal_structure-cleaned.pdb {name}_{c}.gro {c}")
 
 ## ssweight
 do("stride crystal_structure.pdb > ssweight.stride")
@@ -158,7 +160,8 @@ seq_data = helperFunctions.myFunctions.seq_length_from_pdb("crystal_structure-cl
 with open("single_frags.mem", "w") as out:
     out.write("[Target]\nquery\n\n[Memories]\n")
     for (chain_name, chain_start_residue_index, seq_length) in seq_data:
-        out.write(f"{name}.gro {chain_start_residue_index} {chain_start_residue_index} {seq_length} 20\n")
+        # print(f"write chain {chain_name}")
+        out.write(f"{name}_{chain_name}.gro {chain_start_residue_index} 1 {seq_length} 20\n")   # residue index in Gro always start at 1.
 
 # below used for zim and zimPosition file
 if args.membrane or args.hybrid:

@@ -576,6 +576,7 @@ def seq_length_from_pdb(fileLocation, chains):
             chain_start_residue_index += seq_len
     return data
 
+
 def get_frame(file="movie.pdb", to="last_frame.pdb", frame=-1):
     # default is last frame.
     # if you want first, please set frame to 1.

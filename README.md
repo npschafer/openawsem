@@ -3,6 +3,7 @@
 
 The OpenAWSEM code is currently being tested. Use at your own risk. And let us know what you find. :-)
 
+
 ## Installation
 * Clone openawsem repository
 ```
@@ -59,3 +60,6 @@ forces_setup.py controls which force(energy) term will be included in the simula
 ```
 python mm_analysis.py 1r69 > energy.dat
 ```
+
+* Note 2:
+If you dont have GPU avaliable, you might want to consider using http://awsem-md.org. For small proteins, the LAMMPS version could be 6 times faster than openAWSEM.  

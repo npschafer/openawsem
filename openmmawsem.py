@@ -521,10 +521,12 @@ class OpenMMAWSEMSystem:
             # a = templates[0]
             for a in templates:
                 for a1 in a.atoms:
-                    if a1.element.symbol == "C":
-                        a1.type = "CA"
-                    else:
-                        a1.type = a1.element.symbol
+                    # we can define the types of ligand atoms using their names.
+                    a1.type = a1.name
+                    # if a1.element.symbol == "C":
+                    #     a1.type = "CA"
+                    # else:
+                    #     a1.type = a1.element.symbol
                     # a1.type = a1.element.symbol
                 self.forcefield.registerResidueTemplate(a)
 

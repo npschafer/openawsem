@@ -97,7 +97,7 @@ if args.extended:
     input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb("extended.pdb", "A", use_cis_proline=False, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
     openmmawsem.ensure_atom_order(input_pdb_filename)
 
-do(f"cp crystal_structure.pdb {pdb}")
+do(f"cp crystal_structure-cleaned.pdb {pdb}")
 input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb(pdb, chain, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
 openmmawsem.ensure_atom_order(input_pdb_filename)
 if args.keepLigands:

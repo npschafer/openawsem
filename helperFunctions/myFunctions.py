@@ -519,16 +519,23 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
         PDBFile.writeFile(fixer.topology, fixer.positions, open(os.path.join(toFolder, pdbFile), 'w'), keepIds=keepIds)
 
 
-def getAllChains(pdbFile):
+def getAllChains(pdbFile, removeDNAchains=True):
     fixer = PDBFixer(filename=pdbFile)
     # we only want pdb chains, ligands or DNA chain will be ignored here.
     fixer.removeHeterogens(keepWater=False)
     # remove unwanted chains
     chains = list(fixer.topology.chains())
     a = ""
-    for i in chains:
-        if i.id in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789':
-            a += i.id
+
+    proteinResidues = ['ALA', 'ASN', 'CYS', 'GLU', 'HIS', 'LEU', 'MET', 'PRO', 'THR', 'TYR', 'ARG', 'ASP', 'GLN', 'GLY', 'ILE', 'LYS', 'PHE', 'SER', 'TRP', 'VAL']
+    rnaResidues = ['A', 'G', 'C', 'U', 'I']
+    dnaResidues = ['DA', 'DG', 'DC', 'DT', 'DI']
+    for c in chains:
+        if removeDNAchains and np.alltrue([a.name in dnaResidues for a in c.residues()]):
+            print(f"chain {c.id} is a DNA chain. it will be removed")
+            continue
+        if c.id in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789':
+            a += c.id
     # return ''.join(sorted(set(a.upper().replace(" ", ""))))
     return ''.join(sorted(set(a.replace(" ", ""))))
 

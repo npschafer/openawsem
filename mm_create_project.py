@@ -78,7 +78,7 @@ if not os.path.exists(f"crystal_structure.pdb"):
 
 # If the chain is not specified then select all the chains
 if chain == "-1":
-    chain = helperFunctions.myFunctions.getAllChains("crystal_structure.pdb")
+    chain = helperFunctions.myFunctions.getAllChains("crystal_structure.pdb", removeDNAchains=True)
     print("Chains info read from crystal_structure.pdb, chains to simulate: ", chain)
 
 # for compute Q

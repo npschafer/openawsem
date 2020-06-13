@@ -372,11 +372,11 @@ def read_amhgo_structure(oa, pdb_file, chain_name, amhgo_min_seq_sep=4, amhgo_co
                 ca_j = residue_j['CA']
                 ca_list.append(ca_j)
                 atom_list_j.append(ca_j)
-                if not residue_i.get_resname() == "GLY":
+                if (residue_i.get_resname() != "GLY") and (residue_i.get_resname() != "IGL"):
                     cb_i = residue_i['CB']
                     cb_list.append(cb_i)
                     atom_list_i.append(cb_i)
-                if not residue_j.get_resname() == "GLY":
+                if (residue_j.get_resname() != "GLY") and (residue_j.get_resname() != "IGL"):
                     cb_j = residue_j['CB']
                     cb_list.append(cb_j)
                     atom_list_j.append(cb_j)
@@ -394,11 +394,11 @@ def read_amhgo_structure(oa, pdb_file, chain_name, amhgo_min_seq_sep=4, amhgo_co
                         if atom_j in cb_list:
                             j_index = oa.cb[j]
                         structure_interaction = [i_index, j_index, [gamma_ij, r_ijN, sigma_ij]]
-                        print(i_index, j_index, gamma_ij, r_ijN, sigma_ij)
+                        # print(i_index, j_index, gamma_ij, r_ijN, sigma_ij)
                         structure_interactions.append(structure_interaction)
     return structure_interactions
 
-def additive_amhgo_term(oa, pdb_file, chain_name, k_amhgo=4.184, amhgo_min_seq_sep=3, amhgo_contact_threshold=0.8*nanometers, amhgo_well_width=0.1):
+def additive_amhgo_term(oa, pdb_file, chain_name, k_amhgo=4.184, amhgo_min_seq_sep=3, amhgo_contact_threshold=0.8*nanometers, amhgo_well_width=0.1, forceGroup=22):
     import itertools
     # multiply interaction strength by overall scaling
     print("AMH-GO structure based term is ON")
@@ -415,7 +415,8 @@ def additive_amhgo_term(oa, pdb_file, chain_name, k_amhgo=4.184, amhgo_min_seq_s
     for structure_interaction in structure_interactions:
         print(structure_interaction)
         amhgo.addBond(*structure_interaction)
-    #amhgo.setForceGroup(22)
+    # amhgo.setForceGroup(22)
+    amhgo.setForceGroup(forceGroup)
     return amhgo
 
 def er_term(oa, k_er=4.184, er_min_seq_sep=2, er_cutoff=99.0, er_well_width=0.1, forceGroup=25):
@@ -444,17 +445,17 @@ def er_term(oa, k_er=4.184, er_min_seq_sep=2, er_cutoff=99.0, er_well_width=0.1,
             if abs(i-j) >= er_min_seq_sep and in_rnativeCACA[i][j]<er_cutoff:
                 sigma_ij = er_well_width*abs(i-j)**0.15 # 0.1 nm = 1 A
                 gamma_ij = 1.0
-                r_ijN = in_rnativeCACA[i][j]/10.0*nanometers;
+                r_ijN = in_rnativeCACA[i][j]/10.0*nanometers
                 structure_interactions_er.append([oa.ca[i], oa.ca[j], [gamma_ij, r_ijN, sigma_ij]])
             if abs(i-j) >= er_min_seq_sep and in_rnativeCACB[i][j]<er_cutoff and oa.cb[j]!= -1:
                 sigma_ij = er_well_width*abs(i-j)**0.15 # 0.1 nm = 1 A
                 gamma_ij = 1.0
-                r_ijN = in_rnativeCACB[i][j]/10.0*nanometers;
+                r_ijN = in_rnativeCACB[i][j]/10.0*nanometers
                 structure_interactions_er.append([oa.ca[i], oa.cb[j], [gamma_ij, r_ijN, sigma_ij]])
             if abs(i-j) >= er_min_seq_sep and in_rnativeCBCB[i][j]<er_cutoff and oa.cb[j]!= -1 and oa.cb[i]!= -1:#oa.res_type[oa.resi[i]] != "IGL" and oa.res_type[oa.resi[j]] != "IGL":
                 sigma_ij = er_well_width*abs(i-j)**0.15 # 0.1 nm = 1 A
                 gamma_ij = 1.0
-                r_ijN = in_rnativeCBCB[i][j]/10.0*nanometers;
+                r_ijN = in_rnativeCBCB[i][j]/10.0*nanometers
                 structure_interactions_er.append([oa.cb[i], oa.cb[j], [gamma_ij, r_ijN, sigma_ij]])
                 # print([i, j, oa.res_type[oa.resi[i]], oa.res_type[oa.resi[j]],oa.cb[i], oa.cb[j], [gamma_ij, r_ijN, sigma_ij]])
     # create bonds

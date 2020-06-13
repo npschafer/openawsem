@@ -4,7 +4,7 @@ from simtk.unit import *
 import numpy as np
 from Bio.PDB.PDBParser import PDBParser
 
-def read_reference_structure_for_q_calculation_3(oa, pdb_file, reference_chain_name="ALL", min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.95*nanometers, Qflag=0, a=0.1):
+def read_reference_structure_for_q_calculation_3(oa, pdb_file, reference_chain_name="ALL", min_seq_sep=3, max_seq_sep=np.inf, contact_threshold=0.95*nanometers, Qflag=0, a=0.1, removeDNAchains=True):
     # default use all chains in pdb file.
     # this change use the canonical Qw/Qo calculation for reference Q
     # for Qw calculation is 0; Qo is 1;
@@ -14,9 +14,18 @@ def read_reference_structure_for_q_calculation_3(oa, pdb_file, reference_chain_n
     model = structure[0]
     chain_start = 0
     count = 0
+    proteinResidues = ['ALA', 'ASN', 'CYS', 'GLU', 'HIS', 'LEU', 'MET', 'PRO', 'THR', 'TYR', 'ARG', 'ASP', 'GLN', 'GLY', 'ILE', 'LYS', 'PHE', 'SER', 'TRP', 'VAL']
+    proteinResidues = ["NGP", "IGL", "IPR"]
+    rnaResidues = ['A', 'G', 'C', 'U', 'I']
+    dnaResidues = ['DA', 'DG', 'DC', 'DT', 'DI']
+
     for chain in model.get_chains():
         chain_start += count
         count = 0
+        if removeDNAchains and np.alltrue([a.get_resname().strip() in dnaResidues for a in chain.get_residues()]):
+            print(f"chain {chain.id} is a DNA chain. will be ignored for Q evaluation")
+            continue
+        # print(chain)
         for i, residue_i in enumerate(chain.get_residues()):
             #  print(i, residue_i)
             count +=1

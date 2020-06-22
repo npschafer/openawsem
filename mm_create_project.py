@@ -98,14 +98,21 @@ if args.extended:
     openmmawsem.ensure_atom_order(input_pdb_filename)
 
 do(f"cp crystal_structure-cleaned.pdb {pdb}")
-input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb(pdb, chain, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
-openmmawsem.ensure_atom_order(input_pdb_filename)
+
 if args.keepLigands:
-    cleaned_pdb_filename = f"{name}-cleaned.pdb"
-    input_pdb_filename = f"{name}-openmmawsem.pdb"
-    do(f"grep 'ATOM' {input_pdb_filename} > tmp.pdb")
-    do(f"grep 'HETATM' {cleaned_pdb_filename} >> tmp.pdb")
-    do(f"mv tmp.pdb {input_pdb_filename}")
+    # cleaned_pdb_filename = f"{name}-cleaned.pdb"
+    # input_pdb_filename = f"{name}-openmmawsem.pdb"
+    # do(f"grep 'ATOM' {input_pdb_filename} > tmp.pdb")
+    # do(f"grep 'HETATM' {cleaned_pdb_filename} >> tmp.pdb")
+    # do(f"mv tmp.pdb {input_pdb_filename}")
+
+    do(f"cp crystal_structure-cleaned.pdb {name}-cleaned.pdb")
+    do(f"grep 'ATOM' crystal_structure-openmmawsem.pdb > tmp.pdb")
+    do(f"grep 'HETATM' crystal_structure-cleaned.pdb >> tmp.pdb")
+    do(f"mv tmp.pdb {name}-openmmawsem.pdb")
+else:
+    input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb(pdb, chain, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
+    openmmawsem.ensure_atom_order(input_pdb_filename)
 
 os.system(f"cp {__location__}/parameters/burial_gamma.dat .")
 os.system(f"cp {__location__}/parameters/gamma.dat .")

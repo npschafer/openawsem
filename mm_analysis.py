@@ -39,7 +39,7 @@ parser.add_argument("-f", "--forces", default="forces_setup.py")
 parser.add_argument("--parameters", default=None)
 parser.add_argument("--fromOpenMMPDB", action="store_true", default=False)
 parser.add_argument("--fasta", type=str, default="")
-
+parser.add_argument("--includeLigands", action="store_true", default=False)
 args = parser.parse_args()
 
 with open('analysis_commandline_args.txt', 'a') as f:
@@ -115,7 +115,7 @@ else:
 
 
 
-oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filename=f"{OPENAWSEM_LOCATION}/awsem.xml", seqFromPdb=seq)  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
+oa = OpenMMAWSEMSystem(input_pdb_filename, chains=chain, k_awsem=1.0, xml_filename=f"{OPENAWSEM_LOCATION}/awsem.xml", seqFromPdb=seq, includeLigands=args.includeLigands)  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 
 print(f"using force setup file from {forceSetupFile}")
 spec = importlib.util.spec_from_file_location("forces", forceSetupFile)

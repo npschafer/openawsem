@@ -49,7 +49,7 @@ parser.add_argument("-r", "--reportFrequency", type=int, default=-1, help="defau
 parser.add_argument("--fromOpenMMPDB", action="store_true", default=False)
 parser.add_argument("--fasta", type=str, default="crystal_structure.fasta")
 parser.add_argument("--timeStep", type=int, default=2)
-
+parser.add_argument("--includeLigands", action="store_true", default=False)
 args = parser.parse_args()
 
 
@@ -85,7 +85,8 @@ os.chdir(setupFolderPath)
 
 
 
-chain=args.chain.upper()
+# chain=args.chain.upper()
+chain=args.chain
 pdb = f"{pdb_id}.pdb"
 
 if chain == "-1":
@@ -146,7 +147,7 @@ forces = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(forces)
 
 
-oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml", seqFromPdb=seq)  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
+oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml", seqFromPdb=seq, includeLigands=args.includeLigands)  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
 myForces = forces.set_up_forces(oa, submode=args.subMode, contactParameterLocation=parametersLocation)
 # print(forces)
 # oa.addForces(myForces)
@@ -236,4 +237,8 @@ if args.fasta == "":
     analysis_fasta = ""
 else:
     analysis_fasta = f"--fasta {args.fasta}"
-os.system(f"{sys.executable} mm_analysis.py {args.protein} -t {os.path.join(toPath, 'movie.dcd')} --subMode {args.subMode} -f {args.forces} {analysis_fasta}")
+if args.includeLigands:
+    additional_cmd = "--includeLigands"
+else:
+    additional_cmd = ""
+os.system(f"{sys.executable} mm_analysis.py {args.protein} -t {os.path.join(toPath, 'movie.dcd')} --subMode {args.subMode} -f {args.forces} {analysis_fasta} {additional_cmd} -c {chain}")

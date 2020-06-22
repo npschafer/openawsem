@@ -15,7 +15,7 @@ def read_reference_structure_for_q_calculation_3(oa, pdb_file, reference_chain_n
     chain_start = 0
     count = 0
     proteinResidues = ['ALA', 'ASN', 'CYS', 'GLU', 'HIS', 'LEU', 'MET', 'PRO', 'THR', 'TYR', 'ARG', 'ASP', 'GLN', 'GLY', 'ILE', 'LYS', 'PHE', 'SER', 'TRP', 'VAL']
-    proteinResidues = ["NGP", "IGL", "IPR"]
+    proteinResidues += ["NGP", "IGL", "IPR"]
     rnaResidues = ['A', 'G', 'C', 'U', 'I']
     dnaResidues = ['DA', 'DG', 'DC', 'DT', 'DI']
 
@@ -24,6 +24,9 @@ def read_reference_structure_for_q_calculation_3(oa, pdb_file, reference_chain_n
         count = 0
         if removeDNAchains and np.alltrue([a.get_resname().strip() in dnaResidues for a in chain.get_residues()]):
             print(f"chain {chain.id} is a DNA chain. will be ignored for Q evaluation")
+            continue
+        elif removeDNAchains and np.alltrue([a.get_resname().strip() not in proteinResidues for a in chain.get_residues()]):
+            print(f"chain {chain.id} is a ligand chain. will be ignored for Q evaluation")
             continue
         # print(chain)
         for i, residue_i in enumerate(chain.get_residues()):

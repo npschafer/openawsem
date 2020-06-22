@@ -23,8 +23,8 @@ def parsePDB(pdb_file):
                     x=float(line[30:38]),
                     y=float(line[38:46]),
                     z=float(line[46:54]),
-                    occupancy=float(line[54:60]),
-                    tempFactor=float(line[60:66]),
+                    occupancy=0.0 if line[54:60].strip() == '' else float(line[54:60]),
+                    tempFactor=0.0 if line[60:66].strip() == '' else float(line[60:66]),
                     element=str(line[76:78]),
                     charge=str(line[78:80]))
 

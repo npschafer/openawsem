@@ -411,9 +411,9 @@ def additive_amhgo_term(oa, pdb_file, chain_name, k_amhgo=4.184, amhgo_min_seq_s
     amhgo.addPerBondParameter("sigma_ij")
     # create bonds
     structure_interactions = read_amhgo_structure(oa, pdb_file, chain_name, amhgo_min_seq_sep, amhgo_contact_threshold, amhgo_well_width=amhgo_well_width)
-    print(structure_interactions)
+    # print(structure_interactions)
     for structure_interaction in structure_interactions:
-        print(structure_interaction)
+        # print(structure_interaction)
         amhgo.addBond(*structure_interaction)
     # amhgo.setForceGroup(22)
     amhgo.setForceGroup(forceGroup)

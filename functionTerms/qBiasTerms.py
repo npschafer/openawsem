@@ -9,7 +9,7 @@ def read_reference_structure_for_q_calculation_3(oa, pdb_file, reference_chain_n
     # this change use the canonical Qw/Qo calculation for reference Q
     # for Qw calculation is 0; Qo is 1;
     structure_interactions = []
-    parser = PDBParser()
+    parser = PDBParser(QUIET=True)
     structure = parser.get_structure('X', pdb_file)
     model = structure[0]
     chain_start = 0

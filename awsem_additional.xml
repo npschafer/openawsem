@@ -7,7 +7,16 @@
  <Type name="C" class="C" element="C" mass="0"/>
  <Type name="O" class="O" element="O" mass="16"/>
  <Type name="CB" class="CB" element="B" mass="12"/>
+ <Type name="Ni" class="Ni" element="Ni" mass="58.6934"/>
+ <Type name="Fe" class="Fe" element="Fe" mass="55.845"/>
 
+ <Type name="H1" class="H" element="H" mass="1"/>
+ <Type name="H2" class="H" element="H" mass="1"/>
+ <Type name="CH3" class="C" element="C" mass="12"/>
+ <Type name="OXT" class="O" element="O" mass="16"/>
+ <Type name="NA" class="Na" element="Na" mass="22.98977"/>
+ <Type name="Na" class="Na" element="Na" mass="22.98977"/>
+ <Type name="RH" class="RH" element="RH" mass="102.9055"/>
 </AtomTypes>
 
 <!-- Setup residue templates -->

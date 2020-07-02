@@ -139,7 +139,7 @@ forceGroupTable = {"Backbone":20, "Rama":21, "Contact":22, "Fragment":23, "Membr
                     "Total":list(range(11, 32))
                     # , "Q_wat":4, "Q_mem":5, "Debye_huckel":30
                    }
-
+print("Please ensure the forceGroupTable in mm_analysis is set up correctly if you are adding new energy terms.")
 # forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
 #                     "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "beta_2":24,"beta_3":25,"pap":26, "Total":list(range(11, 32)),
 #                     "Water":[16, 18], "Beta":[23, 24, 25], "Pap":26, "Rg_Bias":27, "Helical":28, "Pulling":29, "Q":1, "Rg":2, "Qc":3, "Q_wat":4, "Q_mem":5}
@@ -151,8 +151,11 @@ forceGroupTable = {"Backbone":20, "Rama":21, "Contact":22, "Fragment":23, "Membr
 # forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
 #                    "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "Total":list(range(11, 26)),
 #                    "Water":[16, 18], "beta":[23, 24, 25], "Q":1}
-
-showEnergy = ["Q", "Rg", "Backbone", "Rama", "Contact", "Fragment", "Membrane", "ER", "TBM_Q", "Beta", "Pap", "Helical", "Total"]
+showValue = ["Q", "Rg"]
+# term in showEnergy will assume to take on the energy unit of kilojoule_per_mole, it will be shown in unit of kilocalories_per_mole(divided by 4.184) 
+# term in showValue will not be converted.
+showEnergy = ["Backbone", "Rama", "Contact", "Fragment", "Membrane", "ER", "TBM_Q", "Beta", "Pap", "Helical", "Total"]
+showAll = showValue + showEnergy
 # , "Disulfide"
 # showEnergy = ["Q", "Qc", "Rg", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "Helical", "Fragment", "Membrane", "ER", "Beta", "Pap", "Total"]
 # showEnergy = ["Q", "Qc", "Rg", "Pulling", "Con", "Chain", "Chi", "Excluded", "Rama", "Contact", "FamilyFold", "Fragment", "Membrane", "Beta", "Pap", "Rg_Bias", "Total"]
@@ -164,7 +167,7 @@ showEnergy = ["Q", "Rg", "Backbone", "Rama", "Contact", "Fragment", "Membrane", 
 print("Printing energies")
 
 with open(outFile, "w") as out:
-    line = " ".join(["{0:<8s}".format(i) for i in ["Steps"] + showEnergy])
+    line = " ".join(["{0:<8s}".format(i) for i in ["Steps"] + showAll])
     print(line)
     out.write(line+"\n")
     # for step, pdb in enumerate(pdb_trajectory):
@@ -172,7 +175,7 @@ with open(outFile, "w") as out:
     for step in range(len(pdb_trajectory)):
         simulation.context.setPositions(pdb_trajectory.openmm_positions(step))
         e = []
-        for term in showEnergy:
+        for term in showAll:
             if type(forceGroupTable[term]) == list:
                 g = set(forceGroupTable[term])
             elif forceGroupTable[term] == -1:
@@ -180,7 +183,8 @@ with open(outFile, "w") as out:
             else:
                 g = {forceGroupTable[term]}
             state = simulation.context.getState(getEnergy=True, groups=g)
-            if term == "Q" or term == "Rg" or term == "Qc" or term == "Q_wat" or term == "Q_mem":
+            # if term == "Q" or term == "Rg" or term == "Qc" or term == "Q_wat" or term == "Q_mem":
+            if term in showValue:
                 termEnergy = state.getPotentialEnergy().value_in_unit(kilojoule_per_mole)
             else:
                 termEnergy = state.getPotentialEnergy().value_in_unit(kilocalories_per_mole)

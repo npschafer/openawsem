@@ -164,10 +164,10 @@ else:
 
     print("------------------Set topology-------------------")
     oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml", seqFromPdb=seq)  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
-    pull_part_forces = forces.set_topology(oa)
+    pull_part_forces = forces.set_topology(oa, zimFile="zimPosition")
     oa.addForces(pull_part_forces)
     # integrator = LangevinIntegrator(800*kelvin, 1/picosecond, 5*femtoseconds)
-    integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, args.timeStep**femtoseconds)
+    integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, args.timeStep*femtoseconds)
     # integrator = LangevinIntegrator(800*kelvin, 1/picosecond, 1*picoseconds)
     # integrator = CustomIntegrator(0.001)
     simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
@@ -183,11 +183,11 @@ else:
 
     print("------------------Pulling apart-------------------")
     oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filename=OPENAWSEM_LOCATION+"awsem.xml", seqFromPdb=seq)  # k_awsem is an overall scaling factor that will affect the relevant temperature scales
-    myForces = forces.pull_part(oa)
+    myForces = forces.pull_part(oa, zimFile="zimPosition")
     # print(forces)
     oa.addForces(myForces)
     # integrator = LangevinIntegrator(800*kelvin, 1/picosecond, 5*femtoseconds)
-    integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, args.timeStep**femtoseconds)
+    integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, args.timeStep*femtoseconds)
     # integrator = LangevinIntegrator(800*kelvin, 1/picosecond, 1*picoseconds)
     # integrator = CustomIntegrator(0.001)
     simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)
@@ -202,7 +202,7 @@ else:
     # print(forces)
     oa.addForces(myForces)
     # integrator = LangevinIntegrator(800*kelvin, 1/picosecond, 5*femtoseconds)
-    integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, args.timeStep**femtoseconds)
+    integrator = LangevinIntegrator(Tstart*kelvin, 1/picosecond, args.timeStep*femtoseconds)
     # integrator = LangevinIntegrator(800*kelvin, 1/picosecond, 1*picoseconds)
     # integrator = CustomIntegrator(0.001)
     simulation = Simulation(oa.pdb.topology, oa.system, integrator, platform)

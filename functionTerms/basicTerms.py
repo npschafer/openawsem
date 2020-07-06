@@ -45,7 +45,7 @@ def chi_term(oa, k_chi=251.04, chi0=-0.71, forceGroup=20):
     # 251.04 = 60 * 4.184 kJ, converted from default value in LAMMPS AWSEM
     # multiply interaction strength by overall scaling
     k_chi *= oa.k_awsem
-    chi = CustomCompoundBondForce(4, "k_chi*(chi*norm-chi0)^2;"
+    chi = CustomCompoundBondForce(4, f"{k_chi}*(chi*norm-{chi0})^2;"
                                         "chi=crossproduct_x*r_cacb_x+crossproduct_y*r_cacb_y+crossproduct_z*r_cacb_z;"
                                         "crossproduct_x=(u_y*v_z-u_z*v_y);"
                                         "crossproduct_y=(u_z*v_x-u_x*v_z);"
@@ -56,8 +56,7 @@ def chi_term(oa, k_chi=251.04, chi0=-0.71, forceGroup=20):
                                         "r_cacb_z=z1-z4;"
                                         "u_x=x1-x2; u_y=y1-y2; u_z=z1-z2;"
                                         "v_x=x3-x1; v_y=y3-y1; v_z=z3-z1;")
-    chi.addGlobalParameter("k_chi", k_chi)
-    chi.addGlobalParameter("chi0", chi0)
+
     for i in range(oa.nres):
         if i not in oa.chain_starts and i not in oa.chain_ends and not oa.res_type[i] == "IGL":
             chi.addBond([oa.ca[i], oa.c[i], oa.n[i], oa.cb[i]])

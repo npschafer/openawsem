@@ -194,4 +194,4 @@ do(f"cp {__location__}/mm_analysis.py .")
 do(f"cp {__location__}/forces_setup.py .")
 
 print(f"{args.protein} project folder created")
-print("please modify the force_steps.py if we want to change what energy terms is used.")
+print("please modify the force_steps.py if we want to change what energy terms to be used.")

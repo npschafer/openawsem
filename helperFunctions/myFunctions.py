@@ -479,7 +479,7 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
                 assert(len(pdb_id) == 4)
                 Chosen_chain = "A"
         elif chain == "-1" or chain == -1:
-            Chosen_chain = getAllChains(fromFile, , removeDNAchains=removeDNAchains)
+            Chosen_chain = getAllChains(fromFile, removeDNAchains=removeDNAchains)
             print(f"Chains: {Chosen_chain}")
         elif chain == "first":
             Chosen_chain = chains[0].id

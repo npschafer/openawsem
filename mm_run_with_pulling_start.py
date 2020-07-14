@@ -223,7 +223,7 @@ simulation.reporters.append(PDBReporter(os.path.join(toPath, "movie.pdb"), repor
 simulation.reporters.append(DCDReporter(os.path.join(toPath, "movie.dcd"), reportInterval=reporter_frequency, append=True))  # output PDBs of simulated structures
 # simulation.reporters.append(DCDReporter(os.path.join(args.to, "movie.dcd"), 1))  # output PDBs of simulated structures
 # simulation.reporters.append(PDBReporter(os.path.join(args.to, "movie.pdb"), 1))  # output PDBs of simulated structures
-simulation.reporters.append(CheckpointReporter(os.path.join(toPath, checkpoint_file), checkpoint_reporter_frequency))  # save progress during the simulation
+# simulation.reporters.append(CheckpointReporter(os.path.join(toPath, checkpoint_file), checkpoint_reporter_frequency))  # save progress during the simulation
 
 print("Simulation Starts")
 start_time = time.time()

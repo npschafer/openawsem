@@ -38,7 +38,7 @@ parser.add_argument("--subMode", type=int, default=3)
 parser.add_argument("-f", "--forces", default="forces_setup.py")
 parser.add_argument("--parameters", default=None)
 parser.add_argument("--fromOpenMMPDB", action="store_true", default=False)
-parser.add_argument("--fasta", type=str, default="")
+parser.add_argument("--fasta", type=str, default="crystal_structure.fasta")
 parser.add_argument("--includeLigands", action="store_true", default=False)
 args = parser.parse_args()
 

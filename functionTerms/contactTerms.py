@@ -13,7 +13,7 @@ gamma_se_map_1_letter = {   'A': 0,  'R': 1,  'N': 2,  'D': 3,  'C': 4,
                             'S': 15, 'T': 16, 'W': 17, 'Y': 18, 'V': 19}
 
 
-def three_to_index(resName):
+def convert_resname_to_index(resName):
     return gamma_se_map_1_letter[three_to_one(resName)]
 def read_gamma(gammaFile):
     data = np.loadtxt(gammaFile)
@@ -1009,35 +1009,35 @@ def contact_term_shift_well_center(oa, k_contact=4.184, z_dependent=False, z_m=1
         # wellCenterInfo = pd.read_csv("/Users/weilu/opt/parameters/side_chain/cbd_cbd_real_contact_symmetric.csv")
         wellCenterInfo = pd.read_csv(wellCenter)
         r_min_direct_table = np.zeros((20, 20))
-        r_min_direct_table[three_to_index("GLY"), :] = 2.5
-        r_min_direct_table[:, three_to_index("GLY")] = 2.5
+        r_min_direct_table[convert_resname_to_index("GLY"), :] = 2.5
+        r_min_direct_table[:, convert_resname_to_index("GLY")] = 2.5
         r_max_direct_table = np.zeros((20, 20))
-        r_max_direct_table[three_to_index("GLY"), :] = 6.5
-        r_max_direct_table[:, three_to_index("GLY")] = 6.5
+        r_max_direct_table[convert_resname_to_index("GLY"), :] = 6.5
+        r_max_direct_table[:, convert_resname_to_index("GLY")] = 6.5
 
         r_min_mediated_table = np.zeros((20, 20))
-        r_min_mediated_table[three_to_index("GLY"), :] = 6.5
-        r_min_mediated_table[:, three_to_index("GLY")] = 6.5
+        r_min_mediated_table[convert_resname_to_index("GLY"), :] = 6.5
+        r_min_mediated_table[:, convert_resname_to_index("GLY")] = 6.5
         r_max_mediated_table = np.zeros((20, 20))
-        r_max_mediated_table[three_to_index("GLY"), :] = 9.5
-        r_max_mediated_table[:, three_to_index("GLY")] = 9.5
+        r_max_mediated_table[convert_resname_to_index("GLY"), :] = 9.5
+        r_max_mediated_table[:, convert_resname_to_index("GLY")] = 9.5
 
         for i, line in wellCenterInfo.iterrows():
             res1 = line["ResName1"]
             res2 = line["ResName2"]
             r_min_ = line["r_min"]
             r_max_ = line["r_max"]
-            r_min_direct_table[three_to_index(res1)][three_to_index(res2)] = r_min_ - 0.5
-            r_min_direct_table[three_to_index(res2)][three_to_index(res1)] = r_min_ - 0.5
+            r_min_direct_table[convert_resname_to_index(res1)][convert_resname_to_index(res2)] = r_min_ - 0.5
+            r_min_direct_table[convert_resname_to_index(res2)][convert_resname_to_index(res1)] = r_min_ - 0.5
 
-            r_max_direct_table[three_to_index(res1)][three_to_index(res2)] = r_max_ + 1.5
-            r_max_direct_table[three_to_index(res2)][three_to_index(res1)] = r_max_ + 1.5
+            r_max_direct_table[convert_resname_to_index(res1)][convert_resname_to_index(res2)] = r_max_ + 1.5
+            r_max_direct_table[convert_resname_to_index(res2)][convert_resname_to_index(res1)] = r_max_ + 1.5
 
-            r_min_mediated_table[three_to_index(res1)][three_to_index(res2)] = r_max_ + 1.5
-            r_min_mediated_table[three_to_index(res2)][three_to_index(res1)] = r_max_ + 1.5
+            r_min_mediated_table[convert_resname_to_index(res1)][convert_resname_to_index(res2)] = r_max_ + 1.5
+            r_min_mediated_table[convert_resname_to_index(res2)][convert_resname_to_index(res1)] = r_max_ + 1.5
 
-            r_max_mediated_table[three_to_index(res1)][three_to_index(res2)] = r_max_ + 4.5
-            r_max_mediated_table[three_to_index(res2)][three_to_index(res1)] = r_max_ + 4.5
+            r_max_mediated_table[convert_resname_to_index(res1)][convert_resname_to_index(res2)] = r_max_ + 4.5
+            r_max_mediated_table[convert_resname_to_index(res2)][convert_resname_to_index(res1)] = r_max_ + 4.5
         # convert unit
         r_min_direct_table /= 10.0
         r_max_direct_table /= 10.0

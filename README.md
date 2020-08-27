@@ -65,4 +65,4 @@ python mm_analysis.py 1r69 > energy.dat
 If you dont have GPU avaliable, you might want to consider using http://awsem-md.org. For small proteins, the LAMMPS version could be faster than openAWSEM.  
 
 * Note 3:
-The data for the paper OpenAWSEM with Open3SPN2: a fast, flexible, and accessible framework for large-scale coarse-grained biomolecular simulations will be stored in https://rice.box.com/s/k1rno7y3qcbljcsde4zisdbhcaug9fl9 
+Due to the size limitation, the data for the paper OpenAWSEM with Open3SPN2: a fast, flexible, and accessible framework for large-scale coarse-grained biomolecular simulations is stored in https://app.globus.org/file-manager?origin_id=b4cef8ce-7773-4016-8513-829f388f7986&origin_path=%2FopenAWSEM_data%2F

@@ -93,6 +93,53 @@ def excl_term(oa, k_excl=8368, r_excl=0.35, periodic=False, excludeCB=False, for
     excl.setForceGroup(forceGroup)
     return excl
 
+
+def excl_term_v2(oa, k_excl=8368, r_excl=0.35, periodic=False, excludeCB=False, forceGroup=20):
+    # this version remove the use of "createExclusionsFromBonds", which could potentially conflict with other CustomNonbondedForce and causing "All forces must have the same exclusion".
+    # add excluded volume
+    # Still need to add element specific parameters
+    # 8368 = 20 * 4.184 * 100 kJ/nm^2, converted from default value in LAMMPS AWSEM
+    # multiply interaction strength by overall scaling
+    # Openawsem doesn't have the distance range (r_excl) change from 0.35 to 0.45 when the sequence separtation more than 5
+    k_excl *= oa.k_awsem
+    excl = CustomNonbondedForce(f"{k_excl}*step(abs(res1-res2)-2+isChainEdge1*isChainEdge2+isnot_Ca1+isnot_Ca2)*step({r_excl}-r)*(r-{r_excl})^2")
+    excl.addPerParticleParameter("res")
+    excl.addPerParticleParameter("isChainEdge")
+    excl.addPerParticleParameter("isnot_Ca")
+    for i in range(oa.natoms):
+        # print(oa.resi[i])
+        if (i in oa.chain_ends) or (i in oa.chain_starts):
+            # print(i)
+            isChainEdge = 1
+        else:
+            isChainEdge = 0
+        if (i in oa.ca):
+            isnot_Ca = 0
+        else:
+            isnot_Ca = 1
+        excl.addParticle([oa.resi[i], isChainEdge, isnot_Ca])
+    # print(oa.ca)
+    # print(oa.bonds)
+    # print(oa.cb)
+    excl.addInteractionGroup(oa.ca, oa.ca)
+    if not excludeCB:
+        excl.addInteractionGroup([x for x in oa.cb if x > 0], [x for x in oa.cb if x > 0])
+    excl.addInteractionGroup(oa.ca, [x for x in oa.cb if x > 0])
+    excl.addInteractionGroup(oa.o, oa.o)
+
+    excl.setCutoffDistance(r_excl)
+    if periodic:
+        excl.setNonbondedMethod(excl.CutoffPeriodic)
+    else:
+        excl.setNonbondedMethod(excl.CutoffNonPeriodic)
+
+    # excl.setNonbondedMethod(excl.CutoffNonPeriodic)
+    # print(oa.bonds)
+    # print(len(oa.bonds))
+    # excl.createExclusionsFromBonds(oa.bonds, 1)
+    excl.setForceGroup(forceGroup)
+    return excl
+
 def rama_term(oa, k_rama=8.368, num_rama_wells=3, w=[1.3149, 1.32016, 1.0264], sigma=[15.398, 49.0521, 49.0954], omega_phi=[0.15, 0.25, 0.65], phi_i=[-1.74, -1.265, 1.041], omega_psi=[0.65, 0.45, 0.25], psi_i=[2.138, -0.318, 0.78], forceGroup=21):
     # add Rama potential
     # 8.368 = 2 * 4.184 kJ/mol, converted from default value in LAMMPS AWSEM

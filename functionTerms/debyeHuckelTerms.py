@@ -28,7 +28,13 @@ def debye_huckel_term(self, k_dh=4.15*4.184, forceGroup=30, screening_length=1.0
                     if self.seq[j] == "D" or self.seq[j]=="E":
                         charge_j = -1.0
                     if charge_i*charge_j!=0.0:
-                        structure_interactions_dh.append([self.cb[i], self.cb[j], [charge_i, charge_j]])
+                        cb_atom_i = self.cb[i]
+                        if cb_atom_i == -1:
+                            cb_atom_i = self.ca[i]  # if mutated, and CB isn't found, then use CA instead
+                        cb_atom_j = self.cb[j]
+                        if cb_atom_j == -1:
+                            cb_atom_j = self.ca[j]  # if mutated, and CB isn't found, then use CA instead
+                        structure_interactions_dh.append([cb_atom_i, cb_atom_j, [charge_i, charge_j]])
                         # print([self.seq[i], self.seq[j],self.cb[i], self.cb[j], [charge_i, charge_j]])
         else:
             chargeInfo = np.loadtxt(chargeFile, dtype=[('index', int), ('charge', float)])
@@ -37,7 +43,13 @@ def debye_huckel_term(self, k_dh=4.15*4.184, forceGroup=30, screening_length=1.0
                 for j in range(i+min_seq_sep,self.nres):
                     charge_j = chargeInfo[j][1]
                     if charge_i*charge_j!=0.0:
-                        structure_interactions_dh.append([self.cb[i], self.cb[j], [charge_i, charge_j]])
+                        cb_atom_i = self.cb[i]
+                        if cb_atom_i == -1:
+                            cb_atom_i = self.ca[i]  # if mutated, and CB isn't found, then use CA instead
+                        cb_atom_j = self.cb[j]
+                        if cb_atom_j == -1:
+                            cb_atom_j = self.ca[j]  # if mutated, and CB isn't found, then use CA instead
+                        structure_interactions_dh.append([cb_atom_i, cb_atom_j, [charge_i, charge_j]])
         for structure_interaction_dh in structure_interactions_dh:
             dh.addBond(*structure_interaction_dh)
         dh.setForceGroup(forceGroup)

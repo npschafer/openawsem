@@ -4,13 +4,18 @@ import os
 import shutil
 # imports for accessibility outside
 import functionTerms
+import create_single_memory_from_pdb
 functionTerms=functionTerms
-# Reads pdb file to a table
+from Bio.PDB.Polypeptide import three_to_one
+
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+__author__ = 'Carlos Bueno'
+
 _AWSEMresidues = ['IPR', 'IGL', 'NGP']
 xml = f'{__location__}/awsem.xml'
 
 def parsePDB(pdb_file):
+    '''Reads a pdb file and outputs a pandas DataFrame'''
     def pdb_line(line):
         return dict(recname=str(line[0:6]).strip(),
                     serial=int(line[6:11]),
@@ -39,6 +44,18 @@ def parsePDB(pdb_file):
                            'x', 'y', 'z', 'occupancy', 'tempFactor',
                            'element', 'charge']]
     return pdb_atoms
+    
+def writePDB(atoms,pdb_file):
+    '''Reads a pandas DataFrame of atoms and outputs a pdb file'''
+    with open(pdb_file, 'w+') as pdb:
+        for i, atom in atoms.iterrows():
+            pdb_line = f'{atom.recname:<6}{atom.serial:>5} {atom["name"]:^4}{atom.altLoc:1}'+\
+                       f'{atom.resname:<3} {atom.chainID:1}{atom.resSeq:>4}{atom.iCode:1}   '+\
+                       f'{atom.x:>8.3f}{atom.y:>8.3f}{atom.z:>8.3f}' +\
+                       f'{atom.occupancy:>6.2f}{atom.occupancy:>6.2f}'+' ' * 10 +\
+                       f'{atom.element:>2}{atom.charge:>2}'
+            assert len(pdb_line) == 80, f'An item in the atom table is longer than expected ({len(pdb_line)})\n{pdb_line}'
+            pdb.write(pdb_line + '\n')
 
 
 def parseConfigTable(config_section):
@@ -80,6 +97,23 @@ def copy_parameter_files():
         full_file_name = os.path.join(src, file_name)
         if os.path.isfile(full_file_name):
             shutil.copy(full_file_name, dest)
+
+def create_single_memory(fixed, memory_file="fixed.pdb", chain=-1):
+    """Creates a single memory file from a openmm pdb file"""
+    simtk.openmm.app.PDBFile.writeFile(fixed.topology, fixed.positions, open(memory_file, 'w'))
+    create_single_memory_from_pdb.create_memory(memory_file,chain)
+    
+def save_protein_sequence(Coarse,sequence_file='protein.seq'):
+    """Saves protein sequence to a file from table"""
+    protein_data=Coarse[Coarse.resname.isin(_AWSEMresidues)].copy()
+    resix = (protein_data.chainID + '_' + protein_data.resSeq.astype(str))
+    res_unique = resix.unique()
+    protein_data['resID'] = resix.replace(dict(zip(res_unique, range(len(res_unique)))))
+    protein_sequence=[r.iloc[0]['real_resname'] for i, r in protein_data.groupby('resID')]
+    protein_sequence_one = [three_to_one(a) for a in protein_sequence]
+
+    with open(sequence_file,'w+') as ps:
+        ps.write(''.join(protein_sequence_one))
 
 class BaseError(Exception):
     pass
@@ -247,7 +281,6 @@ class Protein(object):
 
     @staticmethod
     def write_sequence(Coarse, seq_file='protein.seq'):
-        from Bio.PDB.Polypeptide import three_to_one
         protein_data = Coarse[Coarse.resname.isin(_AWSEMresidues)].copy()
         resix = (protein_data.chainID + '_' + protein_data.resSeq.astype(str))
         res_unique = resix.unique()
@@ -277,10 +310,6 @@ def addNonBondedExclusions(oa, force):
     for e1 in none_cb_fixed:
         for e2 in cb_fixed:
             force.addExclusion(e1, e2)
-
-
-def Forces():
-    pass
 
 
 def test_Protein_fromCoarsePDB():

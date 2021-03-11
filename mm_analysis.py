@@ -140,6 +140,7 @@ forceGroupTable = {"Backbone":20, "Rama":21, "Contact":22, "Fragment":23, "Membr
                     # , "Q_wat":4, "Q_mem":5, "Debye_huckel":30
                    }
 print("Please ensure the forceGroupTable in mm_analysis is set up correctly if you are adding new energy terms.")
+print("Also, please notice that the total energy include all the terms with group index range from 11 to 32.")
 # forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
 #                     "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "beta_2":24,"beta_3":25,"pap":26, "Total":list(range(11, 32)),
 #                     "Water":[16, 18], "Beta":[23, 24, 25], "Pap":26, "Rg_Bias":27, "Helical":28, "Pulling":29, "Q":1, "Rg":2, "Qc":3, "Q_wat":4, "Q_mem":5}

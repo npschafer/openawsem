@@ -156,5 +156,5 @@ def qbias_term(oa, q0, reference_pdb_file, reference_chain_name, k_qbias=100*kil
     qbias.addCollectiveVariable("q", q)
     # qbias.addGlobalParameter("k_qbias", k_qbias)
     # qbias.addGlobalParameter("q0", q0)
-    qvalue.setForceGroup(forceGroup)
+    qbias.setForceGroup(forceGroup)
     return qbias

@@ -3,6 +3,16 @@ from simtk.openmm import *
 from simtk.unit import *
 import numpy as np
 
+def constraint_by_distance(oa, res1, res2,  d0=0*angstrom, forceGroup=3, k=1*kilocalorie_per_mole):
+    # print(len(oa.ca))
+    k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
+    k_constraint = k * oa.k_awsem
+    d0 = d0.value_in_unit(nanometer)   # convert to nm
+    constraint = CustomBondForce(f"0.5*{k_constraint}*(r-{d0})^2")
+    # res1, res2 is 0 index. res1 = 0 means the first residue.
+    constraint.addBond(*[oa.ca[res1], oa.ca[res2]])         # you could also do constraint.addBond(oa.ca[res1], oa.ca[res2])
+    constraint.setForceGroup(forceGroup)
+    return constraint
 
 def group_constraint_by_distance(oa, d0=0*angstrom, group1=[oa.ca[0], oa.ca[1]], group2=[oa.ca[2], oa.ca[3]], forceGroup=3, k=1*kilocalorie_per_mole):
     # CustomCentroidBondForce only work with CUDA not OpenCL.

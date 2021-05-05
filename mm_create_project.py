@@ -19,7 +19,7 @@ parser.add_argument("protein", help="The name of the protein(1r69 for example): 
 parser.add_argument("-c", "--chain", default="-1", help="chains to be simulated, could be for example 'abc'.")
 parser.add_argument("-d", "--debug", action="store_true", default=False)
 parser.add_argument("--frag", action="store_true", default=False, help="Generate fragment memories")
-parser.add_argument("--extended", action="store_true", default=False, help="Start from extended structure")
+parser.add_argument("--extended", action="store_true", default=False, help="feature in development, Start from an extended structure generated using pymol (please ensure it is installed), only support single chain.")
 parser.add_argument("--membrane", action="store_true", default=False)
 parser.add_argument("--hybrid", action="store_true", default=False)
 parser.add_argument("--verbose", action="store_true", default=False)
@@ -92,7 +92,9 @@ openmmawsem.getSeqFromCleanPdb(input_pdb_filename, chains=chain, writeFastaFile=
 do(f"cp crystal_structure.fasta {name}.fasta")
 
 if args.extended:
+    print("Trying to create the extended structure extended.pdb using pymol, please ensure that pymol is installed and callable using 'pymol' in terminal.")
     do(f"python3 {__location__}/helperFunctions/fasta2pdb.py extended -f {name}.fasta")
+    # print("If you has multiple chains, please use other methods to generate the extended structures.")
     helperFunctions.myFunctions.add_chain_to_pymol_pdb("extended.pdb")  # only work for one chain only now
     input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb("extended.pdb", "A", use_cis_proline=False, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
     openmmawsem.ensure_atom_order(input_pdb_filename)

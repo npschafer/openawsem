@@ -190,9 +190,10 @@ def rg_bias_term(oa, k=1*kilocalorie_per_mole, rg0=0, atomGroup=-1, forceGroup=2
     else:
         group = atomGroup     # atomGroup = [0, 1, 10, 12]  means include residue 1, 2, 11, 13.
     n = len(group)
-    rg_square = CustomBondForce("1/normalization*r^2")
+    normalization = n*n
+    rg_square = CustomBondForce(f"1.0/{normalization}*r^2")
     # rg = CustomBondForce("1")
-    rg_square.addGlobalParameter("normalization", n*n)
+    # rg_square.addGlobalParameter("normalization", n*n)
     for i in group:
         for j in group:
             if j <= i:

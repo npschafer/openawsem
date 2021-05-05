@@ -544,7 +544,10 @@ def add_chain_to_pymol_pdb(location):
     # location = "/Users/weilu/Research/server/nov_2018/openMM/random_start/1r69.pdb"
     with open("tmp", "w") as out:
         with open(location, "r") as f:
-            for line in f:
+            lines = f.readlines()
+            if len(lines) < 1:
+                print("your extended.pdb is empty. please check. (a possible cause is that the pymol is not installed)")
+            for line in lines:
                 info = list(line)
                 if len(info) > 21:
                     if line[:4] == "ATOM":

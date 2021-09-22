@@ -1,0 +1,38 @@
+mm_analysis.py 1r69
+mm_analysis.py 1r69 -t /home/cab22/Programs/openAWSEM_github/examples/non_aditive_qbias/movie.dcd --subMode -1 -f forces_setup.py --fasta crystal_structure.fasta -c A
+mm_analysis.py 1r69 -t /home/cab22/Programs/openAWSEM_github/examples/non_aditive_qbias/movie.dcd --subMode -1 -f forces_setup.py --fasta crystal_structure.fasta -c A
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69 -t /home/cab22/Programs/openAWSEM_github/examples/non_aditive_qbias/movie.dcd --subMode -1 -f forces_setup.py --fasta crystal_structure.fasta -c A
+mm_analysis.py 1r69 -t /home/cab22/Programs/openAWSEM_github/examples/non_aditive_qbias/movie.dcd --subMode -1 -f forces_setup.py --fasta crystal_structure.fasta -c A
+mm_analysis.py 1r69 -t /home/cab22/Programs/openAWSEM_github/examples/non_aditive_qbias/movie.dcd --subMode -1 -f forces_setup.py --fasta crystal_structure.fasta -c A
+mm_analysis.py 1r69 -t /home/cab22/Programs/openAWSEM_github/examples/non_aditive_qbias/movie.dcd --subMode -1 -f forces_setup.py --fasta crystal_structure.fasta -c A
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69 -t /home/cab22/Programs/openAWSEM_github/examples/non_aditive_qbias/movie.dcd --subMode -1 -f forces_setup.py --fasta crystal_structure.fasta -c A
+mm_analysis.py 1r69 -t /home/cab22/Programs/openAWSEM_github/examples/non_aditive_qbias/movie.dcd --subMode -1 -f forces_setup.py --fasta crystal_structure.fasta -c A
+mm_analysis.py 1r69 -t /home/cab22/Programs/openAWSEM_github/examples/non_aditive_qbias/movie.dcd --subMode -1 -f forces_setup.py --fasta crystal_structure.fasta -c A
+mm_analysis.py 1r69 -t /home/cab22/Programs/openAWSEM_github/examples/non_aditive_qbias/movie.dcd --subMode -1 -f forces_setup.py --fasta crystal_structure.fasta -c A
+mm_analysis.py 1r69 -t /home/cab22/Programs/openAWSEM_github/examples/non_aditive_qbias/movie.dcd --subMode -1 -f forces_setup.py --fasta crystal_structure.fasta -c A
+mm_analysis.py 1r69 -t /home/cab22/Programs/openAWSEM_github/examples/non_aditive_qbias/movie.dcd --subMode -1 -f forces_setup.py --fasta crystal_structure.fasta -c A
+mm_analysis.py 1r69 -t /home/cab22/Programs/openAWSEM_github/examples/non_aditive_qbias/movie.dcd --subMode -1 -f forces_setup.py --fasta crystal_structure.fasta -c A
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69
+mm_analysis.py 1r69 -t /home/cab22/Programs/openAWSEM_github/examples/non_aditive_qbias/movie.dcd --subMode -1 -f forces_setup.py --fasta crystal_structure.fasta -c A
+mm_analysis.py 1r69 -t /home/cab22/Programs/openAWSEM_github/examples/non_aditive_qbias/movie.dcd --subMode -1 -f forces_setup.py --fasta crystal_structure.fasta -c A
+mm_analysis.py 1r69 -t /home/cab22/Programs/openAWSEM_github/examples/non_aditive_qbias/movie.dcd --subMode -1 -f forces_setup.py --fasta crystal_structure.fasta -c A

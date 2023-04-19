@@ -187,6 +187,7 @@ else:
 
 print("reporter_frequency", reporter_frequency)
 simulation.reporters.append(StateDataReporter(stdout, reporter_frequency, step=True, potentialEnergy=True, temperature=True))  # output energy and temperature during simulation
+simulation.reporters.append(StateDataReporter(os.path.join(toPath, "output.log"), reporter_frequency, step=True, potentialEnergy=True, temperature=True)) # output energy and temperature to a file
 simulation.reporters.append(PDBReporter(os.path.join(toPath, "movie.pdb"), reportInterval=reporter_frequency))  # output PDBs of simulated structures
 simulation.reporters.append(DCDReporter(os.path.join(toPath, "movie.dcd"), reportInterval=reporter_frequency, append=True))  # output PDBs of simulated structures
 # simulation.reporters.append(DCDReporter(os.path.join(args.to, "movie.dcd"), 1))  # output PDBs of simulated structures

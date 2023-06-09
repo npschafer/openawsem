@@ -1,6 +1,11 @@
-from simtk.openmm.app import *
-from simtk.openmm import *
-from simtk.unit import *
+try:
+    from openmm.app import *
+    from openmm import *
+    from openmm.unit import *
+except ModuleNotFoundError:
+    from simtk.openmm.app import *
+    from simtk.openmm import *
+    from simtk.unit import *
 import numpy as np
 from Bio.PDB.PDBParser import PDBParser
 
@@ -158,3 +163,81 @@ def qbias_term(oa, q0, reference_pdb_file, reference_chain_name, k_qbias=100*kil
     # qbias.addGlobalParameter("q0", q0)
     qbias.setForceGroup(forceGroup)
     return qbias
+
+def create_dist(oa,fileA="groupA.dat",fileB="groupB.dat",forceGroup=4):
+    #groupA = list(range(68))
+    #groupB = list(range(196, oa.natoms))
+    #print(cA)
+    #print(cB)
+    groupA = np.array(np.loadtxt(fileA,dtype=int)).tolist()
+    #print (groupA)
+    #groupA = [0,1]
+    groupB = np.array(np.loadtxt(fileB,dtype=int)).tolist()
+    #groupA, groupB = get_contact_atoms('crystal_structure-openmmawsem.pdb', chainA=cA, chainB=cB)
+    #pull_d = CustomCentroidBondForce(2, 'distance(g1,g2)-R0') # 为什么这里给了R0，实际distance变成了2倍？
+    #pull_d.addGlobalParameter("R0", 0.0*angstroms)
+    pull_d = CustomCentroidBondForce(2, 'distance(g1,g2)')
+    pull_d.addGroup(groupA)
+    pull_d.addGroup(groupB) # addGroup(groupB)
+    pull_d.addBond([0, 1])
+    pull_d.setForceGroup(forceGroup)
+    return pull_d
+def create_centroid_system(oa, fileA="groupA.dat",fileB="groupB.dat",k=100,R0=0,forceGroup=26):
+    K_pull = k*4.184 * oa.k_awsem
+    #R0 = R0*nm
+    pull_force = CustomCVForce("0.5*K_pull*(d-R0)^2")
+    d = create_dist(oa)#    cA = list(range(68)),
+    pull_force.addCollectiveVariable("d", d)
+    pull_force.addGlobalParameter("K_pull", K_pull)
+    pull_force.addGlobalParameter("R0", R0)
+    pull_force.setForceGroup(forceGroup)
+    return pull_force
+def create_dist_vector(oa,fileA="groupA.dat",fileB="groupB.dat",fileC="groupC.dat",forceGroup=4):
+    #groupA = list(range(68))
+    #groupB = list(range(196, oa.natoms))
+    #print(cA)
+    #print(cB)
+    groupA = np.array(np.loadtxt(fileA,dtype=int)).tolist()
+    groupB = np.array(np.loadtxt(fileB,dtype=int)).tolist()
+    groupC = np.array(np.loadtxt(fileC,dtype=int)).tolist()
+    print (groupA)
+    print (groupB)
+    print (groupC)
+    #groupA, groupB = get_contact_atoms('crystal_structure-openmmawsem.pdb', chainA=cA, chainB=cB)
+    #pull_d = CustomCentroidBondForce(2, 'distance(g1,g2)-R0') # 为什么这里给了R0，实际distance变成了2倍？
+    #pull_d.addGlobalParameter("R0", 0.0*angstroms)
+    pull_d = CustomCentroidBondForce(3, f"r1*cos(theta);\
+                                r1=distance(p1,p2);\
+                                theta=angle(p1, p2, p3);")
+
+    #pull_d = CustomCompoundBondForce(3, f"r1*cos(theta);\
+     #                           r1=distance(p1,p2);\
+      #                          theta=angle(p1, p2, p3);")
+
+    g1=pull_d.addGroup(groupA)
+    g2=pull_d.addGroup(groupB) # addGroup(groupB)
+    #pull_d.addBond([0,1,2])
+    g3=pull_d.addGroup(groupC)
+    #g4=pull_d.addGroup(groupA)
+    #g5=pull_d.addGroup(groupB)
+
+
+    #print (g1,g2,g3,g4)
+    #pull_d.addBond([2800,3435,3780])
+    pull_d.addBond([0,1,2],[])
+    #pull_d.addBond([g0])
+    #pull_d.addBond([1, 2])
+    #pull_d.addBond([0, 3])
+    pull_d.setForceGroup(forceGroup)
+    return pull_d
+def create_centroid_system2(oa, fileA="groupA.dat",fileB="groupB.dat",fileC="groupC.dat",k=100,R0=0,forceGroup=26):
+    K_pull = k*4.184 * oa.k_awsem
+    #R0 = R0*nm
+    pull_force = CustomCVForce("0.5*K_pull*(d-R0)^2")
+    d = create_dist_vector(oa,fileA=fileA,fileB=fileB,fileC=fileC)#    cA = list(range(68)),
+    pull_force.addCollectiveVariable("d", d)
+    pull_force.addGlobalParameter("K_pull", K_pull)
+    pull_force.addGlobalParameter("R0", R0)
+    pull_force.setForceGroup(forceGroup)
+    return pull_force
+

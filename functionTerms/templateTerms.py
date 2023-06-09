@@ -1,8 +1,14 @@
-from simtk.openmm.app import *
-from simtk.openmm import *
-from simtk.unit import *
+try:
+    from openmm.app import *
+    from openmm import *
+    from openmm.unit import *
+except ModuleNotFoundError:
+    from simtk.openmm.app import *
+    from simtk.openmm import *
+    from simtk.unit import *
 import numpy as np
 import pandas as pd
+import pickle
 
 def read_reference_structure_for_q_calculation_4(oa, contact_threshold,rnative_dat, min_seq_sep=3, max_seq_sep=np.inf):
     # use contact matrix for Q calculation
@@ -91,7 +97,9 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_file_list_file="./frag.mem", npy
 
     if os.path.isfile(frag_table_file) and UseSavedFragTable:
         print(f"Reading Fragment table from {frag_table_file}.")
-        frag_table, interaction_list, interaction_pair_to_bond_index = np.load(frag_table_file, allow_pickle=True)
+        # frag_table, interaction_list, interaction_pair_to_bond_index = np.load(frag_table_file, allow_pickle=True)
+        with open(frag_table_file, 'rb') as f:
+            frag_table, interaction_list, interaction_pair_to_bond_index = pickle.load(f)
         print(f"Fragment table loaded, number of bonds: {len(interaction_list)}")
         frag_file_list = []
     else:
@@ -157,7 +165,9 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_file_list_file="./frag.mem", npy
             assert(ij_sep > 0)
             frag_table[index] = raw_frag_table[i][ij_sep]
             interaction_pair_to_bond_index[(i,j)] = index
-        np.save(frag_table_file, (frag_table, interaction_list, interaction_pair_to_bond_index))
+        # np.save(frag_table_file, (frag_table, interaction_list, interaction_pair_to_bond_index))
+        with open(frag_table_file, 'wb') as f:
+            pickle.dump((frag_table, interaction_list, interaction_pair_to_bond_index), f)
         print(f"All gro files information have been stored in the {frag_table_file}. \
             \nYou might want to set the 'UseSavedFragTable'=True to speed up the loading next time. \
             \nBut be sure to remove the .npy file if you modify the .mem file. otherwise it will keep using the old frag memeory.")

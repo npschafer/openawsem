@@ -29,7 +29,7 @@ fasta = sys.argv[2]
 N_mem = int(sys.argv[3])
 brain_damage = float(sys.argv[4])
 fragmentLength = int(sys.argv[5])
-handle = open(fasta, "rU")
+handle = open(fasta, "r")
 weight = 1  # weight of each fragment
 memoriesPerPosition = N_mem  # can be any integer > 0
 # needs to be large enough that PSI-BLAST returns at least memoriesPerPosition

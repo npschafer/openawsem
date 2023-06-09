@@ -1,5 +1,9 @@
 import pandas
-import simtk.openmm
+try:
+    import openmm
+except ModuleNotFoundError:
+    import simtk.openmm as openmm
+
 import os
 import shutil
 # imports for accessibility outside
@@ -100,7 +104,7 @@ def copy_parameter_files():
 
 def create_single_memory(fixed, memory_file="fixed.pdb", chain=-1):
     """Creates a single memory file from a openmm pdb file"""
-    simtk.openmm.app.PDBFile.writeFile(fixed.topology, fixed.positions, open(memory_file, 'w'))
+    openmm.app.PDBFile.writeFile(fixed.topology, fixed.positions, open(memory_file, 'w'))
     create_single_memory_from_pdb.create_memory(memory_file,chain)
     
 def save_protein_sequence(Coarse,sequence_file='protein.seq'):
@@ -187,15 +191,15 @@ class Protein(object):
         # set virtual sites
         for i in range(self.nres):
             if i not in self.chain_starts:
-                n_virtual_site = simtk.openmm.ThreeParticleAverageSite(self.ca[i - 1], self.ca[i], self.o[i - 1],
+                n_virtual_site = openmm.ThreeParticleAverageSite(self.ca[i - 1], self.ca[i], self.o[i - 1],
                                                                        0.48318, 0.70328, -0.18643)
                 system.setVirtualSite(self.n[i], n_virtual_site)
                 if not self.res_type[i] == "IPR":
-                    h_virtual_site = simtk.openmm.ThreeParticleAverageSite(self.ca[i - 1], self.ca[i], self.o[i - 1],
+                    h_virtual_site = openmm.ThreeParticleAverageSite(self.ca[i - 1], self.ca[i], self.o[i - 1],
                                                                            0.84100, 0.89296, -0.73389)
                     system.setVirtualSite(self.h[i], h_virtual_site)
             if i not in self.chain_ends:
-                c_virtual_site = simtk.openmm.ThreeParticleAverageSite(self.ca[i], self.ca[i + 1], self.o[i],
+                c_virtual_site = openmm.ThreeParticleAverageSite(self.ca[i], self.ca[i + 1], self.o[i],
                                                                        0.44365, 0.23520, 0.32115)
                 # print("Virtual", c[i])
                 system.setVirtualSite(self.c[i], c_virtual_site)

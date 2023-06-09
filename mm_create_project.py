@@ -37,6 +37,15 @@ def parse_arguments():
     parser.add_argument("--keepLigands", action="store_true", default=False, help="Preserve ligands in the protein structure.")
     parser.add_argument("--test", action="store_true", default=False, help="Tests the current module")
 
+      # Create a subparser for frag-related arguments
+    frag_parser = parser.add_argument_group("frag", "Arguments for fragment memory generation. Only used if --frag is specified")
+    frag_parser.add_argument("--frag_database", default="cullpdb_pc80_res3.0_R1.0_d160504_chains29712", help="Specify the database for fragment generation.")
+    frag_parser.add_argument("--frag_fasta", default=None, help="Provide the FASTA file for fragment generation.")
+    frag_parser.add_argument("--frag_N_mem", type=int, default=20, help="Number of memories to generate per fragment.")
+    frag_parser.add_argument("--frag_brain_damage", type=float, choices=[0, 0.5, 1, 2], default=0, help="Control the inclusion or exclusion of homologous protein structures for generating fragment memories.\n 0: include all homologs, 0.5: include only self-structures, 1: exclude all homologs, 2: include only non-homologous structures.")
+    frag_parser.add_argument("--frag_fragmentLength", type=int, default=9, help="SLength of the fragments to be generated.")
+
+
     # Parse and return the command-line arguments
     return parser.parse_args()
 
@@ -196,7 +205,7 @@ class AWSEMSimulationProject:
         
         if args.extended:
             print("Trying to create the extended structure extended.pdb using pymol, please ensure that pymol is installed and callable using 'pymol' in terminal.")
-            do(f"python3 {__location__}/helperFunctions/fasta2pdb.py extended -f {name}.fasta")
+            self.run_command(["python", f"{__location__}/helperFunctions/fasta2pdb.py", "extended", "-f", f"{self.name}.fasta"])
             # print("If you has multiple chains, please use other methods to generate the extended structures.")
             helperFunctions.myFunctions.add_chain_to_pymol_pdb("extended.pdb")  # only work for one chain only now
             input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb("extended.pdb", "A", use_cis_proline=False, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
@@ -211,10 +220,17 @@ class AWSEMSimulationProject:
             # do(f"grep 'HETATM' {cleaned_pdb_filename} >> tmp.pdb")
             # do(f"mv tmp.pdb {input_pdb_filename}")
 
-            do(f"cp crystal_structure-cleaned.pdb {self.name}-cleaned.pdb")
-            do(f"grep 'ATOM' crystal_structure-openmmawsem.pdb > tmp.pdb")
-            do(f"grep 'HETATM' crystal_structure-cleaned.pdb >> tmp.pdb")
-            do(f"mv tmp.pdb {name}-openmmawsem.pdb")
+            shutil.copy("crystal_structure-cleaned.pdb", f"{self.name}-cleaned.pdb")
+            with open("tmp.pdb", "w") as output_file:
+                with open("crystal_structure-openmmawsem.pdb", "r") as input_file:
+                    for line in input_file:
+                        if "ATOM" in line:
+                            output_file.write(line)
+                with open("crystal_structure-cleaned.pdb", "r") as input_file:
+                    for line in input_file:
+                        if "HETATM" in line:
+                            output_file.write(line)
+            os.rename("tmp.pdb", f"{self.name}-openmmawsem.pdb")
         else:
             input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb(self.pdb, self.chain, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
             openmmawsem.ensure_atom_order(input_pdb_filename)
@@ -267,16 +283,29 @@ class AWSEMSimulationProject:
 
         helperFunctions.myFunctions.create_zim(f"crystal_structure.fasta", tableLocation=f"{__location__}/helperFunctions")
 
-    def generate_fragment_memory(self):
+    def generate_fragment_memory(self,database = "cullpdb_pc80_res3.0_R1.0_d160504_chains29712",fasta = None,N_mem = 20,brain_damage = 1.0,fragmentLength = 9):
         """
         Generate the fragment memory file if the frag option is specified.
         """
+        if fasta is None:
+            fasta = f"{self.name}.fasta"
 
-        self.run_command(["cp", f"{__location__}/database/cullpdb_pc80_*", "."])
+        #self.run_command(["cp", f"{__location__}/database/cullpdb_pc80_*", "."])
+        files_to_copy = [
+            f"{database}",
+            f"{database}.fasta",
+            f"{database}.phr",
+            f"{database}.pin",
+            f"{database}.psq",
+        ]
+
+        for file_name in files_to_copy:
+            shutil.copy(__location__/'database'/file_name, Path('.')/file_name)
+
         self.run_command([
             "python", f"{__location__}/helperFunctions/MultCha_prepFrags_index.py",
-            "cullpdb_pc80_res3.0_R1.0_d160504_chains29712", f"{self.name}.fasta", "20", "1", "9"
-        ], stdout=open("logfile", "w"))
+            database, fasta, str(N_mem), str(brain_damage), str(fragmentLength)
+        ], stdout="logfile")
 
         # Check and correct the fragment memory file
         helperFunctions.myFunctions.check_and_correct_fragment_memory("frags.mem")
@@ -370,7 +399,7 @@ class AWSEMSimulationProject:
 
                 # Generate fragment memory files if the frag option is enabled
                 if self.args.frag:
-                    self.generate_fragment_memory()
+                    self.generate_fragment_memory(database=self.args.frag_database, fasta=self.args.frag_fasta, N_mem=self.args.frag_N_mem, brain_damage=self.args.frag_brain_damage, fragmentLength=self.args.frag_fragmentLength)
                 
                 # Copy required scripts to the current working directory
                 self.copy_scripts()

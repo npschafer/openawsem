@@ -1,6 +1,11 @@
-from simtk.openmm.app import *
-from simtk.openmm import *
-from simtk.unit import *
+try:
+    from openmm.app import *
+    from openmm import *
+    from openmm.unit import *
+except ModuleNotFoundError:
+    from simtk.openmm.app import *
+    from simtk.openmm import *
+    from simtk.unit import *
 import numpy as np
 
 def debye_huckel_term(self, k_dh=4.15*4.184, forceGroup=30, screening_length=1.0, chargeFile=None):

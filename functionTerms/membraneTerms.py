@@ -1,6 +1,11 @@
-from simtk.openmm.app import *
-from simtk.openmm import *
-from simtk.unit import *
+try:
+    from openmm.app import *
+    from openmm import *
+    from openmm.unit import *
+except ModuleNotFoundError:
+    from simtk.openmm.app import *
+    from simtk.openmm import *
+    from simtk.unit import *
 import numpy as np
 
 def membrane_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, membrane_center=0*angstrom, forceGroup=24):

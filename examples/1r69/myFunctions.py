@@ -20,7 +20,11 @@ from Bio.PDB.PDBParser import PDBParser
 
 from Bio.PDB import PDBList
 from pdbfixer import PDBFixer
-from simtk.openmm.app import PDBFile
+try:
+    from openmm.app import PDBFile
+except ModuleNotFoundError:
+    from simtk.openmm.app import PDBFile
+
 
 # compute cross Q for every pdb pair in one folder
 # parser = argparse.ArgumentParser(description="Compute cross q")

@@ -1,7 +1,12 @@
 import os
 import sys
-from simtk.unit import angstrom
-from simtk.unit import kilocalorie_per_mole
+try:
+    from openmm.unit import angstrom
+    from openmm.unit import kilocalorie_per_mole
+except ModuleNotFoundError:
+    from simtk.unit import angstrom
+    from simtk.unit import kilocalorie_per_mole
+
 
 try:
     OPENAWSEM_LOCATION = os.environ["OPENAWSEM_LOCATION"]

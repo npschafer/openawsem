@@ -1,8 +1,12 @@
-from simtk.openmm.app import *
-from simtk.openmm import *
-from simtk.unit import *
+try:
+    from openmm.app import *
+    from openmm import *
+    from openmm.unit import *
+except ModuleNotFoundError:
+    from simtk.openmm.app import *
+    from simtk.openmm import *
+    from simtk.unit import *
 import numpy as np
-from simtk.unit import Quantity
 import pandas as pd
 from Bio.PDB.Polypeptide import three_to_one
 

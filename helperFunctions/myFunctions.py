@@ -21,7 +21,10 @@ from Bio.PDB.PDBParser import PDBParser
 
 from Bio.PDB import PDBList
 from pdbfixer import PDBFixer
-from simtk.openmm.app import PDBFile
+try:
+    from openmm.app import PDBFile
+except ModuleNotFoundError:
+    from simtk.openmm.app import PDBFile
 
 # compute cross Q for every pdb pair in one folder
 # parser = argparse.ArgumentParser(description="Compute cross q")
@@ -461,13 +464,24 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
         else:
             fromFile = os.path.join(source, pdbFile)
 
+        if verbose:
+            print('Fixing PDB using PDBFixer')
+            print(os.getcwd())
+            print(fromFile)
+            
         # clean pdb
+        fixer = PDBFixer(filename=fromFile)
+
         try:
             fixer = PDBFixer(filename=fromFile)
         except Exception as inst:
             print(inst)
             print(f"{fromFile} not found. skipped")
             continue
+        
+        if verbose:
+            print('Removing unwanted chains')
+        
         # remove unwanted chains
         chains = list(fixer.topology.chains())
         print(chains)
@@ -485,10 +499,13 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
             Chosen_chain = chains[0].id
         else:
             Chosen_chain = chain
-
+            
         chains_to_remove = [i for i, x in enumerate(chains) if x.id not in Chosen_chain]
         fixer.removeChains(chains_to_remove)
 
+        if verbose:
+            print('Adding Missing residues')
+        
         fixer.findMissingResidues()
         # add missing residues in the middle of a chain, not ones at the start or end of the chain.
         chains = list(fixer.topology.chains())

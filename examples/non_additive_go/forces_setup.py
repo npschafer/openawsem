@@ -1,7 +1,11 @@
 import os
 import sys
-from simtk.unit import angstrom
-from simtk.unit import kilocalorie_per_mole
+try:
+    from openmm.unit import angstrom
+    from openmm.unit import kilocalorie_per_mole
+except ModuleNotFoundError:
+    from simtk.unit import angstrom
+    from simtk.unit import kilocalorie_per_mole
 from non_aditive_qbias import non_aditive_qbias_term
 from openmmawsem import *
 

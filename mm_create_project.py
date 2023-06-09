@@ -151,9 +151,10 @@ class AWSEMSimulationProject:
         name = self.args.protein
         pdb = f"{name}.pdb"
         pdb_list = [name]
+        parent_folder = Path(parent_folder)
         
         try:
-            helperFunctions.myFunctions.downloadPdb(pdb_list)
+            helperFunctions.myFunctions.downloadPdb(pdb_list, location=parent_folder/'original_pdbs')
         except Exception as e:
             print(f"ERROR: Failed to download PDB file. Exception: {e}")
             exit()
@@ -204,10 +205,11 @@ class AWSEMSimulationProject:
         shutil.copy('crystal_structure.fasta',f'{self.name}.fasta')
         
         if args.extended:
-            print("Trying to create the extended structure extended.pdb using pymol, please ensure that pymol is installed and callable using 'pymol' in terminal.")
-            self.run_command(["python", f"{__location__}/helperFunctions/fasta2pdb.py", "extended", "-f", f"{self.name}.fasta"])
-            # print("If you has multiple chains, please use other methods to generate the extended structures.")
-            helperFunctions.myFunctions.add_chain_to_pymol_pdb("extended.pdb")  # only work for one chain only now
+            # print("Trying to create the extended structure extended.pdb using pymol, please ensure that pymol is installed and callable using 'pymol' in terminal.")
+            # self.run_command(["python", f"{__location__}/helperFunctions/fasta2pdb.py", "extended", "-f", f"{self.name}.fasta"])
+            # # print("If you has multiple chains, please use other methods to generate the extended structures.")
+            # helperFunctions.myFunctions.add_chain_to_pymol_pdb("extended.pdb")  # only work for one chain only now
+            helperFunctions.myFunctions.create_extended_pdb_from_fasta(f"{self.name}.fasta", output_file_name="extended.pdb")
             input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb("extended.pdb", "A", use_cis_proline=False, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
             openmmawsem.ensure_atom_order(input_pdb_filename)
         

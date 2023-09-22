@@ -10,7 +10,7 @@ The OpenAWSEM code is currently being tested. Use at your own risk. And let us k
 git clone https://github.com/npschafer/openawsem.git
 ```
 * Download and install STRIDE and put it in your PATH: http://webclu.bio.wzw.tum.de/stride/
-* Download and install psiblast and put it in your PATH: ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/
+* Download and install psiblast and put it in your PATH: ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ or using ```conda install -c bioconda blast``` to install
 * Download pdb_seqres.txt and put it in the cloned openawsem repository location
 ```
 wget ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt

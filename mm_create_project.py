@@ -204,7 +204,7 @@ class AWSEMSimulationProject:
         openmmawsem.getSeqFromCleanPdb(input_pdb_filename, chains=chain, writeFastaFile=True)
         shutil.copy('crystal_structure.fasta',f'{self.name}.fasta')
         
-        if args.extended:
+        if self.args.extended:
             # print("Trying to create the extended structure extended.pdb using pymol, please ensure that pymol is installed and callable using 'pymol' in terminal.")
             # self.run_command(["python", f"{__location__}/helperFunctions/fasta2pdb.py", "extended", "-f", f"{self.name}.fasta"])
             # # print("If you has multiple chains, please use other methods to generate the extended structures.")
@@ -215,7 +215,7 @@ class AWSEMSimulationProject:
         
         shutil.copy('crystal_structure-cleaned.pdb',f'{self.pdb}')
         
-        if args.keepLigands:
+        if self.args.keepLigands:
             # cleaned_pdb_filename = f"{name}-cleaned.pdb"
             # input_pdb_filename = f"{name}-openmmawsem.pdb"
             # do(f"grep 'ATOM' {input_pdb_filename} > tmp.pdb")
@@ -234,7 +234,7 @@ class AWSEMSimulationProject:
                             output_file.write(line)
             os.rename("tmp.pdb", f"{self.name}-openmmawsem.pdb")
         else:
-            input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb(self.pdb, self.chain, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
+            input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb(self.pdb, self.chain, keepIds=self.args.keepIds, removeHeterogens=removeHeterogens)
             openmmawsem.ensure_atom_order(input_pdb_filename)
 
     def generate_ssweight_from_stride(self):
@@ -477,11 +477,14 @@ class TestAWSEMSimulationProject(unittest.TestCase):
             self.project.run_command(["ls", "non_existent_file"])
     
 
-if __name__ == "__main__":
+def main():
     args = parse_arguments()
     if args.test:
-        unittest.main(argv=['first-arg-is-ignored'], exit=False)  # Pass additional arguments to avoid conflicts with argparse
+        unittest.main(argv=['first-arg-is-program-name'], exit=False) 
         exit()
     else:
         project = AWSEMSimulationProject(args)
         project.run()
+
+if __name__=="__main__":
+    main()

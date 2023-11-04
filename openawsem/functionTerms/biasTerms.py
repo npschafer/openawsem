@@ -182,6 +182,7 @@ def create_dist(oa,fileA="groupA.dat",fileB="groupB.dat",forceGroup=4):
     pull_d.addBond([0, 1])
     pull_d.setForceGroup(forceGroup)
     return pull_d
+
 def create_centroid_system(oa, fileA="groupA.dat",fileB="groupB.dat",k=100,R0=0,forceGroup=26):
     K_pull = k*4.184 * oa.k_awsem
     #R0 = R0*nm
@@ -192,6 +193,7 @@ def create_centroid_system(oa, fileA="groupA.dat",fileB="groupB.dat",k=100,R0=0,
     pull_force.addGlobalParameter("R0", R0)
     pull_force.setForceGroup(forceGroup)
     return pull_force
+
 def create_dist_vector(oa,fileA="groupA.dat",fileB="groupB.dat",fileC="groupC.dat",forceGroup=4):
     #groupA = list(range(68))
     #groupB = list(range(196, oa.natoms))
@@ -230,6 +232,7 @@ def create_dist_vector(oa,fileA="groupA.dat",fileB="groupB.dat",fileC="groupC.da
     #pull_d.addBond([0, 3])
     pull_d.setForceGroup(forceGroup)
     return pull_d
+
 def create_centroid_system2(oa, fileA="groupA.dat",fileB="groupB.dat",fileC="groupC.dat",k=100,R0=0,forceGroup=26):
     K_pull = k*4.184 * oa.k_awsem
     #R0 = R0*nm
@@ -241,3 +244,83 @@ def create_centroid_system2(oa, fileA="groupA.dat",fileB="groupB.dat",fileC="gro
     pull_force.setForceGroup(forceGroup)
     return pull_force
 
+def rg_term(oa, convertToAngstrom=True):
+    rg_square = CustomBondForce("1/normalization*r^2")
+    # rg = CustomBondForce("1")
+    rg_square.addGlobalParameter("normalization", oa.nres*oa.nres)
+    for i in range(oa.nres):
+        for j in range(i+1, oa.nres):
+            rg_square.addBond(oa.ca[i], oa.ca[j], [])
+    if convertToAngstrom:
+        unit = 10
+    else:
+        unit = 1
+    rg = CustomCVForce(f"{unit}*rg_square^0.5")
+    rg.addCollectiveVariable("rg_square", rg_square)
+    rg.setForceGroup(2)
+    return rg
+
+def rg_bias_term(oa, k=1*kilocalorie_per_mole, rg0=0, atomGroup=-1, forceGroup=27):
+    k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
+    k_rg = oa.k_awsem * k
+    nres, ca = oa.nres, oa.ca
+    if atomGroup == -1:
+        group = list(range(nres))
+    else:
+        group = atomGroup     # atomGroup = [0, 1, 10, 12]  means include residue 1, 2, 11, 13.
+    n = len(group)
+    normalization = n*n
+    rg_square = CustomBondForce(f"1.0/{normalization}*r^2")
+    # rg = CustomBondForce("1")
+    # rg_square.addGlobalParameter("normalization", n*n)
+    for i in group:
+        for j in group:
+            if j <= i:
+                continue
+            rg_square.addBond(ca[i], ca[j], [])
+    rg = CustomCVForce(f"{k_rg}*(rg_square^0.5-{rg0})^2")
+    rg.addCollectiveVariable("rg_square", rg_square)
+    rg.setForceGroup(forceGroup)
+    return rg
+
+def cylindrical_rg_bias_term(oa, k=1*kilocalorie_per_mole, rg0=0, atomGroup=-1, forceGroup=27):
+    k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
+    k_rg = oa.k_awsem * k
+    nres, ca = oa.nres, oa.ca
+    if atomGroup == -1:
+        group = list(range(nres))
+    else:
+        group = atomGroup          # atomGroup = [0, 1, 10, 12]  means include residue 1, 2, 11, 13.
+    n = len(group)
+    normalization = n * n
+    rg_square = CustomCompoundBondForce(2, f"1/{normalization}*((x1-x2)^2+(y1-y2)^2)")
+
+    for i in group:
+        for j in group:
+            if j <= i:
+                continue
+            rg_square.addBond([ca[i], ca[j]], [])
+
+    rg = CustomCVForce(f"{k_rg}*(rg_square^0.5-{rg0})^2")
+    rg.addCollectiveVariable("rg_square", rg_square)
+    rg.setForceGroup(forceGroup)
+    return rg
+
+def pulling_term(oa, k_pulling=4.184, forceDirect="x", appliedToResidue=1, forceGroup=19):
+    # k_m in units of nm^-1, z_m in units of nm.
+    # z_m is half of membrane thickness
+    # membrane_center is the membrane center plane shifted in z axis.
+    # add membrane forces
+    # 1 Kcal = 4.184 kJ strength by overall scaling
+    k_pulling *= oa.k_awsem
+    pulling = CustomExternalForce(f"(-{k_pulling})*({forceDirect})")
+    for i in range(oa.natoms):
+        if appliedToResidue == "LAST":
+            appliedToResidue = oa.nres
+        if appliedToResidue == "FIRST":
+            appliedToResidue = 1
+        if oa.resi[i] == (appliedToResidue-1):
+            pulling.addParticle(i)
+        # print(oa.resi[i] , oa.seq[oa.resi[i]])
+    pulling.setForceGroup(forceGroup)
+    return pulling

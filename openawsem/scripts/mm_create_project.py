@@ -2,14 +2,14 @@
 import os
 import argparse
 import sys
-import openmmawsem
-import helperFunctions.myFunctions
+import openawsem
+import pandas as pd
 from pathlib import Path
 import contextlib
 import subprocess
 
 
-__location__ = Path(__file__).resolve().parent
+__location__ = openawsem.__location__
 __author__ = 'Wei Lu'
 
 def parse_arguments():
@@ -39,7 +39,7 @@ def parse_arguments():
 
       # Create a subparser for frag-related arguments
     frag_parser = parser.add_argument_group("frag", "Arguments for fragment memory generation. Only used if --frag is specified")
-    frag_parser.add_argument("--frag_database", default="cullpdb_pc80_res3.0_R1.0_d160504_chains29712", help="Specify the database for fragment generation.")
+    frag_parser.add_argument("--frag_database", default=openawsem.data_path.blast, help="Specify the database for fragment generation.")
     frag_parser.add_argument("--frag_fasta", default=None, help="Provide the FASTA file for fragment generation.")
     frag_parser.add_argument("--frag_N_mem", type=int, default=20, help="Number of memories to generate per fragment.")
     frag_parser.add_argument("--frag_brain_damage", type=float, choices=[0, 0.5, 1, 2], default=0, help="Control the inclusion or exclusion of homologous protein structures for generating fragment memories.\n 0: include all homologs, 0.5: include only self-structures, 1: exclude all homologs, 2: include only non-homologous structures.")
@@ -119,8 +119,8 @@ class AWSEMSimulationProject:
         name = protein_path.stem
 
         try:
-            self.run_command(["python3", f"{__location__}/helperFunctions/fasta2pdb.py", name, "-f", self.args.protein])
-            helperFunctions.myFunctions.add_chain_to_pymol_pdb(f"{name}.pdb")
+            self.run_command(["python3", __location__/"helperFunctions"/"fasta2pdb.py", name, "-f", self.args.protein])
+            openawsem.helperFunctions.add_chain_to_pymol_pdb(f"{name}.pdb")
         except Exception as e:
             print(f"ERROR: Failed to convert FASTA to PDB. Exception: {e}")
             exit()
@@ -154,7 +154,7 @@ class AWSEMSimulationProject:
         parent_folder = Path(parent_folder)
         
         try:
-            helperFunctions.myFunctions.downloadPdb(pdb_list, location=parent_folder/'original_pdbs')
+            openawsem.helperFunctions.downloadPdb(pdb_list, location=parent_folder/'original_pdbs')
         except Exception as e:
             print(f"ERROR: Failed to download PDB file. Exception: {e}")
             exit()
@@ -169,7 +169,7 @@ class AWSEMSimulationProject:
         chain = self.args.chain
 
         if not Path("crystal_structure.pdb").exists():
-            helperFunctions.myFunctions.cleanPdb(
+            openawsem.helperFunctions.cleanPdb(
                 [self.name],
                 chain=chain,
                 toFolder="cleaned_pdbs",
@@ -181,41 +181,41 @@ class AWSEMSimulationProject:
             shutil.copy(cleaned_pdb_path,"crystal_structure.pdb")
 
         if chain == "-1":
-            chain = helperFunctions.myFunctions.getAllChains(
+            chain = openawsem.helperFunctions.getAllChains(
                 "crystal_structure.pdb",
                 removeDNAchains=True
             )
             print("Chains info read from crystal_structure.pdb, chains to simulate: ", chain)
 
         # for compute Q
-        input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb(
+        input_pdb_filename, cleaned_pdb_filename = openawsem.prepare_pdb(
             "crystal_structure.pdb",
             chain,
             use_cis_proline=False,
             keepIds=self.args.keepIds,
             removeHeterogens=removeHeterogens
         )
-        openmmawsem.ensure_atom_order(input_pdb_filename)
+        openawsem.ensure_atom_order(input_pdb_filename)
 
         self.input_pdb_filename = input_pdb_filename
         self.cleaned_pdb_filename = cleaned_pdb_filename
         
-        self.chain = helperFunctions.myFunctions.getAllChains("crystal_structure-cleaned.pdb")
-        openmmawsem.getSeqFromCleanPdb(input_pdb_filename, chains=chain, writeFastaFile=True)
+        self.chain = openawsem.helperFunctions.getAllChains("crystal_structure-cleaned.pdb")
+        openawsem.getSeqFromCleanPdb(input_pdb_filename, chains=chain, writeFastaFile=True)
         shutil.copy('crystal_structure.fasta',f'{self.name}.fasta')
         
-        if args.extended:
+        if self.args.extended:
             # print("Trying to create the extended structure extended.pdb using pymol, please ensure that pymol is installed and callable using 'pymol' in terminal.")
             # self.run_command(["python", f"{__location__}/helperFunctions/fasta2pdb.py", "extended", "-f", f"{self.name}.fasta"])
             # # print("If you has multiple chains, please use other methods to generate the extended structures.")
-            # helperFunctions.myFunctions.add_chain_to_pymol_pdb("extended.pdb")  # only work for one chain only now
-            helperFunctions.myFunctions.create_extended_pdb_from_fasta(f"{self.name}.fasta", output_file_name="extended.pdb")
-            input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb("extended.pdb", "A", use_cis_proline=False, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
-            openmmawsem.ensure_atom_order(input_pdb_filename)
+            # openawsem.helperFunctions.myFunctions.add_chain_to_pymol_pdb("extended.pdb")  # only work for one chain only now
+            openawsem.helperFunctions.create_extended_pdb_from_fasta(f"{self.name}.fasta", output_file_name="extended.pdb")
+            input_pdb_filename, cleaned_pdb_filename = openawsem.prepare_pdb("extended.pdb", "A", use_cis_proline=False, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
+            openawsem.ensure_atom_order(input_pdb_filename)
         
         shutil.copy('crystal_structure-cleaned.pdb',f'{self.pdb}')
         
-        if args.keepLigands:
+        if self.args.keepLigands:
             # cleaned_pdb_filename = f"{name}-cleaned.pdb"
             # input_pdb_filename = f"{name}-openmmawsem.pdb"
             # do(f"grep 'ATOM' {input_pdb_filename} > tmp.pdb")
@@ -234,18 +234,18 @@ class AWSEMSimulationProject:
                             output_file.write(line)
             os.rename("tmp.pdb", f"{self.name}-openmmawsem.pdb")
         else:
-            input_pdb_filename, cleaned_pdb_filename = openmmawsem.prepare_pdb(self.pdb, self.chain, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
-            openmmawsem.ensure_atom_order(input_pdb_filename)
+            input_pdb_filename, cleaned_pdb_filename = openawsem.prepare_pdb(self.pdb, self.chain, keepIds=self.args.keepIds, removeHeterogens=removeHeterogens)
+            openawsem.ensure_atom_order(input_pdb_filename)
 
     def generate_ssweight_from_stride(self):
         """
         Generate the secondary structure weight file (ssweight) using stride or Predict_Property.
         """
         self.run_command(["stride", "crystal_structure.pdb"], stdout="ssweight.stride")
-        self.run_command(["python", f"{__location__}/helperFunctions/stride2ssweight.py"], stdout="ssweight")
-        protein_length = helperFunctions.myFunctions.getFromTerminal("wc ssweight").split()[0]
+        self.run_command(["python", __location__/"helperFunctions"/"stride2ssweight.py"], stdout="ssweight")
+        protein_length = openawsem.helperFunctions.getFromTerminal("wc ssweight").split()[0]
         if int(protein_length) == 0:
-            seq = helperFunctions.myFunctions.read_fasta(f"{self.name}.fasta")
+            seq = openawsem.helperFunctions.read_fasta(f"{self.name}.fasta")
             protein_length = len(seq)
             print("impose no secondary bias.")
             print("you might want to install Predict_Property and use the predict_ssweight_from_fasta option.")
@@ -265,7 +265,6 @@ class AWSEMSimulationProject:
         toPre = "."
         to_ssweight = f"{toPre}/ssweight"
         print("convert ssweight")
-        import pandas as pd
         data = pd.read_csv(from_secondary, comment="#", names=["i", "Res", "ss3", "Helix", "Sheet", "Coil"], sep="\s+")
         with open(to_ssweight, "w") as out:
             for i, line in data.iterrows():
@@ -283,7 +282,7 @@ class AWSEMSimulationProject:
         self.run_command(["grep", "-E", "CB|CA  GLY", "crystal_structure-cleaned.pdb"], stdout="cbs.data")
         self.run_command(["awk", "{if($9>15) print \"1\"; else if($9<-15) print \"3\"; else print \"2\"}", "cbs.data"], stdout="zimPosition")
 
-        helperFunctions.myFunctions.create_zim(f"crystal_structure.fasta", tableLocation=f"{__location__}/helperFunctions")
+        openawsem.helperFunctions.create_zim(f"crystal_structure.fasta", tableLocation=__location__/"helperFunctions")
 
     def generate_fragment_memory(self,database = "cullpdb_pc80_res3.0_R1.0_d160504_chains29712",fasta = None,N_mem = 20,brain_damage = 1.0,fragmentLength = 9):
         """
@@ -293,30 +292,36 @@ class AWSEMSimulationProject:
             fasta = f"{self.name}.fasta"
 
         #self.run_command(["cp", f"{__location__}/database/cullpdb_pc80_*", "."])
-        files_to_copy = [
-            f"{database}",
-            f"{database}.fasta",
-            f"{database}.phr",
-            f"{database}.pin",
-            f"{database}.psq",
-        ]
+        # files_to_copy = [
+        #     f"{database}",
+        #     f"{database}.fasta",
+        #     f"{database}.phr",
+        #     f"{database}.pin",
+        #     f"{database}.psq",
+        # ]
 
-        for file_name in files_to_copy:
-            shutil.copy(__location__/'database'/file_name, Path('.')/file_name)
+        # for file_name in files_to_copy:
+        #    shutil.copy(database/file_name, Path('.')/file_name)
 
-        self.run_command([
-            "python", f"{__location__}/helperFunctions/MultCha_prepFrags_index.py",
-            database, fasta, str(N_mem), str(brain_damage), str(fragmentLength)
-        ], stdout="logfile")
+        openawsem.helperFunctions.create_fragment_memories(database=database, fasta_file=fasta, memories_per_position=N_mem, 
+                                                           brain_damage=brain_damage, fragment_length=fragmentLength, pdb_dir=openawsem.data_path.pdb, 
+                                                           index_dir=openawsem.data_path.index, frag_lib_dir=openawsem.data_path.gro,
+                                                           failed_pdb_list_file=openawsem.data_path.pdbfail, pdb_seqres=openawsem.data_path.pdbseqres,
+                                                           weight=1, evalue_threshold=10000, cutoff_identical=90)
+
+        # self.run_command([
+        #     "python", __location__/"helperFunctions"/"MultCha_prepFrags_index.py",
+        #     database, fasta, str(N_mem), str(brain_damage), str(fragmentLength)
+        # ], stdout="logfile")
 
         # Check and correct the fragment memory file
-        helperFunctions.myFunctions.check_and_correct_fragment_memory("frags.mem")
+        openawsem.helperFunctions.check_and_correct_fragment_memory("frags.mem")
 
         # Relocate the file to the fraglib folder
-        helperFunctions.myFunctions.relocate(fileLocation="frags.mem", toLocation="fraglib")
+        openawsem.helperFunctions.relocate(fileLocation="frags.mem", toLocation="fraglib")
 
         # Replace the file path in frags.mem
-        helperFunctions.myFunctions.replace(f"frags.mem", f"{__location__}//Gros/", "./fraglib/")
+        openawsem.helperFunctions.replace(f"frags.mem", f"{__location__}//Gros/", "./fraglib/")
         self.run_command(["cp", "frags.mem", "frag_memory.mem"])
 
     def generate_single_memory(self):
@@ -324,35 +329,38 @@ class AWSEMSimulationProject:
             # print(f"convert chain {c} of crystal structure to Gro file")
             self.run_command(["python", f"{__location__}/helperFunctions/Pdb2Gro.py", "crystal_structure-cleaned.pdb", f"{self.name}_{c}.gro", f"{c}"])
         
-        seq_data = helperFunctions.myFunctions.seq_length_from_pdb("crystal_structure-cleaned.pdb", self.chain)
+        seq_data = openawsem.helperFunctions.seq_length_from_pdb("crystal_structure-cleaned.pdb", self.chain)
         with open("single_frags.mem", "w") as out:
             out.write("[Target]\nquery\n\n[Memories]\n")
             for (chain_name, chain_start_residue_index, seq_length) in seq_data:
                 # print(f"write chain {chain_name}")
                 out.write(f"{self.name}_{chain_name}.gro {chain_start_residue_index} 1 {seq_length} 20\n")   # residue index in Gro always start at 1.
 
+    def generate_charges(self):
+        openawsem.helperFunctions.generate_charge_array(Path(f"{self.name}.fasta"),Path('charge.txt'))
+
     def copy_parameters(self, destination_folder='.'):
         # Copy the files using shutil.copy()
-        shutil.copy(f"{__location__}/parameters/burial_gamma.dat", destination_folder)
-        shutil.copy(f"{__location__}/parameters/gamma.dat", destination_folder)
-        shutil.copy(f"{__location__}/parameters/membrane_gamma.dat", destination_folder)
-        shutil.copy(f"{__location__}/parameters/anti_HB", destination_folder)
-        shutil.copy(f"{__location__}/parameters/anti_NHB", destination_folder)
-        shutil.copy(f"{__location__}/parameters/anti_one", destination_folder)
-        shutil.copy(f"{__location__}/parameters/para_HB", destination_folder)
-        shutil.copy(f"{__location__}/parameters/para_one", destination_folder)
+        shutil.copy(__location__/"parameters"/"burial_gamma.dat", destination_folder)
+        shutil.copy(__location__/"parameters"/"gamma.dat", destination_folder)
+        shutil.copy(__location__/"parameters"/"membrane_gamma.dat", destination_folder)
+        shutil.copy(__location__/"parameters"/"anti_HB", destination_folder)
+        shutil.copy(__location__/"parameters"/"anti_NHB", destination_folder)
+        shutil.copy(__location__/"parameters"/"anti_one", destination_folder)
+        shutil.copy(__location__/"parameters"/"para_HB", destination_folder)
+        shutil.copy(__location__/"parameters"/"para_one", destination_folder)
     
     def copy_scripts(self,destination_folder='.'):
         """
         Copy required scripts and files to the current working directory.
         """
-        mm_run_path = __location__ / "mm_run.py"
-        mm_analysis_path = __location__ / "mm_analysis.py"
-        forces_setup_path = __location__ / "forces_setup.py"
+        mm_run_path = __location__ /"scripts"/ "mm_run.py"
+        mm_analysis_path = __location__ /"scripts"/ "mm_analyze.py"
+        forces_setup_path = __location__ /"scripts"/ "forces_setup.py"
 
-        shutil.copy(__location__ / "mm_run.py", destination_folder)
-        shutil.copy(__location__ / "mm_analysis.py", destination_folder)
-        shutil.copy(__location__ / "forces_setup.py", destination_folder)
+        shutil.copy(mm_run_path, destination_folder)
+        shutil.copy(mm_analysis_path, destination_folder)
+        shutil.copy(forces_setup_path, destination_folder)
 
 
     def run(self):
@@ -402,6 +410,9 @@ class AWSEMSimulationProject:
                 # Generate fragment memory files if the frag option is enabled
                 if self.args.frag:
                     self.generate_fragment_memory(database=self.args.frag_database, fasta=self.args.frag_fasta, N_mem=self.args.frag_N_mem, brain_damage=self.args.frag_brain_damage, fragmentLength=self.args.frag_fragmentLength)
+
+                #Generate charges
+                self.generate_charges()
                 
                 # Copy required scripts to the current working directory
                 self.copy_scripts()
@@ -477,11 +488,14 @@ class TestAWSEMSimulationProject(unittest.TestCase):
             self.project.run_command(["ls", "non_existent_file"])
     
 
-if __name__ == "__main__":
+def main():
     args = parse_arguments()
     if args.test:
-        unittest.main(argv=['first-arg-is-ignored'], exit=False)  # Pass additional arguments to avoid conflicts with argparse
+        unittest.main(argv=['first-arg-is-program-name'], exit=False) 
         exit()
     else:
         project = AWSEMSimulationProject(args)
         project.run()
+
+if __name__=="__main__":
+    main()

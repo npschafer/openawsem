@@ -17,6 +17,10 @@ def con_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, .153], forceGroup
     # multiply interaction strength by overall scaling
     k_con *= oa.k_awsem
     con = HarmonicBondForce()
+
+    if oa.periodic:
+        con.setUsesPeriodicBoundaryConditions(True)
+    
     for i in range(oa.nres):
         con.addBond(oa.ca[i], oa.o[i], bond_lengths[1], k_con)
         if not oa.res_type[i] == "IGL":  # OpenAWSEM system doesn't have CB for glycine, so the following bond is not exist for Glycine, but LAMMPS include this bond by using virtual HB as CB.
@@ -34,6 +38,10 @@ def chain_term(oa, k_chain=50208, bond_k=[1, 1, 1], bond_lengths=[0.2459108, 0.2
     # multiply interaction strength by overall scaling
     k_chain *= oa.k_awsem
     chain = HarmonicBondForce()
+    
+    if oa.periodic:
+        chain.setUsesPeriodicBoundaryConditions(True)
+
     for i in range(oa.nres):
         if i not in oa.chain_starts and not oa.res_type[i] == "IGL":
             chain.addBond(oa.n[i], oa.cb[i], bond_lengths[0], k_chain*bond_k[0])
@@ -62,6 +70,9 @@ def chi_term(oa, k_chi=251.04, chi0=-0.71, forceGroup=20):
                                         "u_x=x1-x2; u_y=y1-y2; u_z=z1-z2;"
                                         "v_x=x3-x1; v_y=y3-y1; v_z=z3-z1;")
 
+    if oa.periodic:
+        chi.setUsesPeriodicBoundaryConditions(True)
+
     for i in range(oa.nres):
         if i not in oa.chain_starts and i not in oa.chain_ends and not oa.res_type[i] == "IGL":
             chi.addBond([oa.ca[i], oa.c[i], oa.n[i], oa.cb[i]])
@@ -76,6 +87,12 @@ def excl_term(oa, k_excl=8368, r_excl=0.35, periodic=False, excludeCB=False, for
     # Openawsem doesn't have the distance range (r_excl) change from 0.35 to 0.45 when the sequence separtation more than 5
     k_excl *= oa.k_awsem
     excl = CustomNonbondedForce(f"{k_excl}*step({r_excl}-r)*(r-{r_excl})^2")
+
+    if oa.periodic:
+        excl.setNonbondedMethod(excl.CutoffPeriodic)
+    else:
+        excl.setNonbondedMethod(excl.CutoffNonPeriodic)
+
     for i in range(oa.natoms):
         excl.addParticle()
     # print(oa.ca)
@@ -88,10 +105,6 @@ def excl_term(oa, k_excl=8368, r_excl=0.35, periodic=False, excludeCB=False, for
     excl.addInteractionGroup(oa.o, oa.o)
 
     excl.setCutoffDistance(r_excl)
-    if periodic:
-        excl.setNonbondedMethod(excl.CutoffPeriodic)
-    else:
-        excl.setNonbondedMethod(excl.CutoffNonPeriodic)
 
     # excl.setNonbondedMethod(excl.CutoffNonPeriodic)
     excl.createExclusionsFromBonds(oa.bonds, 1)
@@ -108,6 +121,12 @@ def excl_term_v2(oa, k_excl=8368, r_excl=0.35, periodic=False, excludeCB=False, 
     # Openawsem doesn't have the distance range (r_excl) change from 0.35 to 0.45 when the sequence separtation more than 5
     k_excl *= oa.k_awsem
     excl = CustomNonbondedForce(f"{k_excl}*step(abs(res1-res2)-2+isChainEdge1*isChainEdge2+isnot_Ca1+isnot_Ca2)*step({r_excl}-r)*(r-{r_excl})^2")
+    
+    if oa.periodic:
+        excl.setNonbondedMethod(excl.CutoffPeriodic)
+    else:
+        excl.setNonbondedMethod(excl.CutoffNonPeriodic)
+
     excl.addPerParticleParameter("res")
     excl.addPerParticleParameter("isChainEdge")
     excl.addPerParticleParameter("isnot_Ca")
@@ -133,10 +152,6 @@ def excl_term_v2(oa, k_excl=8368, r_excl=0.35, periodic=False, excludeCB=False, 
     excl.addInteractionGroup(oa.o, oa.o)
 
     excl.setCutoffDistance(r_excl)
-    if periodic:
-        excl.setNonbondedMethod(excl.CutoffPeriodic)
-    else:
-        excl.setNonbondedMethod(excl.CutoffNonPeriodic)
 
     # excl.setNonbondedMethod(excl.CutoffNonPeriodic)
     # print(oa.bonds)
@@ -158,6 +173,10 @@ def rama_term(oa, k_rama=8.368, num_rama_wells=3, w=[1.3149, 1.32016, 1.0264], s
                             for i in range(num_rama_wells)])
     rama_string = rama_function+rama_parameters
     rama = CustomCompoundBondForce(5, rama_string)
+
+    if oa.periodic:
+        rama.setUsesPeriodicBoundaryConditions(True)
+
     for i in range(num_rama_wells):
         rama.addGlobalParameter(f"k_rama", k_rama)
         rama.addGlobalParameter(f"w{i}", w[i])
@@ -185,6 +204,10 @@ def rama_proline_term(oa, k_rama_proline=8.368, num_rama_proline_wells=2, w=[2.1
                             for i in range(num_rama_proline_wells)])
     rama_string = rama_function+rama_parameters
     rama = CustomCompoundBondForce(5, rama_string)
+
+    if oa.periodic:
+        rama.setUsesPeriodicBoundaryConditions(True)
+
     for i in range(num_rama_proline_wells):
         rama.addGlobalParameter(f"k_rama_proline", k_rama_proline)
         rama.addGlobalParameter(f"w_P{i}", w[i])
@@ -214,7 +237,11 @@ def rama_ssweight_term(oa, k_rama_ssweight=8.368, num_rama_wells=2, w=[2.0, 2.0]
                             for i in range(num_rama_wells)])
     rama_string = rama_function+rama_parameters
     ramaSS = CustomCompoundBondForce(5, rama_string)
-    ramaSS.addPerBondParameter("resId")
+    
+    if oa.periodic:
+        ramaSS.setUsesPeriodicBoundaryConditions(True)
+
+    ramaSS.addPerBondParameter("resId")    
     for i in range(num_rama_wells):
         ramaSS.addGlobalParameter(f"wSS{i}", w[i])
         ramaSS.addGlobalParameter(f"sigmaSS{i}", sigma[i])
@@ -300,6 +327,9 @@ def side_chain_term(oa, k=1*kilocalorie_per_mole, gmmFileFolder="/Users/weilu/op
                                         r1=10*distance(p1,p4);\
                                         r2=10*distance(p2,p4);\
                                         r3=10*distance(p3,p4)")
+    
+    if oa.periodic:
+        side_chain.setUsesPeriodicBoundaryConditions(True)
 
     side_chain.addPerBondParameter("res")
     side_chain.addTabulatedFunction("pc", Discrete2DFunction(20, 27, precisions_chol_all_res.T.flatten()))
@@ -324,6 +354,10 @@ def chain_no_cb_constraint_term(oa, k_chain=50208, bond_lengths=[0.2459108, 0.25
     # multiply interaction strength by overall scaling
     k_chain *= oa.k_awsem
     chain = HarmonicBondForce()
+
+    if oa.periodic:
+        chain.setUsesPeriodicBoundaryConditions(True)
+
     for i in range(oa.nres):
         if i not in oa.chain_starts and i not in oa.chain_ends:
             chain.addBond(oa.n[i], oa.c[i], bond_lengths[2], k_chain)
@@ -336,6 +370,10 @@ def con_no_cb_constraint_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, 
     # multiply interaction strength by overall scaling
     k_con *= oa.k_awsem
     con = HarmonicBondForce()
+
+    if oa.periodic:
+        con.setUsesPeriodicBoundaryConditions(True)
+    
     for i in range(oa.nres):
         con.addBond(oa.ca[i], oa.o[i], bond_lengths[1], k_con)
         if ((i in oa.chain_starts) or (i in oa.chain_ends)) and (not oa.res_type[i] == "IGL"):
@@ -349,7 +387,7 @@ def con_no_cb_constraint_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, 
 
 
 
-def cbd_excl_term(oa, k=1*kilocalorie_per_mole, periodic=False, r_excl=0.7, fileLocation='cbd_cbd_real_contact_symmetric.csv', forceGroup=24):
+def cbd_excl_term(oa, k=1*kilocalorie_per_mole, r_excl=0.7, fileLocation='cbd_cbd_real_contact_symmetric.csv', forceGroup=24):
     # Cb domain Excluded volume
     # With residue specific parameters
     # a harmonic well with minimum at the database histogram peak.
@@ -388,7 +426,7 @@ def cbd_excl_term(oa, k=1*kilocalorie_per_mole, periodic=False, r_excl=0.7, file
     excl.addInteractionGroup([x for x in oa.cb if x > 0], [x for x in oa.cb if x > 0])
 
     excl.setCutoffDistance(r_excl)
-    if periodic:
+    if oa.periodic:
         excl.setNonbondedMethod(excl.CutoffPeriodic)
     else:
         excl.setNonbondedMethod(excl.CutoffNonPeriodic)

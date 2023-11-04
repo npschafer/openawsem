@@ -12,7 +12,7 @@ import subprocess
 import glob
 import re
 
-from helperFunctions.myFunctions_helper import *
+from openawsem.helperFunctions.myFunctions_helper import *
 import numpy as np
 import pandas as pd
 import fileinput

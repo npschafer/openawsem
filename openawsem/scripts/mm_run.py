@@ -11,14 +11,6 @@ from time import sleep
 import fileinput
 import importlib.util
 
-try:
-    OPENAWSEM_LOCATION = os.environ["OPENAWSEM_LOCATION"]
-    sys.path.append(OPENAWSEM_LOCATION)
-    # print(OPENAWSEM_LOCATION)
-except KeyError:
-    print("Please set the environment variable name OPENAWSEM_LOCATION.\n Example: export OPENAWSEM_LOCATION='YOUR_OPENAWSEM_LOCATION'")
-    exit()
-
 from openawsem import *
 from openawsem.helperFunctions.myFunctions import *
 

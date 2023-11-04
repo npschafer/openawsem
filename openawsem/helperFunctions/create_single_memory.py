@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 import os
 import argparse
-import sys
-import openmmawsem
-import helperFunctions.myFunctions
+import openawsem.helperFunctions
+from .Pdb2Gro import pdb2gro
 
-__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 __author__ = 'Wei Lu'
 
-def create_memory(pdb, chain):
+def create_single_memory(pdb, chain):
     if not os.path.exists(pdb):
         print("ERROR: the pdb you specified is not exist")
         exit()
@@ -16,18 +14,20 @@ def create_memory(pdb, chain):
 
     # If the chain is not specified then select all the chains
     if chain == "-1":
-        chain = helperFunctions.myFunctions.getAllChains(pdb, removeDNAchains=True)
+        chain = openawsem.helperFunctions.myFunctions.getAllChains(pdb, removeDNAchains=True)
         print("Chains info read from crystal_structure.pdb, chains to simulate: ", chain)
 
 
     # get fasta, pdb, seq file ready
-    chain = helperFunctions.myFunctions.getAllChains(pdb)
+    chain = openawsem.helperFunctions.myFunctions.getAllChains(pdb)
 
     for c in chain:
         # print(f"convert chain {c} of crystal structure to Gro file")
-        os.system(f"python {__location__}/helperFunctions/Pdb2Gro.py {pdb} {name}_{c}.gro {c}")
+        
+        #os.system(f"python {__location__}/helperFunctions/Pdb2Gro.py {pdb} {name}_{c}.gro {c}")
+        pdb2gro(pdb,f'{name}_{c}.gro',c)
 
-    seq_data = helperFunctions.myFunctions.seq_length_from_pdb(pdb, chain)
+    seq_data = openawsem.helperFunctions.myFunctions.seq_length_from_pdb(pdb, chain)
     with open("single_frags.mem", "w") as out:
         out.write("[Target]\nquery\n\n[Memories]\n")
         for (chain_name, chain_start_residue_index, seq_length) in seq_data:

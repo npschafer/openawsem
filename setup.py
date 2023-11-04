@@ -18,6 +18,10 @@ try:
 except:
     long_description = None
 
+# Read the contents of your requirements file
+with open('requirements.txt') as f:
+    requirements = f.read().splitlines()
+
 
 setup(
     # Self-descriptive entries which should always be present
@@ -44,26 +48,14 @@ setup(
     # Allows `setup.py test` to work correctly with pytest
     setup_requires=[] + pytest_runner,
 
-    # Additional entries you may want simply uncomment the lines you want and fill in the data
-    # url='http://www.my_package.com',  # Website
-    install_requires=["biopython",
-                      "matplotlib",
-                      "numpy",
-                      "pandas",
-                      "openmm",
-                      "pdbfixer",
-                      "mdtraj"],              
-    # platforms=['Linux',
-    #            'Mac OS-X',
-    #            'Unix',
-    #            'Windows'],            # Valid platforms your code works on, adjust to your flavor
-    # python_requires=">=3.5",          # Python version restrictions
-
-    # Manual control if final package is compressible or not, set False to prevent the .egg from being made
-    # zip_safe=False,
+    url='https://openawsem.org/',  # Website
+    python_requires='>=3.8',
+    install_requires=requirements,              
     entry_points={
     'console_scripts': [
-        'create_project = mm_create_project:main',
+        'awsem_create = openawsem.scripts.mm_create_project:main',
+        'awsem_run = openawsem.scripts.mm_run:main',
+        'awsem_analyze = openawsem.scripts.mm_analyze:main',
     ],
     }
 )

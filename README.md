@@ -1,71 +1,154 @@
 # OpenAWSEM
 ## An implementation of the AWSEM coarse-grained protein folding forcefield in OpenMM
 
-The OpenAWSEM code is currently being tested. Use at your own risk. And let us know what you find. :-)
-
+OpenAWSEM is an implementation of the AWSEM (Associative memory, Water-mediated Structure, and Energy Model) coarse-grained protein forcefield designed for use with the OpenMM simulation toolkit.
 
 ## Installation
-* Clone openawsem repository
+
+### Conda
+
+To install OpenAWSEM using Conda, execute the following command:
+
+```bash
+conda install -c conda-forge openawsem
 ```
-git clone https://github.com/npschafer/openawsem.git
+
+### Git
+
+This installation mode is recommended for users that want to contribute to the code and Wolynes lab members.
+
+```bash
+#Clone the awsem repository
+git clone https://github.com/cabb99/openawsem.git
+cd openawsem
+
+# Create a new conda environment
+conda create -n openawsem --file requirements.txt
+conda activate openawsem
+
+# Install the package in editable mode
+pip install -e .
 ```
-* Download and install STRIDE and put it in your PATH: http://webclu.bio.wzw.tum.de/stride/
-* Download and install psiblast and put it in your PATH: ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ or using ```conda install -c bioconda blast``` to install
+
+## Requirements
+
+### STRIDE
+STRIDE is used for secondary structure prediction. 
+Download and install STRIDE and add it to your PATH:
+https://webclu.bio.wzw.tum.de/stride/
+```bash
+wget https://webclu.bio.wzw.tum.de/stride/stride.tar.gz
+tar -xvzf stride.tar.gz
+cd stride
+make
+echo 'export PATH=$PATH:'`pwd` >> ~/.bashrc
+```
+
+### PSIBLAST    
+Install psiblast using the distribution from bioconda:
+
+```
+conda install -c bioconda blast
+```
+
+Alternatively Download and install psiblast and add it to your PATH: 
+ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/
+
+```bash
+wget https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/$(curl -s "https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/" | grep -o 'ncbi-blast-[0-9.]*+-x64-linux.tar.gz'| head -n 1)
+tar -xvzf ncbi-*.tar.gz
+cd ncbi*/bin
+echo 'export PATH=$PATH:'`pwd` >> ~/.bashrc
+```
+
+### PDB_SEQRES.txt
 * Download pdb_seqres.txt and put it in the cloned openawsem repository location
 ```
 wget ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt
+OPENAWSEM_LOCATION=$(python -c "import openawsem; print(openawsem.__location__)")
+cp pdb_seqres.txt $OPENAWSEM_LOCATION/data
+
 ```
-* Install conda or miniconda: https://conda.io/en/latest/miniconda.html
-* Create an openmm environment that includes the necessary Python packages.
+
+## Configuration
+OpenAWSEM allows users to configure data storage paths. To do this:
+
+Create a .awsem directory in your home folder.
+Inside .awsem, create a configuration file named config.ini to specify data paths. 
+The default paths point to the local data directory inside the OpenAWSEM module.
+Example config.ini:
+
 ```
-conda create -n openmm python=3.6 biopython matplotlib numpy pandas 
-```
-* Set OPENAWSEM_LOCATION environment variable (the location where you cloned this Github repository).
-```
-export OPENAWSEM_LOCATION='/YOUR/OPENAWSEM/DIRECTORY/'
-```
-* Activate the openmm environment.
-```
-source activate openmm
-```
-* Install additional python packages
-```
-conda install -c omnia -c conda-forge openmm pdbfixer mdtraj 
+[Data Paths]
+blast = /home/USER/data/database/cullpdb_pc80_res3.0_R1.0_d160504_chains29712
+gro = /home/USER/data/Gros
+pdb = /home/USER/data/PDBs
+index = /home/USER/data/Indices
+pdbfail = /home/USER/data/notExistPDBsList
+pdbseqres = /home/USER/data/pdb_seqres.txt
+topology = /home/USER/topology
 ```
 
 ## Example
-Simulate Phage 434 repressor amino terminal domain (1r69)
+Simulation of the amino terminal domain of Phage 434 repressor (1r69)
 
-* Activate the openmm environment.
-```
-source activate openmm
-```
-* Setup simulation folder:
-```
-python YOUR_OPENAWSEM_LOCATION/mm_create_project.py 1r69 --frag
-```
-* Or if you already have 1r69.pdb:
-```
-python YOUR_OPENAWSEM_LOCATION/mm_create_project.py PATH_TO_YOUR_PDB/1r69.pdb --frag
-```
-* Run the simulation:
-```
-python mm_run.py 1r69 --platform CPU --steps 1e5 --tempStart 800 --tempEnd 200 -f forces_setup.py
-```
-* Note:
+1. **Activate the OpenMM Environment:**
+   Activate the required environment for running simulations.
+   ```bash
+   source activate openmm
+   ```
 
-forces_setup.py controls which force(energy) term will be included in the simulation. 
+2. **Set Up the Simulation Folder:**
+   Create a simulation folder using the `awsem_create` command. The awsem_create command will automatically download the corresponding pdb.
+   ```bash
+   awsem_create 1r69 --frag
+   ```
+   Alternatively, if you have the `1r69.pdb` file:
+   ```bash
+   awsem_create 1r69.pdb --frag
+   ```
 
-* Compute energy and Q:
-```
-python mm_analysis.py 1r69 > energy.dat
-```
+3. **Modify the forces_setup.py**
 
-* Note 2:
-If you dont have GPU avaliable, you might want to consider using http://awsem-md.org. For small proteins, the LAMMPS version could be faster than openAWSEM.  
+   The `forces_setup.py` script determines which force (energy) terms are included in the simulation. 
+   To activate the fragment memory term uncomment the fragment memory term and comment the single memory term.
+   ```python
+      # templateTerms.fragment_memory_term(oa, frag_file_list_file="./frags.mem", npy_frag_table="./frags.npy", UseSavedFragTable=True),
+        templateTerms.fragment_memory_term(oa, frag_file_list_file="./single_frags.mem", npy_frag_table="./single_frags.npy", UseSavedFragTable=False),
+   ```
+   It should look like this:
+   ```python
+        templateTerms.fragment_memory_term(oa, frag_file_list_file="./frags.mem", npy_frag_table="./frags.npy", UseSavedFragTable=False),
+      #  templateTerms.fragment_memory_term(oa, frag_file_list_file="./single_frags.mem", npy_frag_table="./single_frags.npy", UseSavedFragTable=False),
+   ```
+3. **Run the Simulation:**
+   Execute the simulation using the `awsem_run` command, specifying the platform, number of steps, and start and end temperatures for the annealing simulation.
+   As an example we are running 1e5 steps, but it is common to run from 5 to 30 million steps in a single run.
+   
+   ```bash
+   awsem_run 1r69 --platform CPU --steps 1e5 --tempStart 800 --tempEnd 200 -f forces_setup.py
+   ```
 
-* Note 3:
-Due to the size limitation, the data for the paper OpenAWSEM with Open3SPN2: a fast, flexible, and accessible framework for large-scale coarse-grained biomolecular simulations is stored in https://app.globus.org/file-manager?origin_id=b4cef8ce-7773-4016-8513-829f388f7986&origin_path=%2FopenAWSEM_data%2F
+4. **Compute Energy and Q:**
+   Analyze the simulation results and redirect the output to `info.dat`.
+   ```bash
+   awsem_analyze 1r69 > info.dat
+   ```
+
+5. **Run Local Scripts (Optional):**
+   The scripts are copied to the project folder and can be modified as needed. To run the local scripts, use the following commands:
+   ```bash
+   ./mm_run.py 1r69 --platform CPU --steps 1e5 --tempStart 800 --tempEnd 200 -f forces_setup.py
+   ./mm_analyze.py 1r69 > energy.dat
+   ```
+
+## Notes:
+For small proteins, the LAMMPS version may be faster than OpenAWSEM, especially if a GPU is unavailable. Consider using http://awsem-md.org for such cases.
+A quick check of the stability of a protein in AWSEM can be done using the frustratometer server http://frustratometer.qb.fcen.uba.ar/
+
+## Data availability
+Data related to the paper "OpenAWSEM with Open3SPN2: A fast, flexible, and accessible framework for large-scale coarse-grained biomolecular simulations" is available at https://app.globus.org/file-manager?origin_id=b4cef8ce-7773-4016-8513-829f388f7986&origin_path=%2FopenAWSEM_data%2F
 
 ## Citation
+Please cite the following paper when using OpenAWSEM:
 Lu, W., Bueno, C., Schafer, N. P., Moller, J., Jin, S., Chen, X., ... & Wolynes, P. G. (2021). OpenAWSEM with Open3SPN2: A fast, flexible, and accessible framework for large-scale coarse-grained biomolecular simulations. PLoS computational biology, 17(2), e1008308. https://doi.org/10.1371/journal.pcbi.1008308

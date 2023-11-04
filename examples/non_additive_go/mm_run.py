@@ -125,8 +125,6 @@ collision_rate = 5.0 / picoseconds
 checkpoint_file = "checkpnt.chk"
 checkpoint_reporter_frequency = 10000
 
-
-
 snapShotCount = 400
 stepsPerT = int(args.steps/snapShotCount)
 Tstart = args.tempStart
@@ -151,6 +149,7 @@ oa = OpenMMAWSEMSystem(input_pdb_filename, k_awsem=1.0, chains=chain, xml_filena
 myForces = forces.set_up_forces(oa, submode=args.subMode, contactParameterLocation=parametersLocation)
 # print(forces)
 # oa.addForces(myForces)
+# oa.system.removeForce(0) # Remove COM bias
 oa.addForcesWithDefaultForceGroup(myForces)
 
 if args.fromCheckPoint:

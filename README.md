@@ -9,13 +9,15 @@ OpenAWSEM is an implementation of the AWSEM (Associative memory, Water-mediated 
 
 To install OpenAWSEM using Conda, execute the following command:
 
+```bash
 conda install -c conda-forge openawsem
+```
 
 ### Git
 
 This installation mode is recommended for users that want to contribute to the code and Wolynes lab members.
 
-```
+```bash
 #Clone the awsem repository
 git clone https://github.com/cabb99/openawsem.git
 cd openawsem
@@ -34,7 +36,7 @@ pip install -e .
 STRIDE is used for secondary structure prediction. 
 Download and install STRIDE and add it to your PATH:
 https://webclu.bio.wzw.tum.de/stride/
-```
+```bash
 wget https://webclu.bio.wzw.tum.de/stride/stride.tar.gz
 tar -xvzf stride.tar.gz
 cd stride
@@ -43,14 +45,22 @@ echo 'export PATH=$PATH:'`pwd` >> ~/.bashrc
 ```
 
 ### PSIBLAST    
-* Download and install psiblast and add it to your PATH: 
-ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/
+Install psiblast using the distribution from bioconda:
+
 ```
+conda install -c bioconda blast
+```
+
+Alternatively Download and install psiblast and add it to your PATH: 
+ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/
+
+```bash
 wget https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/$(curl -s "https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/" | grep -o 'ncbi-blast-[0-9.]*+-x64-linux.tar.gz'| head -n 1)
 tar -xvzf ncbi-*.tar.gz
 cd ncbi*/bin
 echo 'export PATH=$PATH:'`pwd` >> ~/.bashrc
 ```
+
 ### PDB_SEQRES.txt
 * Download pdb_seqres.txt and put it in the cloned openawsem repository location
 ```

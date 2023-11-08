@@ -23,7 +23,7 @@ git clone https://github.com/cabb99/openawsem.git
 cd openawsem
 
 # Create a new conda environment
-conda create -n openawsem --file requirements.txt
+conda create -n openawsem -c conda-forge --file requirements.txt
 conda activate openawsem
 
 # Install the package in editable mode
@@ -47,7 +47,7 @@ echo 'export PATH=$PATH:'`pwd` >> ~/.bashrc
 ### PSIBLAST    
 Install psiblast using the distribution from bioconda:
 
-```
+```bash
 conda install -c bioconda blast
 ```
 
@@ -63,11 +63,11 @@ echo 'export PATH=$PATH:'`pwd` >> ~/.bashrc
 
 ### PDB_SEQRES.txt
 * Download pdb_seqres.txt and put it in the cloned openawsem repository location
-```
+
+```bash
 wget ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt
 OPENAWSEM_LOCATION=$(python -c "import openawsem; print(openawsem.__location__)")
 cp pdb_seqres.txt $OPENAWSEM_LOCATION/data
-
 ```
 
 ## Configuration
@@ -78,7 +78,7 @@ Inside .awsem, create a configuration file named config.ini to specify data path
 The default paths point to the local data directory inside the OpenAWSEM module.
 Example config.ini:
 
-```
+```ini
 [Data Paths]
 blast = /home/USER/data/database/cullpdb_pc80_res3.0_R1.0_d160504_chains29712
 gro = /home/USER/data/Gros

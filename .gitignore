@@ -46,6 +46,7 @@ Network Trash Folder
 Temporary Items
 .apdisk
 .idea
+.vscode
 
 # ipython
 .ipynb_checkpoints
@@ -67,3 +68,5 @@ examples/*
 #pip
 *.egg-info
 *.dirty
+
+

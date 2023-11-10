@@ -124,7 +124,7 @@ def copy_parameter_files():
 def create_single_memory(fixed, memory_file="fixed.pdb", chain=-1):
     """Creates a single memory file from a openmm pdb file"""
     PDBFile.writeFile(fixed.topology, fixed.positions, open(memory_file, 'w'))
-    openawsem.helperFunctions.create_single_memory.create_memory(memory_file,chain)
+    openawsem.helperFunctions.create_single_memory(memory_file,chain)
     
 def save_protein_sequence(Coarse,sequence_file='protein.seq'):
     """Saves protein sequence to a file from table"""

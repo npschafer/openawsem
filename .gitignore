@@ -67,9 +67,10 @@ examples/*
 scratch
 jupyter
 build
+*_deprecated*
 
 #pip
 *.egg-info
 *.dirty
-
+dist/*
 

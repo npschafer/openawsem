@@ -64,6 +64,9 @@ pdb_seqres.txt
 notExistPDBsList
 *.gro
 examples/*
+scratch
+jupyter
+build
 
 #pip
 *.egg-info

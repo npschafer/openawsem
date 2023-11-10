@@ -1,0 +1,4 @@
+include openawsem/parameters/*
+recursive-include openawsem/topology *.xml
+include openawsem/data/database/*
+include openawsem/config.ini

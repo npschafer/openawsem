@@ -18,11 +18,6 @@ try:
 except:
     long_description = None
 
-# Read the contents of your requirements file
-with open('requirements.txt') as f:
-    requirements = f.read().splitlines()
-
-
 setup(
     # Self-descriptive entries which should always be present
     name='openawsem',
@@ -50,7 +45,13 @@ setup(
 
     url='https://openawsem.org/',  # Website
     python_requires='>=3.8',
-    install_requires=requirements,              
+    install_requires=['biopython',
+                      'matplotlib',
+                      'numpy',
+                      'pandas',
+                      'openmm',
+                      'pdbfixer',
+                      'mdtraj',],              
     entry_points={
     'console_scripts': [
         'awsem_create = openawsem.scripts.mm_create_project:main',

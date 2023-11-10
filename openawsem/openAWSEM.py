@@ -24,6 +24,7 @@ import shutil
 from Bio.PDB.Polypeptide import three_to_one
 from pathlib import Path
 import openawsem.helperFunctions
+import openawsem.functionTerms
 
 __author__ = 'Carlos Bueno'
 

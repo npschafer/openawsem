@@ -25,7 +25,7 @@ git clone https://github.com/cabb99/openawsem.git
 cd openawsem
 
 # Create a new conda environment
-conda create -n openawsem --file requirements.txt
+conda create -n openawsem -c conda-forge --file requirements.txt
 conda activate openawsem
 
 # Install the package in editable mode

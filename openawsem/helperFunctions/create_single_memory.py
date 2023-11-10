@@ -23,7 +23,7 @@ def create_single_memory(pdb, chain):
 
     for c in chain:
         # print(f"convert chain {c} of crystal structure to Gro file")
-        
+
         #os.system(f"python {__location__}/helperFunctions/Pdb2Gro.py {pdb} {name}_{c}.gro {c}")
         pdb2gro(pdb,f'{name}_{c}.gro',c)
 
@@ -33,7 +33,7 @@ def create_single_memory(pdb, chain):
         for (chain_name, chain_start_residue_index, seq_length) in seq_data:
             # print(f"write chain {chain_name}")
             out.write(f"{name}_{chain_name}.gro {chain_start_residue_index} 1 {seq_length} 20\n")   # residue index in Gro always start at 1.
-        
+
 if __name__=='__main__':
     parser = argparse.ArgumentParser(
         description="The goal of this python3 code is to automatically create\
@@ -44,5 +44,5 @@ if __name__=='__main__':
     args = parser.parse_args()
     chain = args.chain
     pdb = args.protein
-    create_memory(pdb, chain)
+    create_single_memory(pdb, chain)
 

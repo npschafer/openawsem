@@ -50,7 +50,7 @@ echo 'export PATH=$PATH:'`pwd` >> ~/.bashrc
 Install psiblast using the distribution from bioconda:
 
 ```bash
-conda install -c bioconda blast
+conda install -c conda-forge -c bioconda blast
 ```
 
 Alternatively Download and install psiblast and add it to your PATH: 

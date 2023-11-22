@@ -1475,6 +1475,65 @@ def contact_term_shift_well_center(oa, k_contact=4.184, z_dependent=False, z_m=1
     contact.setForceGroup(forceGroup)
     return contact
 
+def burial_term(oa, k_burial=4.184, fastaFile="FastaFileMissing"):
+    k_burial *= oa.k_awsem
+    burial_kappa = 4.0
+    burial_ro_min = [0.0, 3.0, 6.0]
+    burial_ro_max = [3.0, 6.0, 9.0]
+    seq = oa.seq
+    eta = 50  # eta actually has unit of nm^-1.
+    r_min = .45
+    r_max = .65
+    burial_gamma = np.loadtxt("burial_gamma.dat")
+
+    # return burial
+    # if ( lc->chain_no[i]!=lc->chain_no[j] || abs(lc->res_no[j] - lc->res_no[i])>1 )
+    burial = CustomGBForce()
+
+    burial_gamma_ij = np.zeros((20, 3))
+    burial.addTabulatedFunction("burial_gamma_ij", Discrete2DFunction(20, 3, burial_gamma.T.flatten()))
+
+    burial.addPerParticleParameter("resName")
+    burial.addPerParticleParameter("resId")
+    burial.addPerParticleParameter("isCb")
+    burial.addGlobalParameter("k_burial", k_burial)
+    burial.addGlobalParameter("eta", eta)
+    burial.addGlobalParameter("burial_kappa", burial_kappa)
+    burial.addGlobalParameter("rmin", r_min)
+    burial.addGlobalParameter("rmax", r_max)
+    index = burial.addComputedValue("rho", "step(abs(resId1-resId2)-2)*0.25*(1+tanh(eta*(r-rmin)))*(1+tanh(eta*(rmax-r)))", CustomGBForce.ParticlePair)
+    # print(burial.getComputedValueParameters(index))
+
+    # replace cb with ca for GLY
+    cb_fixed = [x if x > 0 else y for x,y in zip(oa.cb,oa.ca)]
+    none_cb_fixed = [i for i in range(oa.natoms) if i not in cb_fixed]
+    for i in range(oa.natoms):
+        burial.addParticle([gamma_se_map_1_letter[seq[oa.resi[i]]], oa.resi[i], int(i in cb_fixed)])
+    for i in range(3):
+        burial.addGlobalParameter(f"rho_min_{i}", burial_ro_min[i])
+        burial.addGlobalParameter(f"rho_max_{i}", burial_ro_max[i])
+    for i in range(3):
+        burial.addEnergyTerm(f"-0.5*isCb*k_burial*burial_gamma_ij(resName, {i})*\
+                                    (tanh(burial_kappa*(rho-rho_min_{i}))+\
+                                    tanh(burial_kappa*(rho_max_{i}-rho)))", CustomGBForce.SingleParticle)
+
+    # burial.addEnergyTerm("-k_burial*rho", CustomGBForce.SingleParticle)
+    # burial.addEnergyTerm("-k_burial", CustomGBForce.SingleParticle)
+
+
+    # print(len(none_cb_fixed), len(cb_fixed))
+    for e1 in none_cb_fixed:
+        for e2 in none_cb_fixed:
+            if e1 > e2:
+                continue
+            burial.addExclusion(e1, e2)
+    for e1 in none_cb_fixed:
+        for e2 in cb_fixed:
+            burial.addExclusion(e1, e2)
+
+    burial.setForceGroup(17)
+    return burial
+
 '''
 # for debug purpose
 

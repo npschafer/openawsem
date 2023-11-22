@@ -1,6 +1,8 @@
 # OpenAWSEM
 ## An implementation of the AWSEM coarse-grained protein folding forcefield in OpenMM
 
+
+
 OpenAWSEM is an implementation of the AWSEM (Associative memory, Water-mediated Structure, and Energy Model) coarse-grained protein forcefield designed for use with the OpenMM simulation toolkit.
 
 ## Installation
@@ -48,7 +50,7 @@ echo 'export PATH=$PATH:'`pwd` >> ~/.bashrc
 Install psiblast using the distribution from bioconda:
 
 ```bash
-conda install -c bioconda blast
+conda install -c conda-forge -c bioconda blast
 ```
 
 Alternatively Download and install psiblast and add it to your PATH: 
@@ -61,7 +63,7 @@ cd ncbi*/bin
 echo 'export PATH=$PATH:'`pwd` >> ~/.bashrc
 ```
 
-### PDB_SEQRES.txt
+### PDB_SEQRES
 * Download pdb_seqres.txt and put it in the cloned openawsem repository location
 
 ```bash
@@ -143,8 +145,13 @@ Simulation of the amino terminal domain of Phage 434 repressor (1r69)
    ```
 
 ## Notes:
+AWSEM is capable of modeling protein-DNA interactions when used together with open3SPN2, which can be found in a separate package at https://github.com/cabb99/open3spn2.
+
 For small proteins, the LAMMPS version may be faster than OpenAWSEM, especially if a GPU is unavailable. Consider using http://awsem-md.org for such cases.
+
 A quick check of the stability of a protein in AWSEM can be done using the frustratometer server http://frustratometer.qb.fcen.uba.ar/
+
+
 
 ## Data availability
 Data related to the paper "OpenAWSEM with Open3SPN2: A fast, flexible, and accessible framework for large-scale coarse-grained biomolecular simulations" is available at https://app.globus.org/file-manager?origin_id=b4cef8ce-7773-4016-8513-829f388f7986&origin_path=%2FopenAWSEM_data%2F

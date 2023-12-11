@@ -46,6 +46,7 @@ Network Trash Folder
 Temporary Items
 .apdisk
 .idea
+.vscode
 
 # ipython
 .ipynb_checkpoints
@@ -63,7 +64,13 @@ pdb_seqres.txt
 notExistPDBsList
 *.gro
 examples/*
+scratch
+jupyter
+build
+*_deprecated*
 
 #pip
 *.egg-info
 *.dirty
+dist/*
+

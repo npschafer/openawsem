@@ -7,9 +7,6 @@ from random import seed, randint
 import argparse
 import platform
 from datetime import datetime
-# import imp
-# imp is not actually called in this program, and causes
-# issues with python >= 3.12, since the name was changed to importlib
 from time import sleep
 import fileinput
 

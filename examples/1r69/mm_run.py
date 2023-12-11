@@ -7,8 +7,7 @@ from random import seed, randint
 import argparse
 import platform
 from datetime import datetime
-#import imp
-# not needed and deprecated for importlib
+import imp
 from time import sleep
 import fileinput
 

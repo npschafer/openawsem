@@ -6,7 +6,8 @@ from random import seed, randint
 import argparse
 import platform
 from datetime import datetime
-import imp
+#import imp
+# not needed and deprecated for importlib
 import numpy as np
 import fileinput
 from itertools import product

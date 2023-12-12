@@ -7,7 +7,7 @@ from random import seed, randint
 import argparse
 import platform
 from datetime import datetime
-import imp
+#import imp
 import subprocess
 import glob
 import re

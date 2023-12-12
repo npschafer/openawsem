@@ -7,7 +7,7 @@ from random import seed, randint
 import argparse
 import platform
 from datetime import datetime
-import imp
+#import imp
 from time import sleep
 import fileinput
 

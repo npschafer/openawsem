@@ -9,6 +9,7 @@ except ModuleNotFoundError:
 import numpy as np
 import pandas as pd
 from Bio.PDB.Polypeptide import three_to_one
+import openawsem
 
 
 gamma_se_map_1_letter = {   'A': 0,  'R': 1,  'N': 2,  'D': 3,  'C': 4,
@@ -19,6 +20,7 @@ gamma_se_map_1_letter = {   'A': 0,  'R': 1,  'N': 2,  'D': 3,  'C': 4,
 
 def convert_resname_to_index(resName):
     return gamma_se_map_1_letter[three_to_one(resName)]
+
 def read_gamma(gammaFile):
     data = np.loadtxt(gammaFile)
     gamma_direct = data[:210]
@@ -35,8 +37,10 @@ def inWhichChain(residueId, chain_ends):
             return chain_table[i]
 
 
-def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0*angstrom, k_relative_mem=1.0, periodic=False, parametersLocation=".", burialPartOn=True, withExclusion=True, forceGroup=22,
+def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0*angstrom, k_relative_mem=1.0, periodic=False, parametersLocation=None, burialPartOn=True, withExclusion=True, forceGroup=22,
                 gammaName="gamma.dat", burialGammaName="burial_gamma.dat", membraneGammaName="membrane_gamma.dat", r_min=0.45):
+    if parametersLocation is None:
+        parametersLocation=openawsem.data_path.parameters
     if isinstance(k_contact, float) or isinstance(k_contact, int):
         k_contact = k_contact * oa.k_awsem   # just for backward comptable
     elif isinstance(k_contact, Quantity):

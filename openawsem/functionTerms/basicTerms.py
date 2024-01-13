@@ -224,7 +224,7 @@ def rama_proline_term(oa, k_rama_proline=8.368, num_rama_proline_wells=2, w=[2.1
 
 def rama_ssweight_term(oa, k_rama_ssweight=8.368, num_rama_wells=2, w=[2.0, 2.0],
                     sigma=[419.0, 15.398], omega_phi=[1.0, 1.0], phi_i=[-0.995, -2.25],
-                    omega_psi=[1.0, 1.0], psi_i=[-0.82, 2.16], location_pre="./", forceGroup=21):
+                    omega_psi=[1.0, 1.0], psi_i=[-0.82, 2.16], ssweight_file="ssweight", forceGroup=21):
     # add RamaSS potential
     # 8.368 = 2 * 4.184 kJ/mol, converted from default value in LAMMPS AWSEM
     # multiply interaction strength by overall scaling
@@ -252,7 +252,7 @@ def rama_ssweight_term(oa, k_rama_ssweight=8.368, num_rama_wells=2, w=[2.0, 2.0]
     for i in range(oa.nres):
         if i not in oa.chain_starts and i not in oa.chain_ends and not oa.res_type[i] == "IGL" and not oa.res_type == "IPR":
             ramaSS.addBond([oa.c[i-1], oa.n[i], oa.ca[i], oa.c[i], oa.n[i+1]], [i])
-    ssweight = np.loadtxt(location_pre+"ssweight")
+    ssweight = np.loadtxt(ssweight_file)
     ramaSS.addTabulatedFunction("ssweight", Discrete2DFunction(2, oa.nres, ssweight.flatten()))
     ramaSS.setForceGroup(forceGroup)
     return ramaSS

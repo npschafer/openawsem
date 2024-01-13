@@ -813,8 +813,8 @@ def download(pdb_id):
 class OpenMMAWSEMSystem:
     def __init__(self, pdb_filename, chains='A', xml_filename=xml, k_awsem=1.0, seqFromPdb=None, includeLigands=False, periodic=False):
         # read PDB
-        self.pdb = PDBFile(pdb_filename)
-        self.forcefield = ForceField(xml_filename)
+        self.pdb = PDBFile(str(pdb_filename))
+        self.forcefield = ForceField(str(xml_filename))
         self.periodic = periodic
         if not includeLigands:
             self.system = self.forcefield.createSystem(self.pdb.topology)

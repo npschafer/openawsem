@@ -7,9 +7,18 @@ except ModuleNotFoundError:
     from simtk.openmm import *
     from simtk.unit import *
 import numpy as np
-from Bio.PDB.Polypeptide import one_to_three
 import pandas as pd
-from Bio.PDB.Polypeptide import three_to_one
+
+one_to_three={'A':'ALA', 'C':'CYS', 'D':'ASP', 'E':'GLU', 'F':'PHE',
+            'G':'GLY', 'H':'HIS', 'I':'ILE', 'K':'LYS', 'L':'LEU',
+            'M':'MET', 'N':'ASN', 'P':'PRO', 'Q':'GLN', 'R':'ARG',
+            'S':'SER', 'T':'THR', 'V':'VAL', 'W':'TRP', 'Y':'TYR'}
+
+three_to_one = {'ALA':'A', 'ARG':'R', 'ASN':'N', 'ASP':'D', 'CYS':'C',
+                'GLU':'E', 'GLN':'Q', 'GLY':'G', 'HIS':'H', 'ILE':'I',
+                'LEU':'L', 'LYS':'K', 'MET':'M', 'PHE':'F', 'PRO':'P',
+                'SER':'S', 'THR':'T', 'TRP':'W', 'TYR':'Y', 'VAL':'V'}
+
 
 def con_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, .153], forceGroup=20):
     # add con forces
@@ -224,7 +233,7 @@ def rama_proline_term(oa, k_rama_proline=8.368, num_rama_proline_wells=2, w=[2.1
 
 def rama_ssweight_term(oa, k_rama_ssweight=8.368, num_rama_wells=2, w=[2.0, 2.0],
                     sigma=[419.0, 15.398], omega_phi=[1.0, 1.0], phi_i=[-0.995, -2.25],
-                    omega_psi=[1.0, 1.0], psi_i=[-0.82, 2.16], location_pre="./", forceGroup=21):
+                    omega_psi=[1.0, 1.0], psi_i=[-0.82, 2.16], ssweight_file="ssweight", forceGroup=21):
     # add RamaSS potential
     # 8.368 = 2 * 4.184 kJ/mol, converted from default value in LAMMPS AWSEM
     # multiply interaction strength by overall scaling
@@ -252,7 +261,7 @@ def rama_ssweight_term(oa, k_rama_ssweight=8.368, num_rama_wells=2, w=[2.0, 2.0]
     for i in range(oa.nres):
         if i not in oa.chain_starts and i not in oa.chain_ends and not oa.res_type[i] == "IGL" and not oa.res_type == "IPR":
             ramaSS.addBond([oa.c[i-1], oa.n[i], oa.ca[i], oa.c[i], oa.n[i+1]], [i])
-    ssweight = np.loadtxt(location_pre+"ssweight")
+    ssweight = np.loadtxt(ssweight_file)
     ramaSS.addTabulatedFunction("ssweight", Discrete2DFunction(2, oa.nres, ssweight.flatten()))
     ramaSS.setForceGroup(forceGroup)
     return ramaSS
@@ -281,7 +290,7 @@ def side_chain_term(oa, k=1*kilocalorie_per_mole, gmmFileFolder="/Users/weilu/op
                                 'L': 10, 'K': 11, 'M': 12, 'F': 13, 'P': 14,
                                 'S': 15, 'T': 16, 'W': 17, 'Y': 18, 'V': 19}
     for i, res_type_one_letter in enumerate(res_type_map_letters):
-        res_type = one_to_three(res_type_one_letter)
+        res_type = one_to_three[res_type_one_letter]
         if res_type == "GLY":
             weights_all_res[i] = np.array([1/3, 1/3, 1/3])
             continue
@@ -338,12 +347,6 @@ def side_chain_term(oa, k=1*kilocalorie_per_mole, gmmFileFolder="/Users/weilu/op
     side_chain.addTabulatedFunction("mdpc", Discrete2DFunction(20, 9, mean_dot_precisions_chol_all_res.T.flatten()))
     for i in range(oa.nres):
         if i not in oa.chain_starts and i not in oa.chain_ends and not oa.res_type[i] == "IGL":
-            # print(i)
-            # if i != 1:
-            #     continue
-            # print(oa.n[i], oa.ca[i], oa.c[i], oa.cb[i])
-            # print(i, oa.seq[i], gamma_se_map_1_letter[oa.seq[i]], precisions_chol_all_res[gamma_se_map_1_letter[oa.seq[i]]])
-
             side_chain.addBond([oa.n[i], oa.ca[i], oa.c[i], oa.cb[i]], [gamma_se_map_1_letter[oa.seq[i]]])
     side_chain.setForceGroup(forceGroup)
     return side_chain
@@ -416,10 +419,10 @@ def cbd_excl_term(oa, k=1*kilocalorie_per_mole, r_excl=0.7, fileLocation='cbd_cb
     for i, line in df.iterrows():
         res1 = line["ResName1"]
         res2 = line["ResName2"]
-        r_min_table[gamma_se_map_1_letter[three_to_one(res1)]][gamma_se_map_1_letter[three_to_one(res2)]] = line["r_min"] / 10.0   # A to nm
-        r_min_table[gamma_se_map_1_letter[three_to_one(res2)]][gamma_se_map_1_letter[three_to_one(res1)]] = line["r_min"] / 10.0
-        r_max_table[gamma_se_map_1_letter[three_to_one(res1)]][gamma_se_map_1_letter[three_to_one(res2)]] = line["r_max"] / 10.0
-        r_max_table[gamma_se_map_1_letter[three_to_one(res2)]][gamma_se_map_1_letter[three_to_one(res1)]] = line["r_max"] / 10.0
+        r_min_table[gamma_se_map_1_letter[three_to_one[res1]]][gamma_se_map_1_letter[three_to_one[res2]]] = line["r_min"] / 10.0   # A to nm
+        r_min_table[gamma_se_map_1_letter[three_to_one[res2]]][gamma_se_map_1_letter[three_to_one[res1]]] = line["r_min"] / 10.0
+        r_max_table[gamma_se_map_1_letter[three_to_one[res1]]][gamma_se_map_1_letter[three_to_one[res2]]] = line["r_max"] / 10.0
+        r_max_table[gamma_se_map_1_letter[three_to_one[res2]]][gamma_se_map_1_letter[three_to_one[res1]]] = line["r_max"] / 10.0
 
     excl.addTabulatedFunction("r_min", Discrete2DFunction(20, 20, r_min_table.T.flatten()))
     excl.addTabulatedFunction("r_max", Discrete2DFunction(20, 20, r_max_table.T.flatten()))

@@ -7,6 +7,8 @@ except ModuleNotFoundError:
     from simtk.openmm import *
     from simtk.unit import *
 import numpy as np
+from pathlib import Path
+import openawsem
 
 se_map_1_letter = {'A': 0,  'P': 1,  'K': 2,  'N': 3,  'R': 4,
                    'F': 5,  'D': 6,  'Q': 7,  'E': 8,  'G': 9,
@@ -55,14 +57,16 @@ def inWhichChain(residueId, chain_ends):
         else:
             return chain_table[i]
 
-def read_beta_parameters():
-    ### directly copied from Nick Schafer's
-    # os.chdir(parameter_directory)
-    in_anti_HB = open("anti_HB", 'r').readlines()
-    in_anti_NHB = open("anti_NHB", 'r').readlines()
-    in_para_HB = open("para_HB", 'r').readlines()
-    in_para_one = open("para_one", 'r').readlines()
-    in_anti_one = open("anti_one", 'r').readlines()
+def read_beta_parameters(parametersLocation=None):
+    if parametersLocation is None:
+        parametersLocation=openawsem.data_path.parameters
+    parametersLocation=Path(parametersLocation)
+    assert parametersLocation.is_dir(), 'Directory does not exist'
+    in_anti_HB = open(parametersLocation/"anti_HB", 'r').readlines()
+    in_anti_NHB = open(parametersLocation/"anti_NHB", 'r').readlines()
+    in_para_HB = open(parametersLocation/"para_HB", 'r').readlines()
+    in_para_one = open(parametersLocation/"para_one", 'r').readlines()
+    in_anti_one = open(parametersLocation/"anti_one", 'r').readlines()
 
     p_par = np.zeros((20))
     p_anti = np.zeros((20))

@@ -21,7 +21,6 @@ import numpy as np
 import os
 import textwrap
 import shutil
-from Bio.PDB.Polypeptide import three_to_one
 from pathlib import Path
 import openawsem.helperFunctions
 import openawsem.functionTerms
@@ -37,6 +36,12 @@ data_path = openawsem.helperFunctions.DataPath(default_location = __location__,
 
 _AWSEMresidues = ['IPR', 'IGL', 'NGP']
 xml = data_path.topology/'awsem.xml'
+
+three_to_one = {'ALA':'A', 'ARG':'R', 'ASN':'N', 'ASP':'D', 'CYS':'C',
+                'GLU':'E', 'GLN':'Q', 'GLY':'G', 'HIS':'H', 'ILE':'I',
+                'LEU':'L', 'LYS':'K', 'MET':'M', 'PHE':'F', 'PRO':'P',
+                'SER':'S', 'THR':'T', 'TRP':'W', 'TYR':'Y', 'VAL':'V'}
+
 
 def parsePDB(pdb_file):
     '''Reads a pdb file and outputs a pandas DataFrame'''
@@ -134,7 +139,7 @@ def save_protein_sequence(Coarse,sequence_file='protein.seq'):
     res_unique = resix.unique()
     protein_data['resID'] = resix.replace(dict(zip(res_unique, range(len(res_unique)))))
     protein_sequence=[r.iloc[0]['real_resname'] for i, r in protein_data.groupby('resID')]
-    protein_sequence_one = [three_to_one(a) for a in protein_sequence]
+    protein_sequence_one = [three_to_one[a] for a in protein_sequence]
 
     with open(sequence_file,'w+') as ps:
         ps.write(''.join(protein_sequence_one))
@@ -310,7 +315,7 @@ class Protein(object):
         res_unique = resix.unique()
         protein_data['resID'] = resix.replace(dict(zip(res_unique, range(len(res_unique)))))
         protein_sequence = [r.iloc[0]['real_resname'] for i, r in protein_data.groupby('resID')]
-        protein_sequence_one = [three_to_one(a) for a in protein_sequence]
+        protein_sequence_one = [three_to_one[a] for a in protein_sequence]
 
         with open(seq_file, 'w+') as ps:
             ps.write(''.join(protein_sequence_one))
@@ -718,16 +723,13 @@ def read_fasta(fastaFile):
     return data
 
 def formatResidue_ThreeLetterCodeToOne(residue):
-    ThreeToOne = {'ALA':'A','ARG':'R','ASN':'N','ASP':'D','CYS':'C','GLU':'E','GLN':'Q','GLY':'G','HIS':'H',
-        'ILE':'I','LEU':'L','LYS':'K','MET':'M','PHE':'F','PRO':'P','SER':'S','THR':'T','TRP':'W',
-        'TYR':'Y','VAL':'V'}
     residue_name = residue.get_resname()
     try:
-        oneLetter = ThreeToOne[residue_name]
+        oneLetter = three_to_one[residue_name]
     except:
         print(f"Unknown residue: {residue.get_full_id()}, treat as ALA")
         residue_name = "ALA"
-    return ThreeToOne[residue_name]
+    return three_to_one[residue_name]
 
 def getSeqFromCleanPdb(input_pdb_filename, chains='A', writeFastaFile=False):
     cleaned_pdb_filename = input_pdb_filename.replace("openmmawsem.pdb", "cleaned.pdb")
@@ -813,8 +815,8 @@ def download(pdb_id):
 class OpenMMAWSEMSystem:
     def __init__(self, pdb_filename, chains='A', xml_filename=xml, k_awsem=1.0, seqFromPdb=None, includeLigands=False, periodic=False):
         # read PDB
-        self.pdb = PDBFile(pdb_filename)
-        self.forcefield = ForceField(xml_filename)
+        self.pdb = PDBFile(str(pdb_filename))
+        self.forcefield = ForceField(str(xml_filename))
         self.periodic = periodic
         if not includeLigands:
             self.system = self.forcefield.createSystem(self.pdb.topology)

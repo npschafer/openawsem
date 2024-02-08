@@ -10,6 +10,7 @@ from datetime import datetime
 import subprocess
 import glob
 import re
+import copy
 
 from openawsem.helperFunctions.myFunctions_helper import *
 import numpy as np
@@ -772,7 +773,9 @@ def read_fasta(fastaFile):
     return seq
 
 def create_extended_pdb_from_fasta(filename, output_file_name="output.pdb"):
+
     # Standard distances and angles for the backbone atoms
+    # proline is handled later
     CA_CA =3.8
     CA_C = 1.52/np.sqrt(3/2)
     CA_N = 1.45/np.sqrt(3/2)
@@ -781,25 +784,194 @@ def create_extended_pdb_from_fasta(filename, output_file_name="output.pdb"):
     C_N = 1.33/np.sqrt(3/2)
     t=1/np.sqrt(2)
 
+    # list of lists, where each sublist contains all coordinates (N, CA, C, O, CB)
+    # of a single residue
+    coords = []
+
     # Load the sequence from the FASTA file
+    # Skip the name line and concatenate sequence lines
     with open(filename, "r") as file:
         lines = file.readlines()
-    # Skip the name line and concatenate sequence lines
     sequence = ''.join(line.strip() for line in lines[1:])
     print(sequence)
 
-    # Define coordinates for the first residue
-    coord = np.array([[-1*CA_N, 0, -t*CA_N],  #N
-                      [0, 0, 0],              #CA
-                      [1*CA_C,0,-t*CA_C],     #C
-                      [1*CA_C,0,-t*CA_C-C_O], #O
-                      [0,-1*CA_CB,t*CA_CB]])  #CB
-    coord[:,2]+=t*(CA_C+CA_N)/2
-
+    # build extended chain residue by residue
+    # start at origin and build in positive x direction until hitting proline.
+    # place the proline appropriately, 
+    # then translate all placed residues such that
+    # the initial building process along the positive x axis produces a valid structure
+    #
+    # parameters for placing residues are inspired by pymol's peptide building functionality,
+    # but are less sophisticated than pymol and will not reproduce the pymol structure
+    #
+    # start by defining the coordinates to use when placing the first residue at origin
+    # these may need to be changed at proline resets because the backbone oxygens
+    # have to alter orientation, so this will depend on whether an even or odd number
+    # of residues was placed since the previous reset
+    default_coord = np.array([[-1*CA_N, 0, -t*CA_N],  #N
+                              [0, 0, 0],              #CA
+                              [1*CA_C,0,-t*CA_C],     #C
+                              [1*CA_C,0,-t*CA_C-C_O], #O
+                              [0,-1*CA_CB,t*CA_CB]])  #CB
+    default_coord[:,2]+=t*(CA_C+CA_N)/2
+    # initialize before first iteration
+    coord = np.array([default_coord[:,0]-CA_CA/np.sqrt(3**2+t**2)*3,
+                     -default_coord[:,1],
+                     -default_coord[:,2]]).T
+    # the main loop
+    for resid, residue in enumerate(sequence):
+        # build and adjust chain as needed
+        if sequence[resid] != "P":
+            # standard build procedure
+            coord[:,0]+=CA_CA/np.sqrt(3**2+t**2)*3
+            coord[:,1]=-coord[:,1]
+            coord[:,2]=-coord[:,2]
+            # update chain with new residue
+            coords.append(copy.deepcopy(coord))
+        elif sequence[resid] == "P":
+            # proline build procedure
+            # as modification of standard build procedure
+            coord[:,0]+=CA_CA/np.sqrt(3**2+t**2)*3 - 0.21
+            coord[:,1]=-coord[:,1] + 0.55*((-1)**(resid+1)) # flip if 1st, 3rd, etc
+            coord[:,2]=-coord[:,2]
+            # now we need to rotate CB and O about C(previous residue)->N(proline) axis
+            # it's easier to code this as an approximate translation rather than a real rotation
+            coord[4,2] += 2.5*((-1)**(resid+1))
+            coord[3,1] -= 2.23*((-1)**(resid+1))
+            coord[2,1] -= 1.23*((-1)**(resid+1))
+            # update chain with new residue
+            coords.append(copy.deepcopy(coord))
+            # reset chain
+            #
+            # fix the x coordinate by:
+            # 1. subtracting what we added for proline
+            for index,coord in enumerate(coords):
+                coord[:,0] -= CA_CA/np.sqrt(3**2+t**2)*3 - 0.21
+                coords[index] = coord
+            # 2. subtracting the non-proline amount for every residue up to the previous proline
+            for resid2 in range((len(sequence)-resid)+1,(len(sequence)+1)):
+                #print(f'sequence: {sequence}')
+                #print(f'-resid2: {-resid2}')
+                if sequence[-resid2] == "P":
+                    break
+                else:
+                    for index,coord in enumerate(coords):
+                        coord[:,0] -= CA_CA/np.sqrt(3**2+t**2)*3
+                        coords[index] = coord
+            # fix the y and z coordinates by translating everything such that proline C
+            # aligns with C from default_coord
+            translation = default_coord[2,:] - coords[-1][2,:]
+            for index,coord in enumerate(coords):
+                coord += translation
+                coords[index] = coord
+            # rotate around x axis to adjust backbone alignment
+            # it is important to do this before rotating in xy plane
+            # but after translating y and z coordinates!
+            #
+            #first, temporarily translate such that y,z coordinates of proline C are 0
+            old_y = copy.deepcopy([coord[2,1] for coord in coords])
+            old_z = copy.deepcopy([coord[2,2] for coord in coords]) 
+            for index,coord in enumerate(coords):
+                #coord[:,1] -= coord[2,1] 
+                #coord[:,2] -= coord[2,2] 
+                coord[:,1] -= old_y[-1]
+                coord[:,2] -= old_z[-1]
+                coords[index] = coord
+            # now do the rotation
+            yz_theta = -39.1*np.pi/180 #0#21.6#39.4#-110#-90#-50#-30#-70.6
+            yz_rotation_matrix = np.array([[np.cos(yz_theta),-np.sin(yz_theta)],[np.sin(yz_theta),np.cos(yz_theta)]])
+            for index,coord in enumerate(coords):
+                for atom_index in range(coord.shape[0]):
+                    coord[atom_index,1:] = np.dot(yz_rotation_matrix,coord[atom_index,1:].T).T
+                coords[index] = coord
+            # now put it back where we found it
+            for index,coord in enumerate(coords):
+                #coord[:,1] += old_y[index]
+                #coord[:,2] += old_z[index]
+                coord[:,1] += old_y[-1]
+                coord[:,2] += old_z[-1]
+                coords[index] = coord
+            # Now we need to rotate about the proline C-O bond axis
+            #
+            # first, translate such that proline C is at origin
+            old = copy.deepcopy([coord[2,:] for coord in coords])
+            for index,coord in enumerate(coords):
+                coord -= coords[-1][2,:]
+                coords[index] = coord
+            # get C-O axis, which is just the oxygen coordinates
+            CO_axis = coords[-1][3,:].T / np.linalg.norm(coords[-1][3,:].T,ord=2)
+            # define rotation matrix and perform rotation
+            CO_theta = 45*np.pi/180
+            CO_rotation_matrix = np.array([[np.cos(CO_theta) + (CO_axis[0]**2)*(1-np.cos(CO_theta)),
+                                                CO_axis[0]*CO_axis[1]*(1-np.cos(CO_theta)) - CO_axis[2]*np.sin(CO_theta),
+                                                CO_axis[0]*CO_axis[2]*(1-np.cos(CO_theta)) + CO_axis[1]*np.sin(CO_theta)],
+                                           [CO_axis[1]*CO_axis[0]*(1-np.cos(CO_theta)) + CO_axis[2]*np.sin(CO_theta),
+                                                np.cos(CO_theta) + (CO_axis[1]**2)*(1-np.cos(CO_theta)),
+                                                CO_axis[1]*CO_axis[2]*(1-np.cos(CO_theta)) - CO_axis[0]*np.sin(CO_theta)],
+                                           [CO_axis[2]*CO_axis[0]*(1-np.cos(CO_theta)) - CO_axis[1]*np.sin(CO_theta),
+                                                CO_axis[2]*CO_axis[1]*(1-np.cos(CO_theta)) + CO_axis[0]*np.sin(CO_theta),
+                                                np.cos(CO_theta) + (CO_axis[2]**2)*(1-np.cos(CO_theta))]])
+            for index,coord in enumerate(coords):
+                for atom_index in range(coord.shape[0]):
+                    coord[atom_index,:] = np.dot(CO_rotation_matrix,coord[atom_index,:].T).T
+                coords[index] = coord
+            # now put it back where we found it
+            for index, coord in enumerate(coords):
+                coord += old[-1]
+                coords[index] = coord
+            # after all of this, we have proline overlapping with the next residue after proline
+            # so we'll translate 1 residue in x direction again
+            for index, coord in enumerate(coords):
+                coord[:,0] -= CA_CA/np.sqrt(3**2+t**2)*3
+                coords[index] = coord
+            # reset coord before continuing build
+            if resid % 2 == 1: # the next one will be even
+                coord = np.array([default_coord[:,0]-CA_CA/np.sqrt(3**2+t**2)*3,
+                         -default_coord[:,1],
+                         -default_coord[:,2]]).T
+            elif resid % 2 == 0: # the next one will be odd
+                coord = np.array([default_coord[:,0]-CA_CA/np.sqrt(3**2+t**2)*3,
+                          default_coord[:,1],
+                          default_coord[:,2]]).T
+   
+    # write coordinates to pdb file
     one_to_three={'A':'ALA', 'C':'CYS', 'D':'ASP', 'E':'GLU', 'F':'PHE',
-                  'G':'GLY', 'H':'HIS', 'I':'ILE', 'K':'LYS', 'L':'LEU',
+                  'G':'GLY', 'H':'HIS', 'I':'ILE', 'K':'LYS', 'L':'LEU', 
                   'M':'MET', 'N':'ASN', 'P':'PRO', 'Q':'GLN', 'R':'ARG',
                   'S':'SER', 'T':'THR', 'V':'VAL', 'W':'TRP', 'Y':'TYR'}
+    with open(output_file_name,'w') as f:
+        for i in range(len(coords)): # each element of coords is the coordinates of a single residue
+            coord = coords[i]
+            for j, name in enumerate(['N','CA','C','O','CB']):
+                # atom numbering is weird but this is fixed later
+                f.write(f'ATOM  {j*5+1:>5} {name:^4} {one_to_three[sequence[i]]:<3} {"A"}{i:>4}    {coord[j][0]:>8.3f}{coord[j][1]:>8.3f}{coord[j][2]:>8.3f}\n')
+        f.write("END\n")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    '''
+    proline_mask = []
+    for one_letter_code in sequence:
+        if one_letter_code == "P":
+            proline_mask.append(1)
+        else:
+            proline_mask.append(0)
     with open(output_file_name, "w") as f:
         # For each residue in the sequence, calculate the position of the backbone atoms
         for resid, residue in enumerate(sequence):
@@ -813,9 +985,63 @@ def create_extended_pdb_from_fasta(filename, output_file_name="output.pdb"):
             # f.write("ATOM  %5d  CB  %s A %3d    %8.3f%8.3f%8.3f\n" % (i*5+5, residue, i+1, coord[4][0], coord[4][1], coord[4][2]))
             
             # Calculate new coordinates for the next residue
-            coord[:,0]+=CA_CA/np.sqrt(3**2+t**2)*3
-            coord[:,1]=-coord[:,1]
-            coord[:,2]=-coord[:,2]
+            # this is unnecessary if we're on the last residue
+            if resid < len(sequence)-1:
+                # start with local modifications that affect construction of the residue,
+                # in addition to global translation of the residue in the x dimension
+                if sequence[resid] != "P" and sequence[resid+1] != "P":
+                    coord[:,0]+=CA_CA/np.sqrt(3**2+t**2)*3
+                    coord[:,1]=-coord[:,1]
+                    coord[:,2]=-coord[:,2]
+                elif sequence[resid] != "P" and sequence[resid+1] == "P":
+                    coord[:,0]+=CA_CA/np.sqrt(3**2+t**2)*3 - 0.21
+                    coord[:,1]=-coord[:,1] + 0.55
+                    coord[:,2]=-coord[:,2]
+                    # now we need to rotate CB and O about C(previous residue)->N(proline) axis
+                    # it's easier to code this as an approximate translation rather than a real rotation
+                    coord[4,2] += 2.5
+                    coord[3,1] -= 2.23     
+                    coord[2,1] -= 1.23
+                elif sequence[resid] == "P" and sequence[resid+1] != "P": 
+                    # we want to use non-proline parameters as a starting point, so we'll
+                    # revert to older coord
+                    ############################################################################
+                    coord[:,0]+=CA_CA/np.sqrt(3**2+t**2)*3 -0.62 
+                    coord[:,1]=-coord[:,1] -0.34
+                    coord[:,2]=-coord[:,2] -1.09
+                    #coord[2:4,0] -= .5
+                    #coord[2:4,1] -= .5
+                    #coord[2:4,2] -= .5
+                    #############################################################################
+                elif sequnece[resid] == "P" and sequence[resid+1] == "P":
+                    raise ValueError("Two or more consecutive proline residues not supported")
+                else:
+                    raise AssertionError
+                # rotate coord depending on the number of prolines that have been encountered
+                # so far, including resid+1
+                # this is necessary because prolines change the angle of the backbone
+                num_prolines = sum(proline_mask[:resid+1]) # up to and including current resid
+                                                           # because this iteration sets the coordinates for resid+1
+                rotation_matrix = np.linalg.matrix_power(np.array([[np.cos(-46.8*np.pi/180),-np.sin(-46.8*np.pi/180)],
+                        [np.sin(-46.8*np.pi/180),np.cos(-46.8*np.pi/180)]]), num_prolines)
+                # this rotation matrix is appropriate for left-multiplication of a column vector [x,y]
+                for atom_index in range(1,5):
+                    # we'll fix the nitrogen atom as the origin for our rotation
+                    temp = coord[atom_index,:2].reshape([2,1]) - coord[0,:2].reshape([2,1])
+                    coord[atom_index,:2] = np.dot(rotation_matrix,temp).T + coord[0,:2]
+                
+                
+                
+                
+                
+                
+                # for simplicity, we'll assume prolines and non-prolines have equal length   
+                      # and their backbones are oriented in the same direction, except for when
+                      # a proline follows a non-proline
+                    
 
-
+                        # global translation in the y and z dimensions, plus corrections to x dimension
+                # to account for angled growth of chain after P
+                # and combined effects of more than one P
         f.write("END\n")
+        '''

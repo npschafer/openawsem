@@ -59,3 +59,31 @@ def debye_huckel_term(self, k_dh=4.15*4.184, forceGroup=30, screening_length=1.0
             dh.addBond(*structure_interaction_dh)
         dh.setForceGroup(forceGroup)
         return dh
+
+# def debye_huckel_term(oa, k_dh=4.15*4.184, forceGroup=30, screening_length=1.0, chargeFile=None):
+#         # screening_length (in the unit of nanometers)
+#         print("Debye Huckel term is ON")
+#         k_dh *= oa.k_awsem*0.1
+#         k_screening = 1.0
+#         dh = CustomNonbondedForce(f"{k_dh}*charge1*charge2/r*exp(-{k_screening}*r/{screening_length})")
+#         dh.addPerParticleParameter('charge')
+#         if oa.periodic:
+#             dh.setNonbondedMethod(dh.CutoffPeriodic)
+#         else:
+#             dh.setNonbondedMethod(dh.CutoffNonPeriodic)
+#         cb_fixed = [x if x > 0 else y for x,y in zip(oa.cb,oa.ca)]
+#         interaction_group = []
+#         for i in range(oa.natoms):
+#             charge=0
+#             if oa.resi[i] in ['R','K'] and i in cb_fixed:
+#                 charge=1
+#             elif oa.resi[i] in ['D','E'] and i in cb_fixed:
+#                 charge=-1
+#             if charge!=0:
+#                 group += [i]
+#             dh.addParticle([charge])
+#         #dh.addInteractionGroup(interaction_group,interaction_group)
+#         dh.setForceGroup(forceGroup)
+#         dh.createExclusionsFromBonds(oa.bonds, 1)
+#         return dh
+

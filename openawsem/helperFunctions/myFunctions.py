@@ -537,7 +537,7 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
 
 
 def getAllChains(pdbFile, removeDNAchains=True):
-    fixer = PDBFixer(filename=pdbFile)
+    fixer = PDBFixer(filename=str(pdbFile))
     # we only want pdb chains, ligands or DNA chain will be ignored here.
     fixer.removeHeterogens(keepWater=False)
     # remove unwanted chains
@@ -693,7 +693,11 @@ def get_PDB_length(pdbFileLocation):
 def pdbToFasta(pdb, pdbLocation, fastaFile, chains="A"):
     import textwrap
     from Bio.PDB.PDBParser import PDBParser
-    from Bio.PDB.Polypeptide import three_to_one
+    three_to_one = {'ALA':'A', 'ARG':'R', 'ASN':'N', 'ASP':'D', 'CYS':'C',
+                    'GLU':'E', 'GLN':'Q', 'GLY':'G', 'HIS':'H', 'ILE':'I',
+                    'LEU':'L', 'LYS':'K', 'MET':'M', 'PHE':'F', 'PRO':'P',
+                    'SER':'S', 'THR':'T', 'TRP':'W', 'TYR':'Y', 'VAL':'V'}
+
     # pdb = "1r69"
     # pdbLocation = "/Users/weilu/Research/server/may_2019/family_fold/1r69.pdb"
     # chains = "A"
@@ -711,7 +715,7 @@ def pdbToFasta(pdb, pdbLocation, fastaFile, chains="A"):
                 res_id = residue.get_id()[0]
                 if (res_id==' ' or res_id=='H_MSE' or res_id=='H_M3L' or res_id=='H_CAS') and is_regular_res:
                     residue_name = residue.get_resname()
-                    chain_seq += three_to_one(residue_name)
+                    chain_seq += three_to_one[residue_name]
             out.write("\n".join(textwrap.wrap(chain_seq, width=80))+"\n")
             seq += chain_seq
     return seq

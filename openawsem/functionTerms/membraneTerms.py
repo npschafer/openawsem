@@ -18,11 +18,21 @@ def membrane_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, membrane_center
     k = k.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
     k_membrane = k * oa.k_awsem
 
-    membrane = CustomExternalForce(f"k_membrane*\
-            (0.5*tanh({k_m}*((z-{membrane_center})+{z_m}))+0.5*tanh({k_m}*({z_m}-(z-{membrane_center}))))*hydrophobicityScale")
+    # 02082024 Rebekah Added --- End
+    if oa.periodic:
+        membrane = CustomExternalForce(f"k_membrane * hydrophobicityScale *"
+                                       f"( 0.5*tanh({k_m}*(z_periodic + {z_m})) + 0.5*tanh({k_m}*({z_m} - z_periodic)) )"
+                                       f";z_periodic=periodicdistance(0,0,z,0,0,{membrane_center})")
+        print("Membrane_term is Periodic")
+    else:
+        membrane = CustomExternalForce (f"k_membrane*\
+                (0.5*tanh({k_m}*((z-{membrane_center})+{z_m}))+0.5*tanh({k_m}*({z_m}-(z-{membrane_center}))))*hydrophobicityScale")                          
+    # 02082024 Rebekah Added --- End
+
     membrane.addPerParticleParameter("hydrophobicityScale")
     membrane.addGlobalParameter("k_membrane", k_membrane)
     zim = np.loadtxt("zim")
+    
     # cb_fixed = [x if x > 0 else y for x,y in zip(oa.cb,oa.ca)]
     ca = oa.ca
     for i in ca:

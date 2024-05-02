@@ -20,6 +20,7 @@ def con_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, .153], forceGroup
 
     if oa.periodic:
         con.setUsesPeriodicBoundaryConditions(True)
+        print('\ncon_term is periodic')
     
     for i in range(oa.nres):
         con.addBond(oa.ca[i], oa.o[i], bond_lengths[1], k_con)
@@ -41,6 +42,7 @@ def chain_term(oa, k_chain=50208, bond_k=[1, 1, 1], bond_lengths=[0.2459108, 0.2
     
     if oa.periodic:
         chain.setUsesPeriodicBoundaryConditions(True)
+        print('\nchain_term is periodic')
 
     for i in range(oa.nres):
         if i not in oa.chain_starts and not oa.res_type[i] == "IGL":
@@ -72,6 +74,7 @@ def chi_term(oa, k_chi=251.04, chi0=-0.71, forceGroup=20):
 
     if oa.periodic:
         chi.setUsesPeriodicBoundaryConditions(True)
+        print('\nchi_term is periodic')
 
     for i in range(oa.nres):
         if i not in oa.chain_starts and i not in oa.chain_ends and not oa.res_type[i] == "IGL":
@@ -90,6 +93,7 @@ def excl_term(oa, k_excl=8368, r_excl=0.35, periodic=False, excludeCB=False, for
 
     if oa.periodic:
         excl.setNonbondedMethod(excl.CutoffPeriodic)
+        print('\nexcl_term is periodic')
     else:
         excl.setNonbondedMethod(excl.CutoffNonPeriodic)
 
@@ -124,6 +128,7 @@ def excl_term_v2(oa, k_excl=8368, r_excl=0.35, periodic=False, excludeCB=False, 
     
     if oa.periodic:
         excl.setNonbondedMethod(excl.CutoffPeriodic)
+        print("\nexcel_term is periodic")
     else:
         excl.setNonbondedMethod(excl.CutoffNonPeriodic)
 
@@ -176,6 +181,7 @@ def rama_term(oa, k_rama=8.368, num_rama_wells=3, w=[1.3149, 1.32016, 1.0264], s
 
     if oa.periodic:
         rama.setUsesPeriodicBoundaryConditions(True)
+        print('\nrama_term is periodic')
 
     for i in range(num_rama_wells):
         rama.addGlobalParameter(f"k_rama", k_rama)
@@ -207,6 +213,7 @@ def rama_proline_term(oa, k_rama_proline=8.368, num_rama_proline_wells=2, w=[2.1
 
     if oa.periodic:
         rama.setUsesPeriodicBoundaryConditions(True)
+        print('\nrama_proline_term is periodic')
 
     for i in range(num_rama_proline_wells):
         rama.addGlobalParameter(f"k_rama_proline", k_rama_proline)
@@ -240,6 +247,7 @@ def rama_ssweight_term(oa, k_rama_ssweight=8.368, num_rama_wells=2, w=[2.0, 2.0]
     
     if oa.periodic:
         ramaSS.setUsesPeriodicBoundaryConditions(True)
+        print('\nrama_ssweight_term is periodic')
 
     ramaSS.addPerBondParameter("resId")    
     for i in range(num_rama_wells):

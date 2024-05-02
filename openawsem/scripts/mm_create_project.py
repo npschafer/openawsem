@@ -210,7 +210,7 @@ class AWSEMSimulationProject:
             # # print("If you has multiple chains, please use other methods to generate the extended structures.")
             # openawsem.helperFunctions.myFunctions.add_chain_to_pymol_pdb("extended.pdb")  # only work for one chain only now
             openawsem.helperFunctions.create_extended_pdb_from_fasta(f"{self.name}.fasta", output_file_name="extended.pdb")
-            input_pdb_filename, cleaned_pdb_filename = openawsem.prepare_pdb("extended.pdb", "A", use_cis_proline=False, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
+            input_pdb_filename, cleaned_pdb_filename = openawsem.prepare_pdb("extended.pdb", "A", use_cis_proline=False, keepIds=self.args.keepIds, removeHeterogens=removeHeterogens)
             openawsem.ensure_atom_order(input_pdb_filename)
         
         shutil.copy('crystal_structure-cleaned.pdb',f'{self.pdb}')
@@ -260,7 +260,8 @@ class AWSEMSimulationProject:
         # but you need install it from https://github.com/realbigws/Predict_Property.
         # after installation, you can do the following to generate ssweight.
         # for me I put 'export Predict_Property="/Users/weilu/Research/Build/Predict_Property"' inside ~/.bash_profile file.
-        self.run_command(["$Predict_Property/Predict_Property.sh", "-i", f"{self.name}.fasta"])
+        # self.run_command(["$Predict_Property/Predict_Property.sh", "-i", f"{self.name}.fasta"])
+        self.run_command(["/home/mw88/research/Tools/Predict_Property/Predict_Property.sh", "-i", f"{self.name}.fasta"])
         from_secondary = f"{self.name}_PROP/{self.name}.ss3"
         toPre = "."
         to_ssweight = f"{toPre}/ssweight"
@@ -321,7 +322,8 @@ class AWSEMSimulationProject:
         openawsem.helperFunctions.relocate(fileLocation="frags.mem", toLocation="fraglib")
 
         # Replace the file path in frags.mem
-        openawsem.helperFunctions.replace(f"frags.mem", f"{__location__}//Gros/", "./fraglib/")
+        # openawsem.helperFunctions.replace(f"frags.mem", f"{__location__}//Gros/", "./fraglib/") #original
+        openawsem.helperFunctions.replace(f"frags.mem", f"{__location__}/data/Gros/", "./fraglib/") #Rebekah edited 03072024
         self.run_command(["cp", "frags.mem", "frag_memory.mem"])
 
     def generate_single_memory(self):

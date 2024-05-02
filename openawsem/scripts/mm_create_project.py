@@ -210,7 +210,7 @@ class AWSEMSimulationProject:
             # # print("If you has multiple chains, please use other methods to generate the extended structures.")
             # openawsem.helperFunctions.myFunctions.add_chain_to_pymol_pdb("extended.pdb")  # only work for one chain only now
             openawsem.helperFunctions.create_extended_pdb_from_fasta(f"{self.name}.fasta", output_file_name="extended.pdb")
-            input_pdb_filename, cleaned_pdb_filename = openawsem.prepare_pdb("extended.pdb", "A", use_cis_proline=False, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
+            input_pdb_filename, cleaned_pdb_filename = openawsem.prepare_pdb("extended.pdb", "A", use_cis_proline=False, keepIds=self.args.keepIds, removeHeterogens=removeHeterogens)
             openawsem.ensure_atom_order(input_pdb_filename)
         
         shutil.copy('crystal_structure-cleaned.pdb',f'{self.pdb}')

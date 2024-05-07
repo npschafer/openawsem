@@ -46,6 +46,8 @@ make
 echo 'export PATH=$PATH:'`pwd` >> ~/.bashrc
 ```
 
+Note: If the webpage above becomes unavailable, please use an alternative repository like https://github.com/MDAnalysis/stride/tree/master/src .
+
 ### PSIBLAST    
 Install psiblast using the distribution from bioconda:
 

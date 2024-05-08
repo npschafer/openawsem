@@ -42,8 +42,9 @@ def parse_arguments():
     frag_parser.add_argument("--frag_database", default=openawsem.data_path.blast, help="Specify the database for fragment generation.")
     frag_parser.add_argument("--frag_fasta", default=None, help="Provide the FASTA file for fragment generation.")
     frag_parser.add_argument("--frag_N_mem", type=int, default=20, help="Number of memories to generate per fragment.")
-    frag_parser.add_argument("--frag_brain_damage", type=float, choices=[0, 0.5, 1, 2], default=0, help="Control the inclusion or exclusion of homologous protein structures for generating fragment memories.\n 0: include all homologs, 0.5: include only self-structures, 1: exclude all homologs, 2: include only non-homologous structures.")
-    frag_parser.add_argument("--frag_fragmentLength", type=int, default=9, help="SLength of the fragments to be generated.")
+    frag_parser.add_argument("--frag_brain_damage", type=float, choices=[0, 0.5, 1, 2], default=0, help="Control the inclusion or exclusion of homologous protein structures for generating fragment memories.\n 0: Homologs allowed; include all hits\n 0.5: Self-only; Include only homologs with >90% similarity\n 1: Homologs excluded; Exclude all homologs (any similarity percent)\n 2: Homologs only; Include only homologous structures (except >90% similarity)")
+    frag_parser.add_argument("--frag_fragmentLength", type=int, default=9, help="Length of the fragments to be generated.")
+    frag_parser.add_argument("--frag_cutoff_identical", type=int, default=90, help="Identity cutoff for self-structures")
 
 
     # Parse and return the command-line arguments
@@ -409,7 +410,7 @@ class AWSEMSimulationProject:
 
                 # Generate fragment memory files if the frag option is enabled
                 if self.args.frag:
-                    self.generate_fragment_memory(database=self.args.frag_database, fasta=self.args.frag_fasta, N_mem=self.args.frag_N_mem, brain_damage=self.args.frag_brain_damage, fragmentLength=self.args.frag_fragmentLength)
+                    self.generate_fragment_memory(database=self.args.frag_database, fasta=self.args.frag_fasta, N_mem=self.args.frag_N_mem, brain_damage=self.args.frag_brain_damage, fragmentLength=self.args.frag_fragmentLength, cutoff_identical=self.args.frag_cutoff_identical)
 
                 #Generate charges
                 self.generate_charges()

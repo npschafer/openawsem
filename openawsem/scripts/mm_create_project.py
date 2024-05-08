@@ -42,8 +42,9 @@ def parse_arguments():
     frag_parser.add_argument("--frag_database", default=openawsem.data_path.blast, help="Specify the database for fragment generation.")
     frag_parser.add_argument("--frag_fasta", default=None, help="Provide the FASTA file for fragment generation.")
     frag_parser.add_argument("--frag_N_mem", type=int, default=20, help="Number of memories to generate per fragment.")
-    frag_parser.add_argument("--frag_brain_damage", type=float, choices=[0, 0.5, 1, 2], default=0, help="Control the inclusion or exclusion of homologous protein structures for generating fragment memories.\n 0: include all homologs, 0.5: include only self-structures, 1: exclude all homologs, 2: include only non-homologous structures.")
-    frag_parser.add_argument("--frag_fragmentLength", type=int, default=9, help="SLength of the fragments to be generated.")
+    frag_parser.add_argument("--frag_brain_damage", type=float, choices=[0, 0.5, 1, 2], default=0, help="Control the inclusion or exclusion of homologous protein structures for generating fragment memories.\n 0: Homologs allowed; include all hits\n 0.5: Self-only; Include only homologs with >90% similarity\n 1: Homologs excluded; Exclude all homologs (any similarity percent)\n 2: Homologs only; Include only homologous structures (except >90% similarity)")
+    frag_parser.add_argument("--frag_fragmentLength", type=int, default=9, help="Length of the fragments to be generated.")
+    frag_parser.add_argument("--frag_cutoff_identical", type=int, default=90, help="Identity cutoff for self-structures")
 
 
     # Parse and return the command-line arguments
@@ -201,7 +202,7 @@ class AWSEMSimulationProject:
         self.cleaned_pdb_filename = cleaned_pdb_filename
         
         self.chain = openawsem.helperFunctions.getAllChains("crystal_structure-cleaned.pdb")
-        openawsem.getSeqFromCleanPdb(input_pdb_filename, chains=chain, writeFastaFile=True)
+        openawsem.getSeqFromCleanPdb(input_pdb_filename, chains=self.chain, writeFastaFile=True)
         shutil.copy('crystal_structure.fasta',f'{self.name}.fasta')
         
         if self.args.extended:
@@ -210,7 +211,7 @@ class AWSEMSimulationProject:
             # # print("If you has multiple chains, please use other methods to generate the extended structures.")
             # openawsem.helperFunctions.myFunctions.add_chain_to_pymol_pdb("extended.pdb")  # only work for one chain only now
             openawsem.helperFunctions.create_extended_pdb_from_fasta(f"{self.name}.fasta", output_file_name="extended.pdb")
-            input_pdb_filename, cleaned_pdb_filename = openawsem.prepare_pdb("extended.pdb", "A", use_cis_proline=False, keepIds=args.keepIds, removeHeterogens=removeHeterogens)
+            input_pdb_filename, cleaned_pdb_filename = openawsem.prepare_pdb("extended.pdb", "A", use_cis_proline=False, keepIds=self.args.keepIds, removeHeterogens=removeHeterogens)
             openawsem.ensure_atom_order(input_pdb_filename)
         
         shutil.copy('crystal_structure-cleaned.pdb',f'{self.pdb}')
@@ -256,11 +257,10 @@ class AWSEMSimulationProject:
 
     def generate_ssweight_from_fasta(self):
 
-        # another option for secondary prediction bias generation is using "Predict_Property.sh -i {name}.fasta" to predict from fasta file.
+        # Another option for secondary prediction bias generation is using "Predict_Property.sh -i {name}.fasta" to predict from fasta file.
         # but you need install it from https://github.com/realbigws/Predict_Property.
-        # after installation, you can do the following to generate ssweight.
-        # for me I put 'export Predict_Property="/Users/weilu/Research/Build/Predict_Property"' inside ~/.bash_profile file.
-        self.run_command(["$Predict_Property/Predict_Property.sh", "-i", f"{self.name}.fasta"])
+        self.run_command(["Predict_Property.sh", "-i", f"{self.name}.fasta"])
+        
         from_secondary = f"{self.name}_PROP/{self.name}.ss3"
         toPre = "."
         to_ssweight = f"{toPre}/ssweight"
@@ -284,7 +284,7 @@ class AWSEMSimulationProject:
 
         openawsem.helperFunctions.create_zim(f"crystal_structure.fasta", tableLocation=__location__/"helperFunctions")
 
-    def generate_fragment_memory(self,database = "cullpdb_pc80_res3.0_R1.0_d160504_chains29712",fasta = None,N_mem = 20,brain_damage = 1.0,fragmentLength = 9):
+    def generate_fragment_memory(self,database = "cullpdb_pc80_res3.0_R1.0_d160504_chains29712",fasta = None,N_mem = 20,brain_damage = 1.0,fragmentLength = 9,cutoff_identical=90):
         """
         Generate the fragment memory file if the frag option is specified.
         """
@@ -321,7 +321,8 @@ class AWSEMSimulationProject:
         openawsem.helperFunctions.relocate(fileLocation="frags.mem", toLocation="fraglib")
 
         # Replace the file path in frags.mem
-        openawsem.helperFunctions.replace(f"frags.mem", f"{__location__}//Gros/", "./fraglib/")
+        # openawsem.helperFunctions.replace(f"frags.mem", f"{__location__}//Gros/", "./fraglib/") #original
+        openawsem.helperFunctions.replace(f"frags.mem", f"{__location__}/data/Gros/", "./fraglib/") #Rebekah edited 03072024
         self.run_command(["cp", "frags.mem", "frag_memory.mem"])
 
     def generate_single_memory(self):
@@ -409,7 +410,7 @@ class AWSEMSimulationProject:
 
                 # Generate fragment memory files if the frag option is enabled
                 if self.args.frag:
-                    self.generate_fragment_memory(database=self.args.frag_database, fasta=self.args.frag_fasta, N_mem=self.args.frag_N_mem, brain_damage=self.args.frag_brain_damage, fragmentLength=self.args.frag_fragmentLength)
+                    self.generate_fragment_memory(database=self.args.frag_database, fasta=self.args.frag_fasta, N_mem=self.args.frag_N_mem, brain_damage=self.args.frag_brain_damage, fragmentLength=self.args.frag_fragmentLength, cutoff_identical=self.args.frag_cutoff_identical)
 
                 #Generate charges
                 self.generate_charges()

@@ -8,7 +8,7 @@ except ModuleNotFoundError:
     from simtk.unit import *
 import numpy as np
 
-def debye_huckel_term(self, k_dh=4.15*4.184, forceGroup=30, screening_length=1.0, chargeFile=None):
+def debye_huckel_term(self, k_dh=4.15*4.184, forceGroup=30, screening_length=1.0, chargeFile=None,periodic=False):
         # screening_length (in the unit of nanometers)
         print("Debye Huckel term is ON")
         k_dh *= self.k_awsem*0.1
@@ -18,6 +18,14 @@ def debye_huckel_term(self, k_dh=4.15*4.184, forceGroup=30, screening_length=1.0
         dh = CustomBondForce(f"{k_dh}*charge_i*charge_j/r*exp(-{k_screening}*r/{screening_length})")
         dh.addPerBondParameter("charge_i")
         dh.addPerBondParameter("charge_j")
+
+         # Add Periodic Boundary Condition. 02082024 Rebekah Added --- Start
+        if periodic:
+            dh.setUsesPeriodicBoundaryConditions(True)
+            is_periodic=dh.usesPeriodicBoundaryConditions()
+            print("\ndebye_huckel_term is in PBC",is_periodic)
+         # 02082024 Rebekah Added --- End
+
         structure_interactions_dh = []
         if chargeFile is None:
             for i in range(self.nres):
@@ -57,6 +65,7 @@ def debye_huckel_term(self, k_dh=4.15*4.184, forceGroup=30, screening_length=1.0
                         structure_interactions_dh.append([cb_atom_i, cb_atom_j, [charge_i, charge_j]])
         for structure_interaction_dh in structure_interactions_dh:
             dh.addBond(*structure_interaction_dh)
+
         dh.setForceGroup(forceGroup)
         return dh
 

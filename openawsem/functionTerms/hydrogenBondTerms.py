@@ -231,6 +231,15 @@ def beta_term_1(oa, k=0.5*kilocalories_per_mole, forceGroup=27):
     v1i = "1"
     beta_string_1 = f"-{k_beta}*lambda_1(res_i,res_j)*theta_ij*v1i;theta_ij={theta_ij};v1i={v1i};r_Oi_Nj=distance(a1,d1);r_Oi_Hj=distance(a1,d2);"
     beta_1 = CustomHbondForce(beta_string_1)
+
+    # Set PBC. 02082024 Rebekah Added. --- Start
+    if oa.periodic:
+        beta_1.setNonbondedMethod(beta_1.CutoffPeriodic)
+        print('\nbeta_term_1 is in PBC')
+    else:
+        beta_1.setNonbondedMethod(beta_1.CutoffNonPeriodic)
+    # Set PBC. 02082024 Rebekah Added. --- End
+
     beta_1.addPerDonorParameter("res_i")
     beta_1.addPerAcceptorParameter("res_j")
     beta_1.addTabulatedFunction("lambda_1", Discrete2DFunction(nres, nres, lambda_1.T.flatten()))
@@ -244,7 +253,7 @@ def beta_term_1(oa, k=0.5*kilocalories_per_mole, forceGroup=27):
             beta_1.addAcceptor(oa.o[i], -1, -1, [i])
         if oa.n[i]!=-1 and oa.h[i]!=-1:
             beta_1.addDonor(oa.n[i], oa.h[i], -1, [i])
-    beta_1.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
+    # beta_1.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
     beta_1.setCutoffDistance(1.0)
     beta_1.setForceGroup(forceGroup)
     # beta_2.setForceGroup(24)
@@ -284,6 +293,15 @@ def beta_term_2(oa, k=0.5*kilocalories_per_mole, forceGroup=27):
                         theta_ij={theta_ij};r_Oi_Nj=distance(a1,d1);r_Oi_Hj=distance(a1,d2);\
                         theta_ji={theta_ji};r_Oj_Ni=distance(d3,a2);r_Oj_Hi=distance(d3,a3);"
     beta_2 = CustomHbondForce(beta_string_2)
+
+    # Set PBC. 02082024 Rebekah Added. --- Start
+    if oa.periodic:
+        beta_2.setNonbondedMethod(beta_2.CutoffPeriodic)
+        print('\nbeta_term_2 is in PBC')
+    else:
+        beta_2.setNonbondedMethod(beta_2.CutoffNonPeriodic)
+    # Set PBC. 02082024 Rebekah Added. --- End
+
     beta_2.addPerDonorParameter("res_i")
     beta_2.addPerAcceptorParameter("res_j")
     beta_2.addTabulatedFunction("lambda_2", Discrete2DFunction(nres, nres, lambda_2.T.flatten()))
@@ -293,7 +311,7 @@ def beta_term_2(oa, k=0.5*kilocalories_per_mole, forceGroup=27):
         if o[i]!= -1 and n[i]!=-1 and h[i]!=-1:
             beta_2.addAcceptor(o[i], n[i], h[i], [i])
             beta_2.addDonor(n[i], h[i], o[i], [i])
-    beta_2.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
+    # beta_2.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
     beta_2.setCutoffDistance(1.0)
     # beta_1.setForceGroup(23)
     beta_2.setForceGroup(forceGroup)
@@ -338,6 +356,14 @@ def beta_term_3(oa, k=0.5*kilocalories_per_mole, forceGroup=27):
                         theta_jip2={theta_jip2};r_Oj_Nip2=distance(d3,a2);r_Oj_Hip2=distance(d3,a3);"
     beta_3 = CustomHbondForce(beta_string_3)
 
+    # Set PBC. 02082024 Rebekah Added. --- Start
+    if oa.periodic:
+        beta_3.setNonbondedMethod(beta_3.CutoffPeriodic)
+        print('\nbeta_term_3 is in PBC')
+    else:
+        beta_3.setNonbondedMethod(beta_3.CutoffNonPeriodic)
+    # Set PBC. 02082024 Rebekah Added. --- End
+        
     beta_3.addPerDonorParameter("res_i")
     beta_3.addPerAcceptorParameter("res_j")
     beta_3.addTabulatedFunction("lambda_3", Discrete2DFunction(nres, nres, lambda_3.T.flatten()))
@@ -350,7 +376,7 @@ def beta_term_3(oa, k=0.5*kilocalories_per_mole, forceGroup=27):
             beta_3.addAcceptor(o[i], n[i+2], h[i+2], [i])
         if o[i] != -1 and n[i] !=-1 and h[i] !=-1:
             beta_3.addDonor(n[i], h[i], o[i], [i])
-    beta_3.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
+    # beta_3.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
     beta_3.setCutoffDistance(1.0)
     # beta_1.setForceGroup(23)
     # beta_2.setForceGroup(24)
@@ -401,6 +427,14 @@ def pap_term_1(oa, k=0.5*kilocalories_per_mole, dis_i_to_i4=1.2, forceGroup=28, 
 
     # pap_function = f"-{k_pap}*distance(a1,d1)"
     pap = CustomHbondForce(pap_function)
+    
+    # Set PBC. 02082024 Rebekah Added. --- Start
+    if oa.periodic:
+        pap.setNonbondedMethod(pap.CutoffPeriodic)
+        print('\npap_1 is in PBC')
+    else:
+        pap.setNonbondedMethod(pap.CutoffNonPeriodic)
+    # Set PBC. 02082024 Rebekah Added. --- End
     pap.addPerDonorParameter("donor_idx")
     pap.addPerAcceptorParameter("acceptor_idx")
     pap.addTabulatedFunction("gamma_1", Discrete2DFunction(nres, nres, gamma_1.T.flatten()))
@@ -417,7 +451,7 @@ def pap_term_1(oa, k=0.5*kilocalories_per_mole, dis_i_to_i4=1.2, forceGroup=28, 
             if oa.n[i] != -1 and oa.n[i-4] != -1:
                 pap.addDonor(oa.n[i], oa.n[i-4], -1, [i])
 
-    pap.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
+    # pap.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
     pap.setCutoffDistance(1.0)
     # print(count)
     pap.setForceGroup(forceGroup)
@@ -455,6 +489,15 @@ def pap_term_2(oa, k=0.5*kilocalories_per_mole, dis_i_to_i4=1.2, forceGroup=28, 
                         *0.5*(1+tanh({eta_pap}*({r0}-distance(a2,d2))))\
                         *{constraint_i_and_i4}"
     pap = CustomHbondForce(pap_function)
+
+    # Set PBC. 02082024 Rebekah Added. --- Start
+    if oa.periodic:
+        pap.setNonbondedMethod(pap.CutoffPeriodic)
+        print('\npap_2 is in PBC')
+    else:
+        pap.setNonbondedMethod(pap.CutoffNonPeriodic)
+    # Set PBC. 02082024 Rebekah Added. --- End
+        
     pap.addPerDonorParameter("donor_idx")
     pap.addPerAcceptorParameter("acceptor_idx")
     pap.addTabulatedFunction("gamma_3", Discrete2DFunction(nres, nres, gamma_3.T.flatten()))
@@ -467,7 +510,7 @@ def pap_term_2(oa, k=0.5*kilocalories_per_mole, dis_i_to_i4=1.2, forceGroup=28, 
             if oa.n[i] != -1 and oa.n[i+4] != -1:
                 pap.addDonor(oa.n[i], oa.n[i+4], -1, [i])
 
-    pap.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
+    # pap.setNonbondedMethod(CustomHbondForce.CutoffNonPeriodic)
     pap.setCutoffDistance(1.0)
     # print(count)
     pap.setForceGroup(forceGroup)

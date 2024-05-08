@@ -72,6 +72,13 @@ OPENAWSEM_LOCATION=$(python -c "import openawsem; print(openawsem.__location__)"
 cp pdb_seqres.txt $OPENAWSEM_LOCATION/data
 ```
 
+### Predict_Property
+
+For secondary structure prediction from the fasta file OpenAWSEM can use "Predict_Property.sh -i {name}.fasta".
+Install it from https://github.com/realbigws/Predict_Property.
+After installation, add Predict_property.sh to $PATH so it can be executed
+For example add 'export PATH = $PATH:/Users/weilu/Research/Build/Predict_Property/' inside the ~/.bash_profile file.
+
 ## Configuration
 OpenAWSEM allows users to configure data storage paths. To do this:
 

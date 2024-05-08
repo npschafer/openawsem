@@ -256,12 +256,10 @@ class AWSEMSimulationProject:
 
     def generate_ssweight_from_fasta(self):
 
-        # another option for secondary prediction bias generation is using "Predict_Property.sh -i {name}.fasta" to predict from fasta file.
+        # Another option for secondary prediction bias generation is using "Predict_Property.sh -i {name}.fasta" to predict from fasta file.
         # but you need install it from https://github.com/realbigws/Predict_Property.
-        # after installation, you can do the following to generate ssweight.
-        # for me I put 'export Predict_Property="/Users/weilu/Research/Build/Predict_Property"' inside ~/.bash_profile file.
-        # self.run_command(["$Predict_Property/Predict_Property.sh", "-i", f"{self.name}.fasta"])
-        self.run_command(["/home/mw88/research/Tools/Predict_Property/Predict_Property.sh", "-i", f"{self.name}.fasta"])
+        self.run_command(["Predict_Property.sh", "-i", f"{self.name}.fasta"])
+        
         from_secondary = f"{self.name}_PROP/{self.name}.ss3"
         toPre = "."
         to_ssweight = f"{toPre}/ssweight"

@@ -287,11 +287,18 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
                 if not os.path.isfile(indexFile):
                     # generate fasta file
                     if not os.path.isfile(pdb_seqres):
-                        print(pdb_seqres)
+                        import urllib
                         print("Need to download pdb_seqres.txt from PDB!")
-                        print("ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt")
-                        print("Copy to $HOME/opt/script/")
-                        exit()
+                        print("Downloading pdb_seqres.txt from ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt...")
+                        url = "ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt"
+                        try:
+                            urllib.request.urlretrieve(url, pdb_seqres)
+                            print(f"Download complete. Saved to {pdb_seqres}")
+                        except urllib.error.URLError as e:
+                            print(f"Error downloading file: {e.reason}")
+                        except Exception as e:
+                            print(f"An error occurred: {e}")
+                        print(f"Download complete. Saved to {pdb_seqres}")
                     fastaFile = pdbID + '_' + chainID.upper()
                     exeline = "grep -A1 " + fastaFile + " " + pdb_seqres + " > ./tmp.fasta"
                     print("generating fastaFile: ", fastaFile)

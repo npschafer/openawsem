@@ -201,7 +201,7 @@ class AWSEMSimulationProject:
         self.cleaned_pdb_filename = cleaned_pdb_filename
         
         self.chain = openawsem.helperFunctions.getAllChains("crystal_structure-cleaned.pdb")
-        openawsem.getSeqFromCleanPdb(input_pdb_filename, chains=chain, writeFastaFile=True)
+        openawsem.getSeqFromCleanPdb(input_pdb_filename, chains=self.chain, writeFastaFile=True)
         shutil.copy('crystal_structure.fasta',f'{self.name}.fasta')
         
         if self.args.extended:

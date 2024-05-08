@@ -154,13 +154,19 @@ def partial_q_value(oa, reference_pdb_file, min_seq_sep=3, a=0.1, startResidueIn
     qvalue.setForceGroup(forceGroup)
     return qvalue
 
-def qbias_term(oa, q0, reference_pdb_file, reference_chain_name, k_qbias=100*kilocalorie_per_mole, qbias_min_seq_sep=3, qbias_max_seq_sep=np.inf, qbias_contact_threshold=0.8*nanometers, forceGroup=4):
+def qbias_term(oa,reference_pdb_file, q0, reference_chain_name="ALL", k_qbias=100*kilocalorie_per_mole, qbias_min_seq_sep=3, qbias_max_seq_sep=np.inf, qbias_contact_threshold=0.8*nanometers, forceGroup=4):
     k_qbias = k_qbias.value_in_unit(kilojoule_per_mole)   # convert to kilojoule_per_mole, openMM default uses kilojoule_per_mole as energy.
     qbias = CustomCVForce(f"0.5*{k_qbias}*(q-{q0})^2")
+    # qbias = CustomCVForce(f"0.5*{k_qbias}*(q-q0)^2")
     q = q_value(oa, reference_pdb_file, reference_chain_name, min_seq_sep=qbias_min_seq_sep, max_seq_sep=qbias_max_seq_sep, contact_threshold=qbias_contact_threshold)
+    if oa.periodic:
+        q.setUsesPeriodicBoundaryConditions(True)
     qbias.addCollectiveVariable("q", q)
     # qbias.addGlobalParameter("k_qbias", k_qbias)
     # qbias.addGlobalParameter("q0", q0)
+    is_periodic=qbias.usesPeriodicBoundaryConditions()
+    print("\nqbias_term is in PBC",is_periodic)
+    print("\nqbias is",q0)
     qbias.setForceGroup(forceGroup)
     return qbias
 

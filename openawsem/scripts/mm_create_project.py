@@ -257,11 +257,10 @@ class AWSEMSimulationProject:
 
     def generate_ssweight_from_fasta(self):
 
-        # another option for secondary prediction bias generation is using "Predict_Property.sh -i {name}.fasta" to predict from fasta file.
+        # Another option for secondary prediction bias generation is using "Predict_Property.sh -i {name}.fasta" to predict from fasta file.
         # but you need install it from https://github.com/realbigws/Predict_Property.
-        # after installation, you can do the following to generate ssweight.
-        # for me I put 'export Predict_Property="/Users/weilu/Research/Build/Predict_Property"' inside ~/.bash_profile file.
-        self.run_command(["$Predict_Property/Predict_Property.sh", "-i", f"{self.name}.fasta"])
+        self.run_command(["Predict_Property.sh", "-i", f"{self.name}.fasta"])
+        
         from_secondary = f"{self.name}_PROP/{self.name}.ss3"
         toPre = "."
         to_ssweight = f"{toPre}/ssweight"
@@ -322,7 +321,8 @@ class AWSEMSimulationProject:
         openawsem.helperFunctions.relocate(fileLocation="frags.mem", toLocation="fraglib")
 
         # Replace the file path in frags.mem
-        openawsem.helperFunctions.replace(f"frags.mem", f"{__location__}//Gros/", "./fraglib/")
+        # openawsem.helperFunctions.replace(f"frags.mem", f"{__location__}//Gros/", "./fraglib/") #original
+        openawsem.helperFunctions.replace(f"frags.mem", f"{__location__}/data/Gros/", "./fraglib/") #Rebekah edited 03072024
         self.run_command(["cp", "frags.mem", "frag_memory.mem"])
 
     def generate_single_memory(self):

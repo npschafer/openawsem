@@ -274,6 +274,7 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
     # contact.setCutoffDistance(1.1)
     if periodic:
         contact.setNonbondedMethod(contact.CutoffPeriodic)
+        print('\ncontact_term is periodic')
     else:
         contact.setNonbondedMethod(contact.CutoffNonPeriodic)
     print("Contact cutoff ", contact.getCutoffDistance())

@@ -21,7 +21,7 @@ This installation mode is recommended for users that want to contribute to the c
 
 ```bash
 #Clone the awsem repository
-git clone https://github.com/cabb99/openawsem.git
+git clone https://github.com/npschafer/openawsem.git
 cd openawsem
 
 # Create a new conda environment

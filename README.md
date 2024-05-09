@@ -21,7 +21,7 @@ This installation mode is recommended for users that want to contribute to the c
 
 ```bash
 #Clone the awsem repository
-git clone https://github.com/cabb99/openawsem.git
+git clone https://github.com/npschafer/openawsem.git
 cd openawsem
 
 # Create a new conda environment
@@ -45,6 +45,8 @@ cd stride
 make
 echo 'export PATH=$PATH:'`pwd` >> ~/.bashrc
 ```
+
+Note: If the webpage above becomes unavailable, please use an alternative repository like https://github.com/MDAnalysis/stride/tree/master/src .
 
 ### PSIBLAST    
 Install psiblast using the distribution from bioconda:
@@ -71,6 +73,13 @@ wget ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt
 OPENAWSEM_LOCATION=$(python -c "import openawsem; print(openawsem.__location__)")
 cp pdb_seqres.txt $OPENAWSEM_LOCATION/data
 ```
+
+### Predict_Property
+
+For secondary structure prediction from the fasta file OpenAWSEM can use "Predict_Property.sh -i {name}.fasta".
+Install it from https://github.com/realbigws/Predict_Property.
+After installation, add Predict_property.sh to $PATH so it can be executed
+For example add 'export PATH = $PATH:/Users/weilu/Research/Build/Predict_Property/' inside the ~/.bash_profile file.
 
 ## Configuration
 OpenAWSEM allows users to configure data storage paths. To do this:

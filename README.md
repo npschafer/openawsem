@@ -39,9 +39,10 @@ STRIDE is used for secondary structure prediction.
 Download and install STRIDE and add it to your PATH:
 https://webclu.bio.wzw.tum.de/stride/
 ```bash
+mkdir stride
+cd stride
 wget https://webclu.bio.wzw.tum.de/stride/stride.tar.gz
 tar -xvzf stride.tar.gz
-cd stride
 make
 echo 'export PATH=$PATH:'`pwd` >> ~/.bashrc
 ```

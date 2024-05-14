@@ -120,7 +120,7 @@ def analyze(args):
     # forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
     #                    "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "Total":list(range(11, 26)),
     #                    "Water":[16, 18], "beta":[23, 24, 25], "Q":1}
-    showValue = ["Q", "Rg"]
+    showValue = ["Q", "Qc", "Rg"]
     # term in showEnergy will assume to take on the energy unit of kilojoule_per_mole, it will be shown in unit of kilocalories_per_mole(divided by 4.184) 
     # term in showValue will not be converted.
     showEnergy = ["Backbone", "Rama", "Contact", "Fragment", "Membrane", "ER", "TBM_Q", "Beta", "Pap", "Helical", "Debye_huckel","Total"]

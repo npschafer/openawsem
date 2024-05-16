@@ -291,23 +291,11 @@ class AWSEMSimulationProject:
         if fasta is None:
             fasta = f"{self.name}.fasta"
 
-        #self.run_command(["cp", f"{__location__}/database/cullpdb_pc80_*", "."])
-        # files_to_copy = [
-        #     f"{database}",
-        #     f"{database}.fasta",
-        #     f"{database}.phr",
-        #     f"{database}.pin",
-        #     f"{database}.psq",
-        # ]
-
-        # for file_name in files_to_copy:
-        #    shutil.copy(database/file_name, Path('.')/file_name)
-
         openawsem.helperFunctions.create_fragment_memories(database=database, fasta_file=fasta, memories_per_position=N_mem, 
                                                            brain_damage=brain_damage, fragment_length=fragmentLength, pdb_dir=openawsem.data_path.pdb, 
                                                            index_dir=openawsem.data_path.index, frag_lib_dir=openawsem.data_path.gro,
                                                            failed_pdb_list_file=openawsem.data_path.pdbfail, pdb_seqres=openawsem.data_path.pdbseqres,
-                                                           weight=1, evalue_threshold=10000, cutoff_identical=90)
+                                                           weight=1, evalue_threshold=10000, cutoff_identical=cutoff_identical)
 
         # self.run_command([
         #     "python", __location__/"helperFunctions"/"MultCha_prepFrags_index.py",
@@ -382,6 +370,8 @@ class AWSEMSimulationProject:
             # Prepare the input files
             if self.args.protein[-4:] == '.pdb':
                 self.name, self.pdb = self.prepare_input_files_from_pdb(project_folder)
+            elif self.args.protein[-6:] == ".cif":
+                self.name, self.pdb = self.prepare_input_files_from_cif(project_folder)
             elif self.args.protein[-6:] == ".fasta":
                 self.name, self.pdb = self.prepare_input_files_from_fasta(project_folder)
             else:

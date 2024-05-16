@@ -1,24 +1,15 @@
 #!/usr/bin/env python3
 import os
 import sys
-import random
 import time
-from random import seed, randint
 import argparse
-import platform
-from datetime import datetime
-from time import sleep
-import fileinput
 import importlib.util
 
 from openawsem import *
 from openawsem.helperFunctions.myFunctions import *
 
-# simulation_platform = "CPU"  # OpenCL, CUDA, CPU, or Reference
-# simulation_platform = "OpenCL"
 do = os.system
 cd = os.chdir
-
 
 def run(args):
     simulation_platform = args.platform
@@ -27,12 +18,16 @@ def run(args):
         if args.thread != -1:
             platform.setPropertyDefaultValue("Threads", str(args.thread))
         print(f"{simulation_platform}: {platform.getPropertyDefaultValue('Threads')} threads")
+    elif simulation_platform=="OpenCL":
+        platform.setPropertyDefaultValue('OpenCLPlatformIndex', '0')
+        platform.setPropertyDefaultValue('DeviceIndex', args.device)
+    elif simulation_platform=="CUDA":
+        platform.setPropertyDefaultValue('DeviceIndex', str(args.device))
 
     # if mm_run.py is not at the same location of your setup folder.
     setupFolderPath = os.path.dirname(args.protein)
     setupFolderPath = "." if setupFolderPath == "" else setupFolderPath
     proteinName = pdb_id = os.path.basename(args.protein)
-
 
     pwd = os.getcwd()
     toPath = os.path.abspath(args.to)
@@ -109,6 +104,9 @@ def run(args):
     myForces = forces.set_up_forces(oa, submode=args.subMode, contactParameterLocation=parametersLocation)
     # print(forces)
     # oa.addForces(myForces)
+
+    if args.removeCMMotionRemover:
+        oa.system.removeForce(0)
     oa.addForcesWithDefaultForceGroup(myForces)
 
     if args.fromCheckPoint:
@@ -214,7 +212,7 @@ def main():
     parser.add_argument("--to", default="./", help="location of movie file")
     parser.add_argument("-c", "--chain", type=str, default="-1")
     parser.add_argument("-t", "--thread", type=int, default=-1, help="default is using all that is available")
-    parser.add_argument("-p", "--platform", type=str, default="OpenCL")
+    parser.add_argument("-p", "--platform", type=str, default="OpenCL", choices=["OpenCL", "CPU", "HIP", "Reference", "CUDA"], help="Platform to run the simulation.")
     parser.add_argument("-s", "--steps", type=float, default=2e4, help="step size, default 1e5")
     parser.add_argument("--tempStart", type=float, default=800, help="Starting temperature")
     parser.add_argument("--tempEnd", type=float, default=200, help="Ending temperature")
@@ -231,6 +229,8 @@ def main():
     parser.add_argument("--fasta", type=str, default="crystal_structure.fasta")
     parser.add_argument("--timeStep", type=int, default=2)
     parser.add_argument("--includeLigands", action="store_true", default=False)
+    parser.add_argument('--device',default=0, help='OpenCL device index')
+    parser.add_argument('--removeCMMotionRemover', action="store_true", default=False)
     args = parser.parse_args()
 
 

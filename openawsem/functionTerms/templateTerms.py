@@ -209,7 +209,10 @@ def fragment_memory_term(oa, k_fm=0.04184, frag_file_list_file="./frag.mem", npy
 
     fm.addTabulatedFunction("frag_table",
             Discrete2DFunction(len(interaction_list), r_table_size, frag_table.T.flatten()))
-
+    
+    if oa.periodic:
+        fm.setUsesPeriodicBoundaryConditions(True)
+        print('\nfragment_memory_term is periodic')
 
     fm.setForceGroup(forceGroup)
     return fm

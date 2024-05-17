@@ -437,7 +437,7 @@ class TestAWSEMSimulationProject(unittest.TestCase):
         self.args.verbose = False
         
         self.temp_dir = Path(tempfile.mkdtemp())
-        self.data_folder = __location__/'tests'/'data'
+        self.data_folder = __location__.parent/'tests'/'data'
         self.project = AWSEMSimulationProject(self.args)
         self.project.base_folder = self.temp_dir
 
@@ -469,10 +469,9 @@ class TestAWSEMSimulationProject(unittest.TestCase):
     def test_copy_scripts(self):
         self.project.copy_scripts(destination_folder=self.temp_dir)
         copied_files = ["mm_run.py", "mm_analysis.py", "forces_setup.py"]
-        self.project.run_command(["ls"])
         for file in copied_files:
             print(self.project.base_folder/file)
-            self.assertTrue((self.project.base_folder/file).exists())
+            self.assertTrue((self.temp_dir/file).exists())
 
     def test_run_command(self):
         with self.assertRaises(Exception):

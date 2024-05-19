@@ -10,7 +10,7 @@ import subprocess
 
 
 __location__ = openawsem.__location__
-__author__ = 'Wei Lu'
+__author__ = 'Wei Lu, with modifications by the OpenAWSEM contributors'
 
 def parse_arguments():
     """
@@ -33,8 +33,9 @@ def parse_arguments():
     parser.add_argument("--hybrid", action="store_true", default=False, help="Enable hybrid simulations.")
     parser.add_argument("--verbose", action="store_true", default=False, help="Enable verbose output.")
     parser.add_argument("--predict_ssweight_from_fasta", action="store_true", default=False, help="Predict secondary structure weight from FASTA sequence.")
-    parser.add_argument("--keepIds", action="store_true", default=False, help="Preserve chain and residue index. By default, chains will be renamed from 'A' and indices will start from 1.")
+    parser.add_argument("--resetIds", action="store_true", default=False, help="Rewrite chain and residue index. By default, chains will be renamed from 'A' and indices will start from 1.")
     parser.add_argument("--keepLigands", action="store_true", default=False, help="Preserve ligands in the protein structure.")
+    parser.add_argument("--to", default=None, help="Folder to create the project in. Default is the name of the protein")
     parser.add_argument("--test", action="store_true", default=False, help="Tests the current module")
 
       # Create a subparser for frag-related arguments
@@ -48,7 +49,9 @@ def parse_arguments():
 
 
     # Parse and return the command-line arguments
-    return parser.parse_args()
+    args = parser.parse_args()
+    args.keepIds = not args.resetIds
+    return args
 
 class AWSEMSimulationProject:
     def __init__(self,args):
@@ -120,7 +123,7 @@ class AWSEMSimulationProject:
         name = protein_path.stem
 
         try:
-            self.run_command(["python3", __location__/"helperFunctions"/"fasta2pdb.py", name, "-f", self.args.protein])
+            openawsem.helperFunctions.create_extended_pdb_from_fasta(self.args.protein, output_file_name=f"{name}.pdb")
             openawsem.helperFunctions.add_chain_to_pymol_pdb(f"{name}.pdb")
         except Exception as e:
             print(f"ERROR: Failed to convert FASTA to PDB. Exception: {e}")
@@ -364,7 +367,10 @@ class AWSEMSimulationProject:
         for protein in self.args.proteins:
             self.change_directory(self.base_folder)
             self.args.protein = protein
-            project_folder = Path(os.path.splitext(os.path.basename(protein))[0])
+            if self.args.to:
+                project_folder = Path(self.args.to)
+            else:
+                project_folder = Path(os.path.splitext(os.path.basename(protein))[0])
             project_folder.mkdir(parents=True, exist_ok=True)
             
             # Prepare the input files

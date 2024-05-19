@@ -548,6 +548,7 @@ def getAllChains(pdbFile, removeDNAchains=True):
     rnaResidues = ['A', 'G', 'C', 'U', 'I']
     dnaResidues = ['DA', 'DG', 'DC', 'DT', 'DI']
     for c in chains:
+        print('Processing chain', c.id)
         if removeDNAchains and np.alltrue([a.name in dnaResidues for a in c.residues()]):
             print(f"chain {c.id} is a DNA chain. it will be removed")
             continue
@@ -707,7 +708,7 @@ def pdbToFasta(pdb, pdbLocation, fastaFile, chains="A"):
     seq = ""
     with open(fastaFile, "w") as out:
         for chain in chains:
-            out.write(f">{pdb.upper()}:{chain.upper()}\n")
+            out.write(f">{pdb.upper()}:{chain}\n")
             c = m[chain]
             chain_seq = ""
             for residue in c:

@@ -327,7 +327,7 @@ for record in SeqIO.parse(handle, "fasta"):
                     except Exception as e:
                         print(f"An error occurred: {e}")
                     print(f"Download complete. Saved to {pdbSeqres}")
-                fastaFile = pdbID + '_' + chainID.upper()
+                fastaFile = pdbID + '_' + chainID
                 exeline = "grep -A1 " + fastaFile + " " + pdbSeqres + " > ./tmp.fasta"
                 print("generating fastaFile: ", fastaFile)
                 # p = os.popen(exeline)
@@ -335,7 +335,7 @@ for record in SeqIO.parse(handle, "fasta"):
                 # p_status = p.wait()
                 if os.path.getsize('./tmp.fasta') > 0:
                     writeIndexFile(fastFile, pdbFile,
-                                   indexFile, chainID.upper())
+                                   indexFile, chainID)
                     print("Writing indexFile: ", indexFile)
             else:
                 print(indexFile, "exist, no need to create.")
@@ -412,7 +412,7 @@ for record in SeqIO.parse(handle, "fasta"):
 
             if os.path.isfile(pdbFile):
                 if not os.path.isfile(groFile):
-                    Pdb2Gro(pdbFile, groFile, chainID.upper())
+                    Pdb2Gro(pdbFile, groFile, chainID)
                     print("converting...... " + pdbFile + " --> " + groFile)
                 else:
                     print("Exist " + groFile)

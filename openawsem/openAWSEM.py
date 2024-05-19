@@ -7,7 +7,7 @@ except ModuleNotFoundError:
     from simtk.openmm.app import *
     from simtk.openmm import *
     from simtk.unit import *
-from sys import stdout
+import sys
 from pdbfixer import *
 import mdtraj as md
 from Bio.PDB.Polypeptide import *
@@ -358,6 +358,9 @@ def identify_terminal_residues(pdb_filename):
             terminal_residues[chain.id] = (residues[0].id[1], residues[-1].id[1])
         return terminal_residues
 
+def line_number():
+    return sys._getframe(1).f_lineno
+
 def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False, keepIds=False, removeHeterogens=True):
     # for more information about PDB Fixer, see:
     # http://htmlpreview.github.io/?https://raw.github.com/pandegroup/pdbfixer/master/Manual.html
@@ -369,28 +372,36 @@ def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False, keepIds
 
     # remove unwanted chains
     chains = list(fixer.topology.chains())
+    print(f"Chains in fixer: ", [chain.id for chain in fixer.topology.chains()],line_number())
     chains_to_remove = [i for i, x in enumerate(chains) if x.id not in chains_to_simulate]
     fixer.removeChains(chains_to_remove)
+    print(f"Chains in fixer: ", [chain.id for chain in fixer.topology.chains()],line_number())
 
     #Identify Missing Residues
     fixer.findMissingResidues()
     fixer.missingResidues = {}
+    print(f"Chains in fixer: ", [chain.id for chain in fixer.topology.chains()],line_number())
 
     #Replace Nonstandard Residues
     fixer.findNonstandardResidues()
     fixer.replaceNonstandardResidues()
+    print(f"Chains in fixer: ", [chain.id for chain in fixer.topology.chains()],line_number())
 
     #Remove Heterogens
     if removeHeterogens:
         fixer.removeHeterogens(keepWater=False)
+    print(f"Chains in fixer: ", [chain.id for chain in fixer.topology.chains()],line_number())
 
     #Add Missing Heavy Atoms
     fixer.findMissingAtoms()
     fixer.addMissingAtoms()
+    print(f"Chains in fixer: ", [chain.id for chain in fixer.topology.chains()],line_number())
 
     #Add Missing Hydrogens
     fixer.addMissingHydrogens(7.0)
+    print(f"Chains in fixer: ", [chain.id for chain in fixer.topology.chains()],line_number())
     PDBFile.writeFile(fixer.topology, fixer.positions, open(cleaned_pdb_filename, 'w'), keepIds=keepIds)
+    print(f"Chains in fixer: ", [chain.id for chain in fixer.topology.chains()],line_number())
 
     #Read sequence
     structure = PDBParser().get_structure('X', cleaned_pdb_filename)
@@ -771,7 +782,7 @@ def getSeq(input_pdb_filename, chains='A', writeFastaFile=False, fromPdb=False, 
         if writeFastaFile:
             with open(fastaFile, "w") as out:
                 for chain in chains:
-                    out.write(f">{pdb.upper()}:{chain.upper()}\n")
+                    out.write(f">{pdb.upper()}:{chain}\n")
                     c = m[chain]
                     chain_seq = ""
                     for residue in c:

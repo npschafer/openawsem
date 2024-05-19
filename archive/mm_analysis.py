@@ -45,7 +45,7 @@ else:
     cd = os.chdir
 
 proteinName = pdb_id = args.protein
-chain=args.chain.upper()
+chain=args.chain
 pdb = f"{pdb_id}.pdb"
 
 simulation_platform = args.platform

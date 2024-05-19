@@ -26,7 +26,7 @@ def analyze(args):
     setupFolderPath = os.path.dirname(args.protein)
     setupFolderPath = "." if setupFolderPath == "" else setupFolderPath
     proteinName = pdb_id = os.path.basename(args.protein)
-    chain=args.chain.upper()
+    chain=args.chain
     pdb = f"{pdb_id}.pdb"
 
     trajectoryPath = os.path.abspath(args.trajectory)

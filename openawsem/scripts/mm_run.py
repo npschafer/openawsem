@@ -20,7 +20,7 @@ def run(args):
         print(f"{simulation_platform}: {platform.getPropertyDefaultValue('Threads')} threads")
     elif simulation_platform=="OpenCL":
         platform.setPropertyDefaultValue('OpenCLPlatformIndex', '0')
-        platform.setPropertyDefaultValue('DeviceIndex', args.device)
+        platform.setPropertyDefaultValue('DeviceIndex', str(args.device))
     elif simulation_platform=="CUDA":
         platform.setPropertyDefaultValue('DeviceIndex', str(args.device))
 
@@ -38,7 +38,7 @@ def run(args):
 
 
 
-    # chain=args.chain.upper()
+    # chain=args.chain
     chain=args.chain
     pdb = f"{pdb_id}.pdb"
 
@@ -142,7 +142,7 @@ def run(args):
 
 
     print("reporter_frequency", reporter_frequency)
-    simulation.reporters.append(StateDataReporter(stdout, reporter_frequency, step=True, potentialEnergy=True, temperature=True))  # output energy and temperature during simulation
+    simulation.reporters.append(StateDataReporter(sys.stdout, reporter_frequency, step=True, potentialEnergy=True, temperature=True))  # output energy and temperature during simulation
     simulation.reporters.append(StateDataReporter(os.path.join(toPath, "output.log"), reporter_frequency, step=True, potentialEnergy=True, temperature=True)) # output energy and temperature to a file
     simulation.reporters.append(PDBReporter(os.path.join(toPath, "movie.pdb"), reportInterval=reporter_frequency))  # output PDBs of simulated structures
     simulation.reporters.append(DCDReporter(os.path.join(toPath, "movie.dcd"), reportInterval=reporter_frequency, append=True))  # output PDBs of simulated structures
@@ -229,8 +229,8 @@ def main():
     parser.add_argument("--fasta", type=str, default="crystal_structure.fasta")
     parser.add_argument("--timeStep", type=int, default=2)
     parser.add_argument("--includeLigands", action="store_true", default=False)
-    parser.add_argument('--device',default=0, help='OpenCL device index')
-    parser.add_argument('--removeCMMotionRemover', action="store_true", default=False)
+    parser.add_argument('--device',default=0, help='OpenCL/CUDA device index')
+    parser.add_argument('--removeCMMotionRemover', action="store_true", default=False, help='Removes CMMotionRemover. Recommended for periodic boundary conditions and membrane simulations')
     args = parser.parse_args()
 
 

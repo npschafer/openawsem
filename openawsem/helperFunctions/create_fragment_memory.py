@@ -299,7 +299,7 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
                         except Exception as e:
                             print(f"An error occurred: {e}")
                         print(f"Download complete. Saved to {pdb_seqres}")
-                    fastaFile = pdbID + '_' + chainID.upper()
+                    fastaFile = pdbID + '_' + chainID
                     exeline = "grep -A1 " + fastaFile + " " + pdb_seqres + " > ./tmp.fasta"
                     print("generating fastaFile: ", fastaFile)
                     # p = os.popen(exeline)
@@ -307,7 +307,7 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
                     # p_status = p.wait()
                     if os.path.getsize('./tmp.fasta') > 0:
                         writeIndexFile(fastFile, pdbFile,
-                                    indexFile, chainID.upper())
+                                    indexFile, chainID)
                         print("Writing indexFile: ", indexFile)
                 else:
                     print(indexFile, "exist, no need to create.")
@@ -384,7 +384,7 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
 
                 if os.path.isfile(pdbFile):
                     if not os.path.isfile(groFile):
-                        Pdb2Gro(pdbFile, groFile, chainID.upper())
+                        Pdb2Gro(pdbFile, groFile, chainID)
                         print("converting...... " + pdbFile + " --> " + groFile)
                     else:
                         print("Exist " + groFile)

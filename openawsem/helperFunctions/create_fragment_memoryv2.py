@@ -18,7 +18,9 @@ import time
 import tempfile
 import pandas as pd
 import ftplib
-from io import StringIO
+
+from Bio.PDB import PDBParser
+from Bio import pairwise2
 
 
 # Set up logging for better debugging
@@ -213,7 +215,7 @@ def psiblast(query:str, database, num_iterations:int=5, comp_based_stats:int=0, 
             logging.error(f"Error output: {e.stderr.strip()}")
             return None
     
-    logging.info(f"PSI-BLAST output:\n{result.stdout}")
+    logging.debug(f"PSI-BLAST output:\n{result.stdout}")
 
     # Check for convergence in the output
     if 'Search has CONVERGED!' in result.stdout:
@@ -252,6 +254,67 @@ def psiblast(query:str, database, num_iterations:int=5, comp_based_stats:int=0, 
     sorted_df = filtered_df.sort_values(by='evalue')
 
     return sorted_df
+
+def extract_pdb_sequence(pdb_gz_file, chain_id):
+
+    three2one = {
+        "GLY": "G", "ALA": "A", "LEU": "L", "ILE": "I",
+        "ARG": "R", "LYS": "K", "MET": "M", "CYS": "C",
+        "TYR": "Y", "THR": "T", "PRO": "P", "SER": "S",
+        "TRP": "W", "ASP": "D", "GLU": "E", "ASN": "N",
+        "GLN": "Q", "PHE": "F", "HIS": "H", "VAL": "V",
+        "M3L": "K", "MSE": "M", "CAS": "C"
+    }
+
+    
+    """ Extract sequence and residue numbers from PDB file for a given chain ID. """
+    parser = PDBParser(PERMISSIVE=1, QUIET=True)
+    
+    with gzip.open(pdb_gz_file, 'rt') as handle:
+        structure = parser.get_structure('PDB_structure', handle)
+    
+    chain = structure[0][chain_id]
+    residues = {}
+    
+    # Collect the sequence and the residue numbers
+    for res in chain:
+        if res.has_id('N') and res.has_id('CA') and res.has_id('C') and (res.get_resname() == 'GLY' or res.has_id('CB')):
+            residues[res.id[1]] = three2one.get(res.get_resname() , 'X')
+    
+    # Fill missing residues with '-'
+    res_dict={}
+    if residues:
+        all_indices = list(range(min(residues.keys()), max(residues.keys()) + 1))
+        for index in all_indices:
+            try:
+                res_dict[index]=residues[index]
+            except KeyError:
+                res_dict[index]='-'
+    
+    return res_dict
+
+def pdb_align(fasta_file, pdb_file, chain_id):
+    fasta_seq = str(SeqIO.read(fasta_file, 'fasta').seq)
+    pdb_seq, pdb_indices = extract_pdb_sequence(pdb_file, chain_id)
+
+    alignments = pairwise2.align.globalms(fasta_seq, pdb_seq, 2, -1, -0.5, -0.1)
+    if not alignments:
+        print("No valid alignments found.")
+        return
+
+    # Select the first alignment (assuming the best one is first)
+    alignment = alignments[0]
+    aligned_seq_fasta, aligned_seq_pdb, _, _, _ = alignment
+
+    # Generate mapping from alignment
+    result = pd.DataFrame({
+        'Index_Fasta': [i for i, letter in enumerate(aligned_seq_fasta) if letter != '-'],
+        'Residue_Fasta': [letter for letter in aligned_seq_fasta if letter != '-'],
+        'Index_PDB': [pdb_indices[i] for i, letter in enumerate(aligned_seq_pdb) if letter != '-'],
+        'Residue_PDB': [letter for letter in aligned_seq_pdb if letter != '-']
+    })
+
+    print(result)
     
 def process_fragment(fragment_sequence, rangeStart , evalue_threshold, database, residue_base, match_file, file_write_lock):
     
@@ -267,7 +330,6 @@ def process_fragment(fragment_sequence, rangeStart , evalue_threshold, database,
               f"-outfmt '6 sseqid qstart qend sstart send qseq sseq length gaps bitscore evalue' -matrix BLOSUM62 -threshold 9 -window_size 0 " + \
               f"-db {database} -query {temp_fragment_file}"
     
-
 
     # Execute PSI-BLAST and process output
     
@@ -558,7 +620,7 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
                         print("ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt")
                         print("Copy to $HOME/opt/script/")
                         exit()
-                    fastaFile = pdbID + '_' + chainID.upper()
+                    fastaFile = pdbID + '_' + chainID
                     exeline = "grep -A1 " + fastaFile + " " + pdb_seqres + " > ./tmp.fasta"
                     print("generating fastaFile: ", fastaFile)
                     # p = os.popen(exeline)
@@ -566,7 +628,7 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
                     # p_status = p.wait()
                     if os.path.getsize('./tmp.fasta') > 0:
                         writeIndexFile(fastFile, pdbFile,
-                                    indexFile, chainID.upper())
+                                    indexFile, chainID)
                         print("Writing indexFile: ", indexFile)
                 else:
                     print(indexFile, "exist, no need to create.")
@@ -643,7 +705,7 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
 
                 if os.path.isfile(pdbFile):
                     if not os.path.isfile(groFile):
-                        Pdb2Gro(pdbFile, groFile, chainID.upper())
+                        Pdb2Gro(pdbFile, groFile, chainID)
                         print("converting...... " + pdbFile + " --> " + groFile)
                     else:
                         print("Exist " + groFile)

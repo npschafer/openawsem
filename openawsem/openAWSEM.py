@@ -114,7 +114,7 @@ def parseConfigTable(config_section):
         elif len(a) > 3 and a[:3] == 'row':
             data += [readData(config_section, a)]
         else:
-            print(f'Unexpected row {readData(config_section, a)}')
+            logging.warn(f'Unexpected row {readData(config_section, a)}')
     return pd.DataFrame(data, columns=columns)
 
 
@@ -372,37 +372,29 @@ def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False, keepIds
 
     # remove unwanted chains
     chains = list(fixer.topology.chains())
-    print(f"Chains in fixer: ", [chain.id for chain in fixer.topology.chains()],line_number())
     chains_to_remove = [i for i, x in enumerate(chains) if x.id not in chains_to_simulate]
     fixer.removeChains(chains_to_remove)
-    print(f"Chains in fixer: ", [chain.id for chain in fixer.topology.chains()],line_number())
-
+    
     #Identify Missing Residues
     fixer.findMissingResidues()
     fixer.missingResidues = {}
-    print(f"Chains in fixer: ", [chain.id for chain in fixer.topology.chains()],line_number())
-
+    
     #Replace Nonstandard Residues
     fixer.findNonstandardResidues()
     fixer.replaceNonstandardResidues()
-    print(f"Chains in fixer: ", [chain.id for chain in fixer.topology.chains()],line_number())
-
+    
     #Remove Heterogens
     if removeHeterogens:
         fixer.removeHeterogens(keepWater=False)
-    print(f"Chains in fixer: ", [chain.id for chain in fixer.topology.chains()],line_number())
-
+    
     #Add Missing Heavy Atoms
     fixer.findMissingAtoms()
     fixer.addMissingAtoms()
-    print(f"Chains in fixer: ", [chain.id for chain in fixer.topology.chains()],line_number())
-
+    
     #Add Missing Hydrogens
     fixer.addMissingHydrogens(7.0)
-    print(f"Chains in fixer: ", [chain.id for chain in fixer.topology.chains()],line_number())
     PDBFile.writeFile(fixer.topology, fixer.positions, open(cleaned_pdb_filename, 'w'), keepIds=keepIds)
-    print(f"Chains in fixer: ", [chain.id for chain in fixer.topology.chains()],line_number())
-
+    
     #Read sequence
     structure = PDBParser().get_structure('X', cleaned_pdb_filename)
 

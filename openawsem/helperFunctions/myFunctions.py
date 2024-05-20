@@ -284,14 +284,14 @@ def compute_theta_for_each_helix(output="angles.csv", dumpName="../dump.lammpstr
     helices_list = [(94,114), (147,168), (171, 192), (200, 217), (226, 241), (250, 269)]
     atoms_all_frames = read_lammps(dumpName)
     # logging.info(atoms[0])
-    # logging.info(len(atoms), len(atoms[0]))
+    # logging.info(f"{len(atoms)}, {len(atoms[0])}")
     # helices_angles_all_frames = []
     with open(output, "w") as out:
         out.write("Frame, Helix, Angle\n")
         for ii, frame in enumerate(atoms_all_frames):
             # helices_angles = []
             for count, (i, j) in enumerate(helices_list):
-                # logging.info(i, j)
+                # logging.info(f"{i}, {j}")
                 i = i-91
                 j = j-91
                 # end - start
@@ -314,7 +314,7 @@ def check_and_correct_fragment_memory(fragFile="fragsLAMW.mem"):
             for line in f:
                 gro, _, i, n, _ = line.split()
                 delete = False
-                # logging.info(gro, i, n)
+                # logging.info(f"{gro}, {i}, {n}")
                 # name = gro.split("/")[-1]
                 with open(gro, "r") as one:
                     next(one)
@@ -322,7 +322,7 @@ def check_and_correct_fragment_memory(fragFile="fragsLAMW.mem"):
                     all_residues = []
                     for atom in one:
                         residue, resType, atomType, *_ = atom.split()
-                        # logging.info(residue, resType, atomType)
+                        # logging.info(f"{residue}, {resType}, {atomType}")
                         if atomType == "CA":
                             all_residues.append(int(residue))
                     all_residues = np.array(all_residues)
@@ -346,10 +346,10 @@ def check_and_correct_fragment_memory(fragFile="fragsLAMW.mem"):
                             # ATOM   1480  C   ALA A 220B      9.944 -19.933  41.692  1.00 30.71           C
                             # ATOM   1481  O   ALA A 220B      9.050 -19.088  41.787  1.00 28.56           O
                             # ATOM   1482  CB  ALA A 220B      9.234 -22.310  41.951  1.00 35.20           C
-                            logging.warn("ATTENTION", gro, i, n, "duplicate:",test)
+                            logging.warning(f"ATTENTION: {gro} {i} {n} duplicate: {test}")
                             delete = True
                         if test not in all_residues:
-                            logging.warn("ATTENTION", gro, i, n, "missing:",test)
+                            logging.warning(f"ATTENTION: {gro} {i} {n} missing: {test}")
                             delete = True
                 if not delete:
                     out.write(line)
@@ -468,7 +468,7 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
             fixer = PDBFixer(filename=fromFile)
         except Exception as inst:
             logging.info(inst)
-            logging.warn(f"{fromFile} not found. skipped")
+            logging.warning(f"{fromFile} not found. skipped")
             continue
         
         if verbose:
@@ -519,7 +519,7 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
         try:
             fixer.addMissingAtoms()
         except:
-            logging.warn("Unable to add missing atoms")
+            logging.warning("Unable to add missing atoms")
             continue
         fixer.addMissingHydrogens(7.0)
         PDBFile.writeFile(fixer.topology, fixer.positions, open(os.path.join(toFolder, pdbFile), 'w'), keepIds=keepIds)

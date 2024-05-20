@@ -8,7 +8,187 @@ from Bio import SeqIO
 import subprocess
 import argparse
 from pathlib import Path
+import logging
+import requests
+import gzip
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
+
+def update_failed_pdb_list(failed_pdb, failed_pdb_list_file):
+    try:
+        with open(failed_pdb_list_file, 'r') as file:
+            existing_pdb_ids = sorted(line.strip() for line in file)
+    except FileNotFoundError:
+        existing_pdb_ids = []
+
+    # Collect failed pdbIDs that are marked as True
+    new_pdb_ids = sorted(pdbID for pdbID, failed in failed_pdb.items() if failed)
+
+    # Merge two sorted lists while removing duplicates
+    merged_pdb_ids = []
+    i, j = 0, 0
+    while i < len(existing_pdb_ids) and j < len(new_pdb_ids):
+        if existing_pdb_ids[i] == new_pdb_ids[j]:
+            merged_pdb_ids.append(existing_pdb_ids[i])
+            i += 1
+            j += 1
+        elif existing_pdb_ids[i] < new_pdb_ids[j]:
+            merged_pdb_ids.append(existing_pdb_ids[i])
+            i += 1
+        else:
+            merged_pdb_ids.append(new_pdb_ids[j])
+            j += 1
+
+    # Append remaining items if any list was not exhausted
+    if i < len(existing_pdb_ids):
+        merged_pdb_ids.extend(existing_pdb_ids[i:])
+    if j < len(new_pdb_ids):
+        merged_pdb_ids.extend(new_pdb_ids[j:])
+
+    # Write the merged list back to the file
+    with open(failed_pdb_list_file, 'w') as file:
+        for pdbID in merged_pdb_ids:
+            file.write(f"{pdbID}\n")
+
+def process_window(i, record, fragment_length, evalue_threshold, database, residue_base):
+    rangeStart = i - 1
+    rangeEnd = i + fragment_length - 1
+    logging.debug(f"window position::: {i}")
+    subrange = str(record[rangeStart:rangeEnd].seq)
+    logging.debug(f"fragment subrange::: {subrange}")
+
+    # Use a fixed file name as specified
+    fragment_file_name = 'fragment.fasta'
+    with open(fragment_file_name, 'w') as fragment:
+        fragment.write(subrange)
+
+    # Constructing the PSI-BLAST command
+    exeline = f"psiblast -num_iterations 5 -comp_based_stats 0 -word_size 2 -evalue {evalue_threshold} " \
+              f"-outfmt '6 sseqid qstart qend sstart send qseq sseq length gaps bitscore evalue' -matrix BLOSUM62 -threshold 9 -window_size 0 " \
+              f"-db {database} -query {fragment_file_name}"
+    logging.debug(f"executing::: {exeline}")
+
+    psiblastOut = os.popen(exeline).read().splitlines()
+    if psiblastOut and psiblastOut[-1] == 'Search has CONVERGED!':
+        psiblastOut = psiblastOut[:-2]  # exclude last two lines for the text
+
+    # Process PSI-BLAST output
+    N_blast = len(psiblastOut)
+    logging.debug(f"Number of searched PDBs: {N_blast}, Start position: {rangeStart}")
+
+    # Further process the psiblast output, sort by evalue as an example
+    psilist = []
+    for line in psiblastOut:
+        parts = line.split()
+        evalue = float(parts[10])
+        psilist.append((parts, evalue))
+    
+    psilist.sort(key=lambda x: x[1])  
+
+    result = []
+    for line in psiblastOut:
+        parts = line.split()
+        evalue = float(parts[10])
+        parts[10] = str(evalue)
+        parts.append(str(i))
+        queryStart = int(parts[1]) + rangeStart + residue_base
+        queryEnd = int(parts[2]) + rangeStart + residue_base
+        parts[1] = str(queryStart)
+        parts[2] = str(queryEnd)
+        if parts[8] == '0':  # skip gapped alignments
+            result.append(' '.join(parts))
+    
+    return result
+
+
+def download_pdb(pdbID, pdb_dir, max_retries=5):
+    pdbID_lower = pdbID.lower()
+    filename = f"{pdbID_lower.upper()}.pdb"
+    filepath = Path(pdb_dir) / filename
+
+    if filepath.exists():
+        logging.info(f"File {filename} already exists, skipping download.")
+        return True
+
+    download_url = f"https://files.wwpdb.org/pub/pdb/data/structures/divided/pdb/{pdbID_lower[1:3]}/pdb{pdbID_lower}.ent.gz"
+    temp_gz_path = Path(pdb_dir) / f"{pdbID_lower}.ent.gz"
+
+    retry_count = 0
+    while retry_count < max_retries:
+        try:
+            # Download the file with timeout
+            response = requests.get(download_url, stream=True, timeout=10)
+            response.raise_for_status()  # Check for HTTP errors
+
+            # Write to temporary file
+            with open(temp_gz_path, 'wb') as temp_file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    temp_file.write(chunk)
+
+            # Unzip the file
+            with gzip.open(temp_gz_path, 'rb') as gz_file:
+                with open(filepath, 'wb') as output_file:
+                    output_file.write(gz_file.read())
+
+            logging.info(f"Successfully downloaded and saved {filename} to {filepath}")
+            return True
+
+        except requests.exceptions.HTTPError as e:
+            logging.warning(f"HTTP error on retry {retry_count + 1} for {pdbID}: {e}")
+        except requests.exceptions.ConnectionError as e:
+            logging.warning(f"Connection error on retry {retry_count + 1} for {pdbID}: {e}")
+        except requests.exceptions.Timeout as e:
+            logging.warning(f"Timeout occurred on retry {retry_count + 1} for {pdbID}: {e}")
+        except requests.exceptions.RequestException as e:
+            logging.warning(f"Request error on retry {retry_count + 1} for {pdbID}: {e}")
+        except IOError as e:
+            logging.warning(f"File I/O error on retry {retry_count + 1} for {pdbID}: {e}")
+        except Exception as e:
+            logging.error(f"An unexpected error occurred on retry {retry_count + 1} for {pdbID}: {e}")
+        finally:
+            retry_count += 1
+            if temp_gz_path.exists():
+                temp_gz_path.unlink()
+
+    logging.error(f"Failed to download {filename} after {max_retries} retries.")
+    return None
+
+def download_pdbs(pdb_ids, pdb_dir):
+    failed_pdb = {}
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        future_to_pdb = {executor.submit(download_pdb, pdb_id, pdb_dir): pdb_id for pdb_id in pdb_ids}
+        
+        for future in as_completed(future_to_pdb):
+            pdb_id = future_to_pdb[future]
+            try:
+                result = future.result()
+                if result:
+                    logging.info(f"Download succeeded for {pdb_id}")
+                    failed_pdb[pdb_id] = False
+                else:
+                    logging.info(f"Download failed for {pdb_id}")
+                    failed_pdb[pdb_id] = True
+            except Exception as e:
+                logging.error(f"Error processing {pdb_id}: {str(e)}")
+                failed_pdb[pdb_id] = True
+
+    return failed_pdb
+
+def download_pdb_seqres(pdb_seqres):
+    if not os.path.isfile(pdb_seqres):
+        import urllib
+        logging.warning("pdb_seqres.txt was not found. Attempting download from ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt")
+        url = "ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt"
+        try:
+            urllib.request.urlretrieve(url, pdb_seqres)
+            logging.info(f"Download complete. Saved to {pdb_seqres}")
+            return pdb_seqres
+        except urllib.error.URLError as e:
+            logging.error(f"Error downloading file: {e.reason}")
+        except Exception as e:
+            logging.error(f"An error occurred: {e}")
+        raise FileNotFoundError(f"Failed to download {pdb_seqres}. Make sure it exists in {pdb_seqres} or provide a valid path.")
 
 def create_fragment_memories(database, fasta_file, memories_per_position, brain_damage, fragment_length, 
          pdb_dir, index_dir, frag_lib_dir, failed_pdb_list_file, pdb_seqres,
@@ -54,110 +234,120 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
 
         query = str(record.name)[0:4]
         print('processing sequence:', record.name)
-        match = open('prepFrags.match', 'w')
-        match.write(query + "\n")
+
 
         # FRAGMENT GENERATION LOOP
         iterations = len(record.seq) - fragment_length + \
             1  # number of sliding windows
-        for i in range(1, iterations + 1):  # loop2, run through all sliding windows in a given chain
-            rangeStart = i - 1
-            rangeEnd = i + fragment_length - 1
-            print("window position:::" + str(i))
-            subrange = str(record[rangeStart:rangeEnd].seq)
-            print("fragment subrange:::" + subrange)
-            fragment = open('fragment.fasta', 'w')
-            fragment.write(subrange)
-            fragment.close()  # a temporary file for BLAST
+        # for i in range(1, iterations + 1):  # loop2, run through all sliding windows in a given chain
+        #     rangeStart = i - 1
+        #     rangeEnd = i + fragment_length - 1
+        #     print("window position:::" + str(i))
+        #     subrange = str(record[rangeStart:rangeEnd].seq)
+        #     print("fragment subrange:::" + subrange)
+        #     fragment = open('fragment.fasta', 'w')
+        #     fragment.write(subrange)
+        #     fragment.close()  # a temporary file for BLAST
 
-            # submit PSI-BLAST, run "psiblast -help" for more details of output
-            # format (outfmt)
-            exeline = "psiblast -num_iterations 5 -comp_based_stats 0 -word_size 2 -evalue " + \
-                str(evalue_threshold)
-            #exeline+=" -outfmt '6 sseqid qstart qend sstart send qseq sseq length gaps bitscore evalue' -matrix PAM30 -threshold 9 -window_size 0"
-            exeline += " -outfmt '6 sseqid qstart qend sstart send qseq sseq length gaps bitscore evalue' -matrix BLOSUM62 -threshold 9 -window_size 0"
-            exeline += " -db " + str(database) + " -query fragment.fasta"
-            print("executing:::" + exeline)
+        #     # submit PSI-BLAST, run "psiblast -help" for more details of output
+        #     # format (outfmt)
+        #     exeline = "psiblast -num_iterations 5 -comp_based_stats 0 -word_size 2 -evalue " + \
+        #         str(evalue_threshold)
+        #     #exeline+=" -outfmt '6 sseqid qstart qend sstart send qseq sseq length gaps bitscore evalue' -matrix PAM30 -threshold 9 -window_size 0"
+        #     exeline += " -outfmt '6 sseqid qstart qend sstart send qseq sseq length gaps bitscore evalue' -matrix BLOSUM62 -threshold 9 -window_size 0"
+        #     exeline += " -db " + str(database) + " -query fragment.fasta"
+        #     print("executing:::" + exeline)
 
-            psiblastOut = os.popen(exeline).read()
-            psiblastOut = psiblastOut.splitlines()  # now an array
-            N_blast = len(psiblastOut)
-            # print psiblastOut
-            if psiblastOut[N_blast - 1] == 'Search has CONVERGED!':
-                N_blast = N_blast - 2  # exclude last two lines for the text
+        #     psiblastOut = os.popen(exeline).read()
+        #     psiblastOut = psiblastOut.splitlines()  # now an array
+        #     N_blast = len(psiblastOut)
+        #     # print psiblastOut
+        #     if psiblastOut[N_blast - 1] == 'Search has CONVERGED!':
+        #         N_blast = N_blast - 2  # exclude last two lines for the text
 
-            N_start_new = 1
-            line_count = 0
-            e_score_old = 0
-            pdbID_old = 'BBBBB'   # set initial variables for processing PSI-BLAST output
-            for line in psiblastOut:  # For PSI-BLAST with multiple Iterations, find N_start_new for the starting position of the output alignments of the final round
-                line_count += 1
-                if line_count >= N_blast:
-                    break
-                that = line.split()
-                pdbID = that[0]
-                e_score = float(that[10])
-                if e_score < e_score_old:
-                    N_start_new = line_count
-                if pdbID != pdbID_old:
-                    e_score_old = e_score
-                    pdbID_old = pdbID
-            print("Number of searched PDBs:  ", N_blast, N_start_new)
+        #     N_start_new = 1
+        #     line_count = 0
+        #     e_score_old = 0
+        #     pdbID_old = 'BBBBB'   # set initial variables for processing PSI-BLAST output
+        #     for line in psiblastOut:  # For PSI-BLAST with multiple Iterations, find N_start_new for the starting position of the output alignments of the final round
+        #         line_count += 1
+        #         if line_count >= N_blast:
+        #             break
+        #         that = line.split()
+        #         pdbID = that[0]
+        #         e_score = float(that[10])
+        #         if e_score < e_score_old:
+        #             N_start_new = line_count
+        #         if pdbID != pdbID_old:
+        #             e_score_old = e_score
+        #             pdbID_old = pdbID
+        #     print("Number of searched PDBs:  ", N_blast, N_start_new)
 
-            # convert psiblastOut to a list, sorted by evalue
-            psilist = [None] * (N_blast - N_start_new + 1)
-            line_count = 0
-            kk = 0
-            for line in psiblastOut:
-                line_count += 1
-                if line_count < N_start_new:
-                    continue
-                if line_count > N_blast:
-                    break
-                that = line.split()
-                list_tmp = list()
-                for ii in range(0, 11):  # PSI-BLAST output has 11 columns
-                    if not ii == 10:
-                        list_tmp.append(that[ii])  # column 10 is evalue
-                    else:
-                        list_tmp.append(float(that[ii]))
-                psilist[kk] = list_tmp
-                kk += 1
-                #print(list_tmp)
-            psilist.sort(key=lambda x: x[10])
+        #     # convert psiblastOut to a list, sorted by evalue
+        #     psilist = [None] * (N_blast - N_start_new + 1)
+        #     line_count = 0
+        #     kk = 0
+        #     for line in psiblastOut:
+        #         line_count += 1
+        #         if line_count < N_start_new:
+        #             continue
+        #         if line_count > N_blast:
+        #             break
+        #         that = line.split()
+        #         list_tmp = list()
+        #         for ii in range(0, 11):  # PSI-BLAST output has 11 columns
+        #             if not ii == 10:
+        #                 list_tmp.append(that[ii])  # column 10 is evalue
+        #             else:
+        #                 list_tmp.append(float(that[ii]))
+        #         psilist[kk] = list_tmp
+        #         kk += 1
+        #         #print(list_tmp)
+        #     psilist.sort(key=lambda x: x[10])
 
-            # write output alignments to match file
-            for jj in range(0, N_blast - N_start_new + 1):
-                this = psilist[jj]
-                this[10] = str(this[10])
-                this.append(str(i))
-                queryStart = int(this[1]) + rangeStart + residue_base
-                queryEnd = int(this[2]) + rangeStart + residue_base
-                this[1] = str(queryStart)
-                this[2] = str(queryEnd)
-                out = ' '.join(this)
-                out += '\n'
-                gaps = this[8]
-                if(gaps == '0'):
-                    match.write(out)  # skip gapped alignments
+        #     # write output alignments to match file
+        #     for jj in range(0, N_blast - N_start_new + 1):
+        #         this = psilist[jj]
+        #         this[10] = str(this[10])
+        #         this.append(str(i))
+        #         queryStart = int(this[1]) + rangeStart + residue_base
+        #         queryEnd = int(this[2]) + rangeStart + residue_base
+        #         this[1] = str(queryStart)
+        #         this[2] = str(queryEnd)
+        #         out = ' '.join(this)
+        #         out += '\n'
+        #         gaps = this[8]
+        #         if(gaps == '0'):
+        #             match.write(out)  # skip gapped alignments
+
+        with ThreadPoolExecutor(max_workers=12) as executor:
+            futures = [executor.submit(process_window, i, record, fragment_length, evalue_threshold, database, residue_base) for i in range(1, iterations + 1)]
+            results = [future.result() for future in as_completed(futures)]
+
+        # Writing the results to the match file in the order of execution
+        with open('prepFrags.match', 'w') as match:
+            match.write(query + "\n")
+            for result in results:
+                for line in result:
+                    match.write(line + '\n')
+
+
         # loop2 close
-        match.close()
-        match = open('prepFrags.match', 'r')  # match is read-only now
-
-        # list unique PDB IDs for downloading later
-        matchlines = list()
-        keys = {}
-        for line in match.readlines():
-            matchlines.append(line)
-            entries = line.split()
-            entry = entries[0]
-            if entry[:3] == "pdb":
-                # for example 'pdb|4V12|A'
-                pdbfull = str(entry[4:8]) + str(entry[9:])
-            else:
-                pdbfull = str(entry)
-            keys[pdbfull] = 1
-        unique = list(keys.keys())
+        with open('prepFrags.match', 'r') as match:
+            # list unique PDB IDs for downloading later
+            matchlines = list()
+            keys = {}
+            for line in match.readlines():
+                matchlines.append(line)
+                entries = line.split()
+                entry = entries[0]
+                if entry[:3] == "pdb":
+                    # for example 'pdb|4V12|A'
+                    pdbfull = str(entry[4:8]) + str(entry[9:])
+                else:
+                    pdbfull = str(entry)
+                keys[pdbfull] = 1
+            unique = list(keys.keys())
 
         # pdbparse=PDBParser(PERMISSIVE=1)
 
@@ -166,37 +356,13 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
         fragment = open('fragment.fasta', 'w')
         fragment.write(str(record.seq))
         fragment.close()
-        homo = {}
-        failed_pdb = {}
-        homo_count = {}
-        for pdbfull in unique:
-            pdbID = pdbfull[0:4].lower()
-            pdbIDsecond = pdbfull[1:2].lower()
-            pdbIDthird = pdbfull[2:3].lower()
-            chainID = pdbfull[4:5].lower()
-            failed_pdb[pdbID] = 0
-            homo[pdbID] = 0
-            homo_count[pdbID] = 0
-
-            if pdbID in failed_download_pdb_list:
-                failed_pdb[pdbID] = 1
-                print(":::Cannot build PDB for PDB ID, skipped:" + pdbID.upper())
-                continue
-            # download PDBs if not exist    ##from script 'pdbget' (original author
-            # unknown)
-            if not os.path.isfile(pdb_dir + pdbID.upper() + ".pdb"):
-                exeline = "wget ftp://ftp.wwpdb.org/pub/pdb/data/structures/divided/pdb/"
-                exeline += pdbIDsecond + pdbIDthird + "/pdb" + pdbID + ".ent.gz"
-                os.system(exeline)
-                print(exeline)
-                os.system("nice gunzip pdb" + pdbID + ".ent.gz; mv pdb" +
-                        pdbID + ".ent " + pdb_dir + pdbID.upper() + ".pdb")
-            if not os.path.isfile(pdb_dir + pdbID.upper() + ".pdb"):
-                failed_pdb[pdbID] = 1
-                print(":::Cannot build PDB for PDB ID, failed to download:" + pdbID.upper())
-                os.system(f"echo '{pdbID}' >> {failed_pdb_list_file}")
-
-            # exit()
+        
+        #Download PDBs
+        failed_pdb = {pdb_id[0:4].lower():1 for pdb_id in unique}
+        failed_pdb.update(download_pdbs([pdb_id[0:4].lower() for pdb_id in unique if pdb_id[0:4].lower() not in failed_download_pdb_list], pdb_dir))
+        homo = {pdbID:0 for pdbID in failed_pdb if not failed_pdb[pdbID]}
+        homo_count = {pdbID:0 for pdbID in failed_pdb if not failed_pdb[pdbID]}
+        update_failed_pdb_list(failed_pdb,failed_pdb_list_file)
 
         # blast the whole sequence to identify homologs Evalue 0.005
         exeline = "psiblast -num_iterations 1 -word_size 3 -evalue 0.005"
@@ -254,7 +420,7 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
                 pdbID = pdbfull[0:4].lower()
                 pdbIDsecond = pdbfull[1:2].lower()
                 pdbIDthird = pdbfull[2:3].lower()
-                chainID = pdbfull[4:5].lower()
+                chainID = pdbfull[4:5]
                 groFile = frag_lib_dir + pdbID + chainID + ".gro"
                 groName = pdbID + chainID + ".gro"
                 pdbFile = pdb_dir + pdbID.upper() + ".pdb"
@@ -286,19 +452,6 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
 
                 if not os.path.isfile(indexFile):
                     # generate fasta file
-                    if not os.path.isfile(pdb_seqres):
-                        import urllib
-                        print("Need to download pdb_seqres.txt from PDB!")
-                        print("Downloading pdb_seqres.txt from ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt...")
-                        url = "ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt"
-                        try:
-                            urllib.request.urlretrieve(url, pdb_seqres)
-                            print(f"Download complete. Saved to {pdb_seqres}")
-                        except urllib.error.URLError as e:
-                            print(f"Error downloading file: {e.reason}")
-                        except Exception as e:
-                            print(f"An error occurred: {e}")
-                        print(f"Download complete. Saved to {pdb_seqres}")
                     fastaFile = pdbID + '_' + chainID
                     exeline = "grep -A1 " + fastaFile + " " + pdb_seqres + " > ./tmp.fasta"
                     print("generating fastaFile: ", fastaFile)
@@ -384,8 +537,8 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
 
                 if os.path.isfile(pdbFile):
                     if not os.path.isfile(groFile):
+                        print("converting...... " + pdbFile + " --> " + groFile + " chainID: " + chainID)
                         Pdb2Gro(pdbFile, groFile, chainID)
-                        print("converting...... " + pdbFile + " --> " + groFile)
                     else:
                         print("Exist " + groFile)
                     count[windows_index_str] += 1
@@ -467,6 +620,8 @@ if __name__ == "__main__":
     parser.add_argument("--cutoff_identical", type=int, default=90)
 
     args = parser.parse_args()
+
+    download_pdb_seqres(args.pdb_seqres)
 
     create_fragment_memories(args.database_prefix, args.fasta_file, args.N_mem, args.brain_damage_flag, 
          args.frag_length, args.pdb_dir, args.index_dir, args.frag_lib_dir, args.failed_pdb_list_file, args.pdb_seqres,

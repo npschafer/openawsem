@@ -11,7 +11,6 @@ import logging
 from Bio import BiopythonWarning
 import warnings
 
-
 __location__ = openawsem.__location__
 __author__ = 'Wei Lu, with modifications by the OpenAWSEM contributors'
 
@@ -30,7 +29,7 @@ def parse_arguments():
     parser.add_argument("proteins", nargs="*", help="Provide the names of the proteins (e.g., 1r69) or the target PDB files for the simulation, separated by spaces.")
     parser.add_argument("-c", "--chain", default="-1", help="Specify the chains to be simulated (e.g., 'ABC').")
     parser.add_argument("-d", "--debug", action="store_true", default=False, help="Enable debug mode.")
-    parser.add_argument("-f", "--fragment", action="store_true", default=False, help="Generate fragment memories.")
+    parser.add_argument("-f", "--frag", "--fragment", action="store_true", default=False, help="Generate fragment memories.")
     parser.add_argument("-e","--extended", action="store_true", default=False, help="Start from an extended structure generated using PyMOL (ensure it's installed). Supports single chain only.")
     parser.add_argument("-m","--membrane", action="store_true", default=False, help="Enable membrane protein simulations.")
     parser.add_argument("--hybrid", action="store_true", default=False, help="Enable hybrid simulations.")
@@ -67,6 +66,7 @@ def parse_arguments():
     logging.info("Logging started")
 
     logging.debug(f"Arguments parsed: {args}")
+
     return args
 
 class AWSEMSimulationProject:
@@ -291,7 +291,7 @@ class AWSEMSimulationProject:
         if int(protein_length) == 0:
             seq = openawsem.helperFunctions.read_fasta(f"{self.name}.fasta")
             protein_length = len(seq)
-            logging.warn("Imposing no secondary bias. You might want to install Predict_Property and use the predict_ssweight_from_fasta option.")
+            logging.warning("Imposing no secondary bias. You might want to install Predict_Property and use the predict_ssweight_from_fasta option.")
             with open("ssweight", "w") as out:
                 for i in range(protein_length):
                     out.write("0.0 0.0\n")
@@ -462,7 +462,7 @@ class AWSEMSimulationProject:
                 self.copy_parameters()
 
                 logging.info(f"{project_folder} project folder created")
-                logging.warn("please modify the forces_setup.py if we want to change what energy terms to be used.")
+                logging.warning("Please modify the forces_setup.py if we want to change what energy terms to be used.")
 
 import unittest
 import tempfile

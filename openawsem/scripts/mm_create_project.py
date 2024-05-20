@@ -76,7 +76,7 @@ class AWSEMSimulationProject:
         self.args=args
                 
     def run_command(self, command, stdout=None):
-        logging.debug('Command: '+ ' '.join(command))
+        logging.debug('Command: '+ ' '.join(str(command)))
         subprocess.run(command, check=True, shell=False, stdout=(open(stdout, "w") if stdout else None))
 
     @contextlib.contextmanager

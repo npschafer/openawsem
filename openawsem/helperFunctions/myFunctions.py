@@ -1,11 +1,5 @@
 #!python
 import os
-import sys
-import random
-import time
-from random import seed, randint
-import argparse
-import platform
 from datetime import datetime
 import subprocess
 import glob
@@ -24,6 +18,7 @@ try:
     from openmm.app import PDBFile
 except ModuleNotFoundError:
     from simtk.openmm.app import PDBFile
+import logging
 
 # compute cross Q for every pdb pair in one folder
 # parser = argparse.ArgumentParser(description="Compute cross q")
@@ -120,7 +115,7 @@ def compute_localQ_init(MAX_OFFSET=4, DISTANCE_CUTOFF=9.5):
             elif (res_id==' ' or res_id=='H_MSE' or res_id=='H_M3L' or res_id=='H_CAS') and is_regular_res:
                 native_coords.append(res['CB'].get_coord())
             else:
-                print('ERROR: irregular residue at %s!' % res)
+                logging.error('Irregular residue at %s!' % res)
                 exit()
     native_contacts_table = compute_native_contacts(native_coords, MAX_OFFSET, DISTANCE_CUTOFF)
 
@@ -164,11 +159,9 @@ def readPMF_basic(pre):
             pmf_list = glob.glob(location)
             change = perturbation_table[perturbation].split("_")[-1]
             upOrDown = perturbation_table[perturbation].split("_")[0]
-        # print(location)
         name_list = ["f", "df", "e", "s"]
         names = ["bin", "x"] + name_list
         for location in pmf_list:
-            # print(location)
             temp = re.findall(r'pmf-(\d+)', location)
             if len(temp) != 1:
                 raise ValueError('Not expected to see more than one or none')
@@ -180,7 +173,7 @@ def readPMF_basic(pre):
     return pd.concat(all_pmf_list).dropna().reset_index()
 
 def make_metadata_3(k=1000.0, temps_list=["450"], i=-1, biasLow=None, biasHigh=None):
-    print("make metadata")
+    logging.info("Making metadata file")
     cwd = os.getcwd()
     files = glob.glob(f"../data_{i}/*")
     kconstant = k
@@ -195,7 +188,7 @@ def make_metadata_3(k=1000.0, temps_list=["450"], i=-1, biasLow=None, biasHigh=N
             if biasHigh:
                 if float(bias) > biasHigh:
                     continue
-            # print(tmp)
+            # logging.info(tmp)
             # if int(float(dis)) > 150:
             #     continue
             if t in temps_list:
@@ -231,14 +224,14 @@ def readPMF(pre, is2d=False, force_list=["0.0", "0.1", "0.2"]):
             pmf_list = glob.glob(location)
             change = perturbation_table[perturbation].split("_")[-1]
             upOrDown = perturbation_table[perturbation].split("_")[0]
-        # print(pmf_list)
+        # logging.info(pmf_list)
         name_list = ["f", "df", "e", "s"]
         if is2d:
             names = ["x", "y"] + name_list
         else:
             names = ["bin", "x"] + name_list
         for location in pmf_list:
-            # print(location)
+            # logging.info(location)
             temp = re.findall(r'pmf-(\d+)', location)
             if len(temp) != 1:
                 raise ValueError('Not expected to see more than one or none')
@@ -251,9 +244,9 @@ def readPMF(pre, is2d=False, force_list=["0.0", "0.1", "0.2"]):
 
 def readPMF_2(pre, is2d=0, force_list=["0.0", "0.1", "0.2"]):
     if is2d:
-        print("reading 2d pmfs")
+        logging.info("reading 2d pmfs")
     else:
-        print("reading 1d dis, qw and z")
+        logging.info("reading 1d dis, qw and z")
     if is2d == 1:
         mode_list = ["2d_qw_dis", "2d_z_dis", "2d_z_qw"]
     elif is2d == 2:
@@ -267,13 +260,13 @@ def readPMF_2(pre, is2d=0, force_list=["0.0", "0.1", "0.2"]):
     return pd.concat(all_data_list).dropna().reset_index()
 
 def shrinkage(n=552, shrink_size=6, max_frame=2000, fileName="dump.lammpstrj"):
-    print("Shrinkage: size: {}, max_frame: {}".format(shrink_size, max_frame))
+    logging.info("Shrinkage: size: {}, max_frame: {}".format(shrink_size, max_frame))
     bashCommand = "wc " + fileName
     process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
     line_number = int(output.decode("utf-8").split()[0])
-    print(line_number)
-    print(line_number/552)
+    logging.info(line_number)
+    logging.info(line_number/552)
     # number of atom = 543
     n = 552
     count = 0
@@ -287,18 +280,18 @@ def shrinkage(n=552, shrink_size=6, max_frame=2000, fileName="dump.lammpstrj"):
                     out.write(line)
 
 def compute_theta_for_each_helix(output="angles.csv", dumpName="../dump.lammpstrj.0"):
-    print("This is for 2xov only")
+    logging.info("This is for 2xov only")
     helices_list = [(94,114), (147,168), (171, 192), (200, 217), (226, 241), (250, 269)]
     atoms_all_frames = read_lammps(dumpName)
-    # print(atoms[0])
-    # print(len(atoms), len(atoms[0]))
+    # logging.info(atoms[0])
+    # logging.info(len(atoms), len(atoms[0]))
     # helices_angles_all_frames = []
     with open(output, "w") as out:
         out.write("Frame, Helix, Angle\n")
         for ii, frame in enumerate(atoms_all_frames):
             # helices_angles = []
             for count, (i, j) in enumerate(helices_list):
-                # print(i, j)
+                # logging.info(i, j)
                 i = i-91
                 j = j-91
                 # end - start
@@ -306,7 +299,7 @@ def compute_theta_for_each_helix(output="angles.csv", dumpName="../dump.lammpstr
                 b = np.array([0, 0, 1])
                 angle = a[2]/length(a)  # in form of cos theta
                 # helices_angles.append(angle)
-                # print(angle)
+                # logging.info(angle)
                 out.write("{}, {}, {}\n".format(ii, count+1, angle))
             # helices_angles_all_frames.append(helices_angles)
 
@@ -321,7 +314,7 @@ def check_and_correct_fragment_memory(fragFile="fragsLAMW.mem"):
             for line in f:
                 gro, _, i, n, _ = line.split()
                 delete = False
-                # print(gro, i, n)
+                # logging.info(gro, i, n)
                 # name = gro.split("/")[-1]
                 with open(gro, "r") as one:
                     next(one)
@@ -329,7 +322,7 @@ def check_and_correct_fragment_memory(fragFile="fragsLAMW.mem"):
                     all_residues = []
                     for atom in one:
                         residue, resType, atomType, *_ = atom.split()
-                        # print(residue, resType, atomType)
+                        # logging.info(residue, resType, atomType)
                         if atomType == "CA":
                             all_residues.append(int(residue))
                     all_residues = np.array(all_residues)
@@ -353,10 +346,10 @@ def check_and_correct_fragment_memory(fragFile="fragsLAMW.mem"):
                             # ATOM   1480  C   ALA A 220B      9.944 -19.933  41.692  1.00 30.71           C
                             # ATOM   1481  O   ALA A 220B      9.050 -19.088  41.787  1.00 28.56           O
                             # ATOM   1482  CB  ALA A 220B      9.234 -22.310  41.951  1.00 35.20           C
-                            print("ATTENTION", gro, i, n, "duplicate:",test)
+                            logging.warn("ATTENTION", gro, i, n, "duplicate:",test)
                             delete = True
                         if test not in all_residues:
-                            print("ATTENTION", gro, i, n, "missing:",test)
+                            logging.warn("ATTENTION", gro, i, n, "missing:",test)
                             delete = True
                 if not delete:
                     out.write(line)
@@ -403,7 +396,7 @@ def read_folder(location, match="", **kwargs):
         runFolders = [f for f in runFolders if re.match(r'qbias_[0-9]+', f)]
     else:
         runFolders = [f for f in runFolders if re.match(r'[0-9]+', f)]
-    print(runFolders)
+    logging.info(runFolders)
     data_list = []
     for run in runFolders:
         tmp = read_simulation_2(location+"/simulation/"+run+"/0/", **kwargs).assign(Run=run)
@@ -412,7 +405,7 @@ def read_folder(location, match="", **kwargs):
 
 def read_variable_folder(location, match="*_", **kwargs):
     variables = glob.glob(os.path.join(location, match))
-    print(variables)
+    logging.info(variables)
     data_list = []
     for variableFolder in variables:
         tmp = variableFolder.split("/")[-1]
@@ -423,7 +416,7 @@ def read_variable_folder(location, match="*_", **kwargs):
 
 
 def downloadPdb(pdb_list, membrane_protein=False, location="original_pdbs/"):
-    print("Download from server")
+    logging.info("Download from server")
     os.system(f"mkdir -p {location}")
     for pdb_id in pdb_list:
         pdb = f"{pdb_id.lower()[:4]}"
@@ -447,8 +440,8 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
                 removeDNAchains=True, verbose=False, removeTwoEndsMissingResidues=True, addMissingResidues=True, removeHeterogens=True, keepIds=False):
     os.system(f"mkdir -p {toFolder}")
     for pdb_id in pdb_list:
-        # print(chain)
-        print(pdb_id)
+        # logging.info(chain)
+        logging.info(pdb_id)
         # pdb = f"{pdb_id.lower()[:4]}"
         # pdbFile = pdb+".pdb"
         if formatName:
@@ -464,9 +457,9 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
             fromFile = os.path.join(source, pdbFile)
 
         if verbose:
-            print('Fixing PDB using PDBFixer')
-            print(os.getcwd())
-            print(fromFile)
+            logging.info('Fixing PDB using PDBFixer')
+            logging.info(os.getcwd())
+            logging.info(fromFile)
             
         # clean pdb
         fixer = PDBFixer(filename=fromFile)
@@ -474,16 +467,15 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
         try:
             fixer = PDBFixer(filename=fromFile)
         except Exception as inst:
-            print(inst)
-            print(f"{fromFile} not found. skipped")
+            logging.info(inst)
+            logging.warn(f"{fromFile} not found. skipped")
             continue
         
         if verbose:
-            print('Removing unwanted chains')
+            logging.info('Removing unwanted chains')
         
         # remove unwanted chains
         chains = list(fixer.topology.chains())
-        print(chains)
         if chain is None:  # 'None' means deafult is chain A unless specified.
             if len(pdb_id) >= 5:
                 Chosen_chain = pdb_id[4]
@@ -493,7 +485,7 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
                 Chosen_chain = "A"
         elif chain == "-1" or chain == -1:
             Chosen_chain = getAllChains(fromFile, removeDNAchains=removeDNAchains)
-            print(f"Chains: {Chosen_chain}")
+            logging.info(f"Chains: {Chosen_chain}")
         elif chain == "first":
             Chosen_chain = chains[0].id
         else:
@@ -501,17 +493,14 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
             
         chains_to_remove = [i for i, x in enumerate(chains) if x.id not in Chosen_chain]
         fixer.removeChains(chains_to_remove)
-
-        if verbose:
-            print('Adding Missing residues')
+        logging.info('Adding Missing residues')
         
         fixer.findMissingResidues()
         # add missing residues in the middle of a chain, not ones at the start or end of the chain.
         chains = list(fixer.topology.chains())
         keys = fixer.missingResidues.keys()
-        if verbose:
-            print("chains to remove", chains_to_remove)
-            print("missing residues: ", keys)
+        logging.info(f"chains to remove: {chains_to_remove}")
+        logging.info(f"missing residues: {keys}")
         if not addMissingResidues:
             for key in list(keys):
                 del fixer.missingResidues[key]
@@ -530,7 +519,7 @@ def cleanPdb(pdb_list, chain=None, source=None, toFolder="cleaned_pdbs", formatN
         try:
             fixer.addMissingAtoms()
         except:
-            print("Unable to add missing atoms")
+            logging.warn("Unable to add missing atoms")
             continue
         fixer.addMissingHydrogens(7.0)
         PDBFile.writeFile(fixer.topology, fixer.positions, open(os.path.join(toFolder, pdbFile), 'w'), keepIds=keepIds)
@@ -548,9 +537,9 @@ def getAllChains(pdbFile, removeDNAchains=True):
     rnaResidues = ['A', 'G', 'C', 'U', 'I']
     dnaResidues = ['DA', 'DG', 'DC', 'DT', 'DI']
     for c in chains:
-        print('Processing chain', c.id)
+        logging.info(f'Processing chain: {c.id}')
         if removeDNAchains and np.alltrue([a.name in dnaResidues for a in c.residues()]):
-            print(f"chain {c.id} is a DNA chain. it will be removed")
+            logging.info(f"chain {c.id} is a DNA chain. it will be removed")
             continue
         if c.id in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789':
             a += c.id
@@ -563,7 +552,7 @@ def add_chain_to_pymol_pdb(location):
         with open(location, "r") as f:
             lines = f.readlines()
             if len(lines) < 1:
-                print("your extended.pdb is empty. please check. (a possible cause is that the pymol is not installed)")
+                logging.info("your extended.pdb is empty. please check. (a possible cause is that the pymol is not installed)")
             for line in lines:
                 info = list(line)
                 if len(info) > 21:
@@ -599,7 +588,7 @@ def seq_length_from_pdb(fileLocation, chains):
         chain_name = c.get_id()
         if chain_name in chains:
             seq_len = len(list(c.get_residues()))
-            print(chain_name, seq_len)
+            logging.info(f"Chain {chain_name}: Sequence length {seq_len}")
             data.append((chain_name, chain_start_residue_index, seq_len))
             chain_start_residue_index += seq_len
     return data
@@ -663,13 +652,13 @@ def convert_openMM_to_standard_pdb(fileName="last_frame.pdb", seq_dic=None, back
 #     for l in b:
 #         out = os.system(f"cp {l} {pre}/fraglib/")
 #         if out != 0:
-#             print(f"!!Problem!!, {l}")
+#             logging.info(f"!!Problem!!, {l}")
 
 def relocate(fileLocation="frags.mem", toLocation="fraglib"):
     # location = "/Users/weilu/Research/server/april_2019/iterative_optimization_new_set_with_frag/all_simulations/1fc2/1fc2"
     # fileLocation = location + "/frags.mem"
     # toLocation
-    print(os.getcwd())
+    logging.info(os.getcwd())
     os.system(f"mkdir -p {toLocation}")
     a = pd.read_csv(fileLocation, skiprows=4, sep=" ", names=["location", "i", "j", "sep", "w"])
     b = a["location"].unique()
@@ -677,7 +666,7 @@ def relocate(fileLocation="frags.mem", toLocation="fraglib"):
         cmd = f"cp {l} {toLocation}/"
         out = subprocess.Popen(cmd, shell=True).wait()
         if out != 0:
-            print(f"!!Problem!!, {l}")
+            logging.error(f"!!Problem!!, {l}")
 
 def replace(TARGET, FROM, TO):
     os.system("sed -i.bak 's@{}@{}@g' {}".format(FROM,TO,TARGET))
@@ -725,7 +714,7 @@ def pdbToFasta(pdb, pdbLocation, fastaFile, chains="A"):
 def read_hydrophobicity_scale(seq, tableLocation, isNew=False):
     seq_dataFrame = pd.DataFrame({"oneLetterCode":list(seq)})
     # HFscales = pd.read_table("~/opt/small_script/Whole_residue_HFscales.txt")
-    # print(f"reading hydrophobicity scale table from {tableLocation}/Whole_residue_HFscales.txt")
+    # logging.info(f"reading hydrophobicity scale table from {tableLocation}/Whole_residue_HFscales.txt")
     HFscales = pd.read_csv(f"{tableLocation}/Whole_residue_HFscales.txt", sep="\t")
     if not isNew:
         # Octanol Scale
@@ -748,14 +737,14 @@ def read_hydrophobicity_scale(seq, tableLocation, isNew=False):
     return data
 
 def create_zim(fastaFile, tableLocation, isNew=True):
-    # print("creating zim file for membrane potential")
+    # logging.info("creating zim file for membrane potential")
     seq = ""
     with open(fastaFile, "r") as f:
         for line in f:
             if line[0] == ">":
                 pass
             else:
-                # print(line)
+                # logging.info(line)
                 seq += line.strip()
     data = read_hydrophobicity_scale(seq, tableLocation, isNew=isNew)
     z = data["DGwoct"].values
@@ -768,7 +757,7 @@ def read_fasta(fastaFile):
             if line[0] == ">":
                 pass
             else:
-                # print(line)
+                # logging.info(line)
                 seq += line.strip()
     return seq
 
@@ -787,7 +776,7 @@ def create_extended_pdb_from_fasta(filename, output_file_name="output.pdb"):
         lines = file.readlines()
     # Skip the name line and concatenate sequence lines
     sequence = ''.join(line.strip() for line in lines[1:])
-    print(sequence)
+    logging.info(sequence)
 
     # Define coordinates for the first residue
     coord = np.array([[-1*CA_N, 0, -t*CA_N],  #N

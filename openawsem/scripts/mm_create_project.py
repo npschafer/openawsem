@@ -7,6 +7,9 @@ import pandas as pd
 from pathlib import Path
 import contextlib
 import subprocess
+import logging
+from Bio import BiopythonWarning
+import warnings
 
 
 __location__ = openawsem.__location__
@@ -27,13 +30,13 @@ def parse_arguments():
     parser.add_argument("proteins", nargs="*", help="Provide the names of the proteins (e.g., 1r69) or the target PDB files for the simulation, separated by spaces.")
     parser.add_argument("-c", "--chain", default="-1", help="Specify the chains to be simulated (e.g., 'ABC').")
     parser.add_argument("-d", "--debug", action="store_true", default=False, help="Enable debug mode.")
-    parser.add_argument("--frag", action="store_true", default=False, help="Generate fragment memories.")
-    parser.add_argument("--extended", action="store_true", default=False, help="Start from an extended structure generated using PyMOL (ensure it's installed). Supports single chain only.")
-    parser.add_argument("--membrane", action="store_true", default=False, help="Enable membrane protein simulations.")
+    parser.add_argument("-f", "--fragment", action="store_true", default=False, help="Generate fragment memories.")
+    parser.add_argument("-e","--extended", action="store_true", default=False, help="Start from an extended structure generated using PyMOL (ensure it's installed). Supports single chain only.")
+    parser.add_argument("-m","--membrane", action="store_true", default=False, help="Enable membrane protein simulations.")
     parser.add_argument("--hybrid", action="store_true", default=False, help="Enable hybrid simulations.")
-    parser.add_argument("--verbose", action="store_true", default=False, help="Enable verbose output.")
-    parser.add_argument("--predict_ssweight_from_fasta", action="store_true", default=False, help="Predict secondary structure weight from FASTA sequence.")
-    parser.add_argument("--resetIds", action="store_true", default=False, help="Rewrite chain and residue index. By default, chains will be renamed from 'A' and indices will start from 1.")
+    parser.add_argument("-v", "--verbose", type=int, default=0, const=1, nargs='?', help="Set verbosity level. Default is 0 (no output). Use --verbose to enable info output, and --verbose 2 for debug output.")
+    parser.add_argument("-s","--predict_ssweight_from_fasta", action="store_true", default=False, help="Predict secondary structure weight from FASTA sequence.")
+    parser.add_argument("-i","--resetIds", action="store_true", default=False, help="Rewrite chain and residue index. By default, chains will be renamed from 'A' and indices will start from 1.")
     parser.add_argument("--keepLigands", action="store_true", default=False, help="Preserve ligands in the protein structure.")
     parser.add_argument("--to", default=None, help="Folder to create the project in. Default is the name of the protein")
     parser.add_argument("--test", action="store_true", default=False, help="Tests the current module")
@@ -51,6 +54,19 @@ def parse_arguments():
     # Parse and return the command-line arguments
     args = parser.parse_args()
     args.keepIds = not args.resetIds
+
+    # Set the verbosity level for logging
+    if args.verbose >= 2:
+        logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s' )
+    elif args.verbose == 1:
+        logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+    else:
+        logging.basicConfig(level=logging.ERROR, format='%(levelname)s: %(message)s')
+        warnings.simplefilter('ignore', BiopythonWarning)
+
+    logging.info("Logging started")
+
+    logging.debug(f"Arguments parsed: {args}")
     return args
 
 class AWSEMSimulationProject:
@@ -60,14 +76,12 @@ class AWSEMSimulationProject:
         self.args=args
                 
     def run_command(self, command, stdout=None):
-
-        if self.args.debug:
-            print(' '.join(command))
-        else:
-            subprocess.run(command, check=True, shell=False, stdout=(open(stdout, "w") if stdout else None))
+        logging.debug('Command: '+ ' '.join(command))
+        subprocess.run(command, check=True, shell=False, stdout=(open(stdout, "w") if stdout else None))
 
     @contextlib.contextmanager
     def change_directory(self,path):
+        logging.debug(f"Changing directory to {path}")
         old_path = os.getcwd()
         try:
             os.chdir(path)
@@ -77,6 +91,8 @@ class AWSEMSimulationProject:
 
             
     def log_commandline_args(self, log_file = 'create_project_commandline_args.txt'):
+        logging.debug("Logging commandline arguments")
+        logging.debug(' '.join(sys.argv))
         with open(log_file, 'w') as f:
             f.write(' '.join(sys.argv))
             f.write('\n')
@@ -92,6 +108,7 @@ class AWSEMSimulationProject:
             name (str): Protein name without the file extension.
             pdb (str): PDB filename.
         """
+        logging.info("Creating simulation folder from PDB file.")
         protein_path = Path(self.args.protein)
         parent_folder = Path(parent_folder)
         assert protein_path.exists(), f"The protein path {str(protein_path)} does not exist"
@@ -118,7 +135,7 @@ class AWSEMSimulationProject:
             name (str): Protein name without the file extension.
             pdb (str): PDB filename.
         """
-        print("Creating simulation folder from FASTA file.")
+        logging.info("Creating simulation folder from FASTA file.")
         protein_path = Path(self.args.protein)
         name = protein_path.stem
 
@@ -126,7 +143,7 @@ class AWSEMSimulationProject:
             openawsem.helperFunctions.create_extended_pdb_from_fasta(self.args.protein, output_file_name=f"{name}.pdb")
             openawsem.helperFunctions.add_chain_to_pymol_pdb(f"{name}.pdb")
         except Exception as e:
-            print(f"ERROR: Failed to convert FASTA to PDB. Exception: {e}")
+            logging.error(f"Failed to convert FASTA to PDB. Exception: {e}")
             exit()
 
         original_fasta_dir = Path(parent_folder) / "original_fasta"
@@ -152,15 +169,17 @@ class AWSEMSimulationProject:
             name (str): Protein name without the file extension.
             pdb (str): PDB filename.
         """
+        
         name = self.args.protein
         pdb = f"{name}.pdb"
         pdb_list = [name]
         parent_folder = Path(parent_folder)
         
+        logging.info("Downloading PDB file {pdb}")
         try:
             openawsem.helperFunctions.downloadPdb(pdb_list, location=parent_folder/'original_pdbs')
         except Exception as e:
-            print(f"ERROR: Failed to download PDB file. Exception: {e}")
+            logging.error(f"Failed to download PDB file. Exception: {e}")
             exit()
 
         return name, pdb
@@ -169,10 +188,13 @@ class AWSEMSimulationProject:
         """
         Process the PDB files by cleaning, preparing, and generating additional required files.
         """
+
         removeHeterogens = False if self.args.keepLigands is True else True
         chain = self.args.chain
 
+        
         if not Path("crystal_structure.pdb").exists():
+            logging.info("Creating crystal_structure.pdb file")
             openawsem.helperFunctions.cleanPdb(
                 [self.name],
                 chain=chain,
@@ -183,13 +205,19 @@ class AWSEMSimulationProject:
             )
             cleaned_pdb_path = Path(f"cleaned_pdbs/{self.pdb}")
             shutil.copy(cleaned_pdb_path,"crystal_structure.pdb")
+        else:
+            logging.info("Using existing crystal_structure.pdb file")
 
         if chain == "-1":
+            logging.info("Reading chains info from crystal_structure.pdb")
             chain = openawsem.helperFunctions.getAllChains(
                 "crystal_structure.pdb",
                 removeDNAchains=True
             )
-            print("Chains info read from crystal_structure.pdb, chains to simulate: ", chain)
+            logging.info("Chains info read from crystal_structure.pdb, chains to simulate: ", chain)
+        else:
+            logging.info(f"Selected chains: {chain}")
+
 
         # for compute Q
         input_pdb_filename, cleaned_pdb_filename = openawsem.prepare_pdb(
@@ -199,8 +227,11 @@ class AWSEMSimulationProject:
             keepIds=self.args.keepIds,
             removeHeterogens=removeHeterogens
         )
+        logging.info(f"Created {input_pdb_filename} and {cleaned_pdb_filename} files")
+        
+        logging.info("Ensuring AWSEM atom order")
         openawsem.ensure_atom_order(input_pdb_filename)
-
+        
         self.input_pdb_filename = input_pdb_filename
         self.cleaned_pdb_filename = cleaned_pdb_filename
         
@@ -213,10 +244,15 @@ class AWSEMSimulationProject:
             # self.run_command(["python", f"{__location__}/helperFunctions/fasta2pdb.py", "extended", "-f", f"{self.name}.fasta"])
             # # print("If you has multiple chains, please use other methods to generate the extended structures.")
             # openawsem.helperFunctions.myFunctions.add_chain_to_pymol_pdb("extended.pdb")  # only work for one chain only now
+            logging.info("Creating extended structure using PyMOL")
+            if self.chain != "A":
+                logging.error("Multiple chains detected. Please use other methods to generate the extended structures or fix this function.")
+                exit()
             openawsem.helperFunctions.create_extended_pdb_from_fasta(f"{self.name}.fasta", output_file_name="extended.pdb")
             input_pdb_filename, cleaned_pdb_filename = openawsem.prepare_pdb("extended.pdb", "A", use_cis_proline=False, keepIds=self.args.keepIds, removeHeterogens=removeHeterogens)
             openawsem.ensure_atom_order(input_pdb_filename)
         
+        logging.info(f"Copying crystal_structure-cleaned.pdb to {self.pdb}")
         shutil.copy('crystal_structure-cleaned.pdb',f'{self.pdb}')
         
         if self.args.keepLigands:
@@ -225,7 +261,7 @@ class AWSEMSimulationProject:
             # do(f"grep 'ATOM' {input_pdb_filename} > tmp.pdb")
             # do(f"grep 'HETATM' {cleaned_pdb_filename} >> tmp.pdb")
             # do(f"mv tmp.pdb {input_pdb_filename}")
-
+            logging.info(f"Copying HETATM records from crystal_structure-cleaned.pdb to {self.name}-openmmawsem.pdb")
             shutil.copy("crystal_structure-cleaned.pdb", f"{self.name}-cleaned.pdb")
             with open("tmp.pdb", "w") as output_file:
                 with open("crystal_structure-openmmawsem.pdb", "r") as input_file:
@@ -238,6 +274,7 @@ class AWSEMSimulationProject:
                             output_file.write(line)
             os.rename("tmp.pdb", f"{self.name}-openmmawsem.pdb")
         else:
+            logging.info("Creating openmmawsem.pdb file")
             input_pdb_filename, cleaned_pdb_filename = openawsem.prepare_pdb(self.pdb, self.chain, keepIds=self.args.keepIds, removeHeterogens=removeHeterogens)
             openawsem.ensure_atom_order(input_pdb_filename)
 
@@ -245,18 +282,19 @@ class AWSEMSimulationProject:
         """
         Generate the secondary structure weight file (ssweight) using stride or Predict_Property.
         """
+        logging.info("Generating ssweight from stride")
+        logging.info("stride crystal_structure.pdb")
         self.run_command(["stride", "crystal_structure.pdb"], stdout="ssweight.stride")
+        logging.info(f'python {__location__/"helperFunctions"/"stride2ssweight.py"}')
         self.run_command(["python", __location__/"helperFunctions"/"stride2ssweight.py"], stdout="ssweight")
         protein_length = openawsem.helperFunctions.getFromTerminal("wc ssweight").split()[0]
         if int(protein_length) == 0:
             seq = openawsem.helperFunctions.read_fasta(f"{self.name}.fasta")
             protein_length = len(seq)
-            print("impose no secondary bias.")
-            print("you might want to install Predict_Property and use the predict_ssweight_from_fasta option.")
+            logging.warn("Imposing no secondary bias. You might want to install Predict_Property and use the predict_ssweight_from_fasta option.")
             with open("ssweight", "w") as out:
                 for i in range(protein_length):
                     out.write("0.0 0.0\n")
-        print(f"protein: {self.name}, length: {protein_length}")
 
     def generate_ssweight_from_fasta(self):
 
@@ -267,7 +305,7 @@ class AWSEMSimulationProject:
         from_secondary = f"{self.name}_PROP/{self.name}.ss3"
         toPre = "."
         to_ssweight = f"{toPre}/ssweight"
-        print("convert ssweight")
+        logging.info("Generating ssweight from fasta")
         data = pd.read_csv(from_secondary, comment="#", names=["i", "Res", "ss3", "Helix", "Sheet", "Coil"], sep="\s+")
         with open(to_ssweight, "w") as out:
             for i, line in data.iterrows():
@@ -282,6 +320,7 @@ class AWSEMSimulationProject:
         """
         Prepare the required membrane-related files (zim and zimPosition) if the membrane or hybrid options are specified.
         """
+        logging.info("Preparing membrane files")
         self.run_command(["grep", "-E", "CB|CA  GLY", "crystal_structure-cleaned.pdb"], stdout="cbs.data")
         self.run_command(["awk", "{if($9>15) print \"1\"; else if($9<-15) print \"3\"; else print \"2\"}", "cbs.data"], stdout="zimPosition")
 
@@ -291,6 +330,7 @@ class AWSEMSimulationProject:
         """
         Generate the fragment memory file if the frag option is specified.
         """
+        logging.info("Generating fragment memories")
         if fasta is None:
             fasta = f"{self.name}.fasta"
 
@@ -317,6 +357,7 @@ class AWSEMSimulationProject:
         self.run_command(["cp", "frags.mem", "frag_memory.mem"])
 
     def generate_single_memory(self):
+        logging.info("Generating single memory file")
         for c in self.chain:
             # print(f"convert chain {c} of crystal structure to Gro file")
             self.run_command(["python", f"{__location__}/helperFunctions/Pdb2Gro.py", "crystal_structure-cleaned.pdb", f"{self.name}_{c}.gro", f"{c}"])
@@ -329,10 +370,12 @@ class AWSEMSimulationProject:
                 out.write(f"{self.name}_{chain_name}.gro {chain_start_residue_index} 1 {seq_length} 20\n")   # residue index in Gro always start at 1.
 
     def generate_charges(self):
+        logging.info("Generating charges")
         openawsem.helperFunctions.generate_charge_array(Path(f"{self.name}.fasta"),Path('charge.txt'))
 
     def copy_parameters(self, destination_folder='.'):
         # Copy the files using shutil.copy()
+        logging.info(f"Copying parameters to {destination_folder}")
         shutil.copy(__location__/"parameters"/"burial_gamma.dat", destination_folder)
         shutil.copy(__location__/"parameters"/"gamma.dat", destination_folder)
         shutil.copy(__location__/"parameters"/"membrane_gamma.dat", destination_folder)
@@ -346,6 +389,7 @@ class AWSEMSimulationProject:
         """
         Copy required scripts and files to the current working directory.
         """
+        logging.info(f"Copying scripts to {destination_folder}")
         mm_run_path = __location__ /"scripts"/ "mm_run.py"
         mm_analysis_path = __location__ /"scripts"/ "mm_analyze.py"
         forces_setup_path = __location__ /"scripts"/ "forces_setup.py"
@@ -383,7 +427,7 @@ class AWSEMSimulationProject:
             else:
                 self.name, self.pdb = self.prepare_input_files_from_name(project_folder)
                 
-            print(self.name, self.pdb)
+            logging.info(f"Protein name: {self.name}, PDB file: {self.pdb}")
             
             #Change the directory
             with self.change_directory(project_folder):
@@ -417,8 +461,8 @@ class AWSEMSimulationProject:
                 # Copy required parameters to the current working directory
                 self.copy_parameters()
 
-                print(f"{project_folder} project folder created")
-                print("please modify the forces_setup.py if we want to change what energy terms to be used.")
+                logging.info(f"{project_folder} project folder created")
+                logging.warn("please modify the forces_setup.py if we want to change what energy terms to be used.")
 
 import unittest
 import tempfile
@@ -476,7 +520,7 @@ class TestAWSEMSimulationProject(unittest.TestCase):
         self.project.copy_scripts(destination_folder=self.temp_dir)
         copied_files = ["mm_run.py", "mm_analysis.py", "forces_setup.py"]
         for file in copied_files:
-            print(self.project.base_folder/file)
+            logging.info(self.project.base_folder/file)
             self.assertTrue((self.temp_dir/file).exists())
 
     def test_run_command(self):

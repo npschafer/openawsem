@@ -123,7 +123,7 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
                         list_tmp.append(float(that[ii]))
                 psilist[kk] = list_tmp
                 kk += 1
-                print(list_tmp)
+                #print(list_tmp)
             psilist.sort(key=lambda x: x[10])
 
             # write output alignments to match file

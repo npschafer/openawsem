@@ -205,7 +205,7 @@ def create_index_files(iter, line, N_mem, brain_damage,count, failed_pdb,homo, h
         entries = line.split()
         windows_index_str = entries[11]
         if count[windows_index_str] >= N_mem:
-            return None
+            return out, out1, Missing_pdb, Missing_count
         # pdbfull = str(entries[0])
         entry = entries[0]
         if entry[:3] == "pdb":
@@ -482,7 +482,7 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
         Missing_count=0
 
         with ThreadPoolExecutor(max_workers=12) as executor:
-            futures = [executor.submit(create_index_files(iter, line, N_mem, brain_damage,count, failed_pdb,homo, homo_count, weight, frag_lib_dir, pdb_dir, index_dir, pdb_seqres)) for iter,line in enumerate(matchlines)]
+            futures = [executor.submit(create_index_files,iter, line, N_mem, brain_damage,count, failed_pdb,homo, homo_count, weight, frag_lib_dir, pdb_dir, index_dir, pdb_seqres) for iter,line in enumerate(matchlines)]
             results = [future.result() for future in as_completed(futures)]
 
         # Writing the results to the match file in the order of execution

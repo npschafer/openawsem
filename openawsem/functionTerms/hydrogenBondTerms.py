@@ -162,7 +162,8 @@ def get_Lambda_3(i, j, p_par, p_anti, p_antihb, p_antinhb, p_parhb, a):
     Lambda = get_lambda_by_index(i, j, 2)
     Lambda += -get_alpha_by_index(i, j, 3)*p_parhb[a[i+1], a[j]][0]
     Lambda += -get_alpha_by_index(i, j, 4)*p_par[a[i+1]]
-    Lambda += -get_alpha_by_index(i, j, 3)*p_par[a[j]]
+    # Lambda += -get_alpha_by_index(i, j, 3)*p_par[a[j]]
+    Lambda += -get_alpha_by_index(i, j, 4)*p_par[a[j]] # Fix typo for https://github.com/npschafer/openawsem/issues/19
     return Lambda
 
 

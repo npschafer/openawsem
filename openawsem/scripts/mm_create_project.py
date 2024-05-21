@@ -76,7 +76,7 @@ class AWSEMSimulationProject:
         self.args=args
                 
     def run_command(self, command, stdout=None):
-        logging.debug('Command: '+ ' '.join(str(command)))
+        logging.debug('Command: '+ str(command))
         subprocess.run(command, check=True, shell=False, stdout=(open(stdout, "w") if stdout else None))
 
     @contextlib.contextmanager
@@ -93,7 +93,7 @@ class AWSEMSimulationProject:
     def log_commandline_args(self, log_file = 'create_project_commandline_args.txt'):
         logging.debug("Logging commandline arguments")
         logging.debug(' '.join(sys.argv))
-        with open(log_file, 'w') as f:
+        with open(log_file, 'a') as f:
             f.write(' '.join(sys.argv))
             f.write('\n')
 

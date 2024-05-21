@@ -68,7 +68,7 @@ def process_window(i, record, fragment_length, evalue_threshold, database, resid
         # Constructing the PSI-BLAST command
         exeline = f"psiblast -num_iterations 5 -comp_based_stats 0 -word_size 2 -evalue {evalue_threshold} " \
                 f"-outfmt '6 sseqid qstart qend sstart send qseq sseq length gaps bitscore evalue' -matrix BLOSUM62 -threshold 9 -window_size 0 " \
-                f"-db {database} -query {fragment_file_name}"
+                f"-db {database} -query {temp_fragment_file.name}"
         logging.debug(f"executing::: {exeline}")
 
         psiblastOut = os.popen(exeline).read().splitlines()
@@ -180,7 +180,9 @@ def download_pdbs(pdb_ids, pdb_dir):
     return failed_pdb
 
 def download_pdb_seqres(pdb_seqres):
-    if not os.path.isfile(pdb_seqres):
+    logging.debug(f"Checking if {pdb_seqres} exists")
+    pdb_seqres=Path(pdb_seqres)
+    if not pdb_seqres.exists():
         import urllib
         logging.warning("pdb_seqres.txt was not found. Attempting download from ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt")
         url = "ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt"
@@ -198,6 +200,9 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
          pdb_dir, index_dir, frag_lib_dir, failed_pdb_list_file, pdb_seqres,
          weight, evalue_threshold, cutoff_identical):
         # set up directories
+    
+    download_pdb_seqres(pdb_seqres)
+
     pdb_dir.mkdir(exist_ok=True)
     index_dir.mkdir(exist_ok=True)
     frag_lib_dir.mkdir(exist_ok=True)
@@ -624,8 +629,6 @@ if __name__ == "__main__":
     parser.add_argument("--cutoff_identical", type=int, default=90)
 
     args = parser.parse_args()
-
-    download_pdb_seqres(args.pdb_seqres)
 
     create_fragment_memories(args.database_prefix, args.fasta_file, args.N_mem, args.brain_damage_flag, 
          args.frag_length, args.pdb_dir, args.index_dir, args.frag_lib_dir, args.failed_pdb_list_file, args.pdb_seqres,

@@ -4,7 +4,6 @@ import sys
 import os
 from .IndexPdb import *
 from .Pdb2GroLib import *
-from Bio import SeqIO
 import subprocess
 import argparse
 from pathlib import Path
@@ -12,6 +11,8 @@ import logging
 import requests
 import gzip
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import tempfile
+import pandas as pd
 
 
 def update_failed_pdb_list(failed_pdb, failed_pdb_list_file):
@@ -58,17 +59,20 @@ def process_window(i, record, fragment_length, evalue_threshold, database, resid
     logging.debug(f"fragment subrange::: {subrange}")
 
     # Use a fixed file name as specified
-    fragment_file_name = 'fragment.fasta'
-    with open(fragment_file_name, 'w') as fragment:
-        fragment.write(subrange)
 
-    # Constructing the PSI-BLAST command
-    exeline = f"psiblast -num_iterations 5 -comp_based_stats 0 -word_size 2 -evalue {evalue_threshold} " \
-              f"-outfmt '6 sseqid qstart qend sstart send qseq sseq length gaps bitscore evalue' -matrix BLOSUM62 -threshold 9 -window_size 0 " \
-              f"-db {database} -query {fragment_file_name}"
-    logging.debug(f"executing::: {exeline}")
+    with tempfile.NamedTemporaryFile(mode='w', delete=True) as temp_fragment_file:
+        temp_fragment_file.write(">query\n")
+        temp_fragment_file.write(subrange)
+        temp_fragment_file.flush()
+        
+        # Constructing the PSI-BLAST command
+        exeline = f"psiblast -num_iterations 5 -comp_based_stats 0 -word_size 2 -evalue {evalue_threshold} " \
+                f"-outfmt '6 sseqid qstart qend sstart send qseq sseq length gaps bitscore evalue' -matrix BLOSUM62 -threshold 9 -window_size 0 " \
+                f"-db {database} -query {fragment_file_name}"
+        logging.debug(f"executing::: {exeline}")
 
-    psiblastOut = os.popen(exeline).read().splitlines()
+        psiblastOut = os.popen(exeline).read().splitlines()
+    
     if psiblastOut and psiblastOut[-1] == 'Search has CONVERGED!':
         psiblastOut = psiblastOut[:-2]  # exclude last two lines for the text
 

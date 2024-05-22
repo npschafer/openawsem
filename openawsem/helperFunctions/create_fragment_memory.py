@@ -12,7 +12,6 @@ import requests
 import gzip
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import tempfile
-import pandas as pd
 
 
 def update_failed_pdb_list(failed_pdb, failed_pdb_list_file):

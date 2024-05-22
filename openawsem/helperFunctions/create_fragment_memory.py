@@ -75,31 +75,64 @@ def process_window(i, record, fragment_length, evalue_threshold, database, resid
     if psiblastOut and psiblastOut[-1] == 'Search has CONVERGED!':
         psiblastOut = psiblastOut[:-2]  # exclude last two lines for the text
 
-    # Process PSI-BLAST output
+    # Filter last iteration. 
+    # If there are multiple iterations, it can be catched if the e_score decreases and the pdbID changes
     N_blast = len(psiblastOut)
-    logging.debug(f"Number of searched PDBs: {N_blast}, Start position: {rangeStart}")
-
-    # Further process the psiblast output, sort by evalue as an example
-    psilist = []
-    for line in psiblastOut:
-        parts = line.split()
-        evalue = float(parts[10])
-        psilist.append((parts, evalue))
+    N_start_new = 1
+    line_count = 0
+    e_score_old = 0
+    pdbID_old = 'BBBBB'   # set initial variables for processing PSI-BLAST output
+    for line in psiblastOut:  # For PSI-BLAST with multiple Iterations, find N_start_new for the starting position of the output alignments of the final round
+        line_count += 1
+        if line_count >= N_blast:
+            break
+        that = line.split()
+        pdbID = that[0]
+        e_score = float(that[10])
+        if e_score < e_score_old:
+            N_start_new = line_count
+        if pdbID != pdbID_old:
+            e_score_old = e_score
+            pdbID_old = pdbID
+    logging.debug(f"Number of searched PDBs: {N_blast - N_start_new + 1}")
     
-    psilist.sort(key=lambda x: x[1])  
+    # Convert psiblastOut to a list, sorted by evalue
+    psilist = [None] * (N_blast - N_start_new + 1)
+    line_count = 0
+    kk = 0
+    for line in psiblastOut:
+        line_count += 1
+        if line_count < N_start_new:
+            continue
+        if line_count > N_blast:
+            break
+        that = line.split()
+        list_tmp = list()
+        for ii in range(0, 11):  # PSI-BLAST output has 11 columns
+            if not ii == 10:
+                list_tmp.append(that[ii])  # column 10 is evalue
+            else:
+                list_tmp.append(float(that[ii]))
+        psilist[kk] = list_tmp
+        kk += 1
+        logging.debug(list_tmp[:20])
+    psilist.sort(key=lambda x: x[10])
+
 
     result = []
-    for line in psiblastOut:
-        parts = line.split()
-        evalue = float(parts[10])
-        parts[10] = str(evalue)
-        parts.append(str(i))
-        queryStart = int(parts[1]) + rangeStart + residue_base
-        queryEnd = int(parts[2]) + rangeStart + residue_base
-        parts[1] = str(queryStart)
-        parts[2] = str(queryEnd)
-        if parts[8] == '0':  # skip gapped alignments
-            result.append(' '.join(parts))
+    # write output alignments to match file
+    for jj in range(0, N_blast - N_start_new + 1):
+        this = psilist[jj]
+        this[10] = str(this[10])
+        this.append(str(i))
+        queryStart = int(this[1]) + rangeStart + residue_base
+        queryEnd = int(this[2]) + rangeStart + residue_base
+        this[1] = str(queryStart)
+        this[2] = str(queryEnd)
+        out = ' '.join(this)
+        gaps = this[8]
+        if(gaps == '0'):
+            result+=[out]  # skip gapped alignments
     
     return result
 
@@ -399,9 +432,15 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
             1  # number of sliding windows
 
         with ThreadPoolExecutor(max_workers=12) as executor:
-            futures = [executor.submit(process_window, i, record, fragment_length, evalue_threshold, database, residue_base) for i in range(1, iterations + 1)]
-            results = [future.result() for future in as_completed(futures)]
-
+            futures={}
+            for i in range(1, iterations + 1):
+                future = executor.submit(process_window, i, record, fragment_length, evalue_threshold, database, residue_base)
+                futures[future] = i-1
+            results = [None] * len(futures)
+            for future in as_completed(futures):
+                i = futures[future]
+                results[i] = future.result()
+            
         # Writing the results to the match file in the order of execution
         with open('prepFrags.match', 'w') as match:
             match.write(query + "\n")
@@ -481,9 +520,15 @@ def create_fragment_memories(database, fasta_file, memories_per_position, brain_
         Missing_count=0
 
         with ThreadPoolExecutor(max_workers=12) as executor:
-            futures = [executor.submit(create_index_files,iter, line, N_mem, brain_damage,count, failed_pdb,homo, homo_count, weight, frag_lib_dir, pdb_dir, index_dir, pdb_seqres) for iter,line in enumerate(matchlines)]
-            results = [future.result() for future in as_completed(futures)]
-
+            futures={}
+            for iter,line in enumerate(matchlines):
+                future = executor.submit(create_index_files,iter, line, N_mem, brain_damage,count, failed_pdb,homo, homo_count, weight, frag_lib_dir, pdb_dir, index_dir, pdb_seqres)
+                futures[future] = iter
+            results = [None] * len(futures)
+            for future in as_completed(futures):
+                i = futures[future]
+                results[i] = future.result()
+            
         # Writing the results to the match file in the order of execution
         with open('frags.mem', 'w') as LAMWmatch, open('log.mem', 'w') as log_match:
             LAMWmatch.write('[Target]' + "\n")

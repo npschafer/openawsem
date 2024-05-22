@@ -17,6 +17,7 @@ class DataPath:
 
         # Override with custom paths if available
         if custom_config_path.exists():
+            print('Using Custom config file')
             config.read(custom_config_path)
             for data_type in config['Data Paths']:
                 custom_path = Path(config.get('Data Paths', data_type))

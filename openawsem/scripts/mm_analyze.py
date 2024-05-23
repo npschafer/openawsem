@@ -164,7 +164,7 @@ def analyze(args):
             out.write(line+"\n")
         #         print(forceGroupTable[term], state.getPotentialEnergy().value_in_unit(kilocalories_per_mole))
 
-def main():
+def main(args=None):
     parser = argparse.ArgumentParser(
         description="The goal of this python3 code is to automatically create \
         the project template as fast as possible. Written by Wei Lu."
@@ -182,7 +182,10 @@ def main():
     parser.add_argument("--fromOpenMMPDB", action="store_true", default=False)
     parser.add_argument("--fasta", type=str, default="crystal_structure.fasta")
     parser.add_argument("--includeLigands", action="store_true", default=False)
-    args = parser.parse_args()
+    if args is None:
+        args = parser.parse_args()
+    else:
+        args = parser.parse_args(args)
 
     with open('analysis_commandline_args.txt', 'a') as f:
         f.write(' '.join(sys.argv))

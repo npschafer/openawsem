@@ -14,61 +14,6 @@ import warnings
 __location__ = openawsem.__location__
 __author__ = 'Wei Lu, with modifications by the OpenAWSEM contributors'
 
-def parse_arguments():
-    """
-    This function defines and parses command-line arguments for a protein simulation project template creation script.
-    It uses the argparse module to define the expected arguments and their corresponding help messages.
-    """
-    
-    # Create an argument parser with a description for the script
-    parser = argparse.ArgumentParser(
-        description=f"This Python 3 script automatically creates a protein simulation project template quickly and efficiently. Written by {__author__}"
-    )
-
-    # Define the expected arguments and their help messages
-    parser.add_argument("proteins", nargs="*", help="Provide the names of the proteins (e.g., 1r69) or the target PDB files for the simulation, separated by spaces.")
-    parser.add_argument("-c", "--chain", default="-1", help="Specify the chains to be simulated (e.g., 'ABC').")
-    parser.add_argument("-d", "--debug", action="store_true", default=False, help="Enable debug mode.")
-    parser.add_argument("-f", "--frag", "--fragment", action="store_true", default=False, help="Generate fragment memories.")
-    parser.add_argument("-e","--extended", action="store_true", default=False, help="Start from an extended structure generated using PyMOL (ensure it's installed). Supports single chain only.")
-    parser.add_argument("-m","--membrane", action="store_true", default=False, help="Enable membrane protein simulations.")
-    parser.add_argument("--hybrid", action="store_true", default=False, help="Enable hybrid simulations.")
-    parser.add_argument("-v", "--verbose", type=int, default=0, const=1, nargs='?', help="Set verbosity level. Default is 0 (no output). Use --verbose to enable info output, and --verbose 2 for debug output.")
-    parser.add_argument("-s","--predict_ssweight_from_fasta", action="store_true", default=False, help="Predict secondary structure weight from FASTA sequence.")
-    parser.add_argument("-i","--resetIds", action="store_true", default=False, help="Rewrite chain and residue index. By default, chains will be renamed from 'A' and indices will start from 1.")
-    parser.add_argument("--keepLigands", action="store_true", default=False, help="Preserve ligands in the protein structure.")
-    parser.add_argument("--to", default=None, help="Folder to create the project in. Default is the name of the protein")
-    parser.add_argument("--test", action="store_true", default=False, help="Tests the current module")
-
-      # Create a subparser for frag-related arguments
-    frag_parser = parser.add_argument_group("frag", "Arguments for fragment memory generation. Only used if --frag is specified")
-    frag_parser.add_argument("--frag_database", default=openawsem.data_path.blast, help="Specify the database for fragment generation.")
-    frag_parser.add_argument("--frag_fasta", default=None, help="Provide the FASTA file for fragment generation.")
-    frag_parser.add_argument("--frag_N_mem", type=int, default=20, help="Number of memories to generate per fragment.")
-    frag_parser.add_argument("--frag_brain_damage", type=float, choices=[0, 0.5, 1, 2], default=0, help="Control the inclusion or exclusion of homologous protein structures for generating fragment memories.\n 0: Homologs allowed; include all hits\n 0.5: Self-only; Include only homologs with >90%% similarity\n 1: Homologs excluded; Exclude all homologs (any similarity percent)\n 2: Homologs only; Include only homologous structures (except >90%% similarity)")
-    frag_parser.add_argument("--frag_fragmentLength", type=int, default=9, help="Length of the fragments to be generated.")
-    frag_parser.add_argument("--frag_cutoff_identical", type=int, default=90, help="Identity cutoff for self-structures")
-
-
-    # Parse and return the command-line arguments
-    args = parser.parse_args()
-    args.keepIds = not args.resetIds
-
-    # Set the verbosity level for logging
-    if args.verbose >= 2:
-        logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s' )
-    elif args.verbose == 1:
-        logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    else:
-        logging.basicConfig(level=logging.ERROR, format='%(levelname)s: %(message)s')
-        warnings.simplefilter('ignore', BiopythonWarning)
-
-    logging.info("Logging started")
-
-    logging.debug(f"Arguments parsed: {args}")
-
-    return args
-
 class AWSEMSimulationProject:
     def __init__(self,args):
         self.data_path=__location__
@@ -528,8 +473,58 @@ class TestAWSEMSimulationProject(unittest.TestCase):
             self.project.run_command(["ls", "non_existent_file"])
     
 
-def main():
-    args = parse_arguments()
+def main(args=None):
+    # Create an argument parser with a description for the script
+    parser = argparse.ArgumentParser(
+        description=f"This Python 3 script automatically creates a protein simulation project template quickly and efficiently. Written by {__author__}"
+    )
+
+    # Define the expected arguments and their help messages
+    parser.add_argument("proteins", nargs="*", help="Provide the names of the proteins (e.g., 1r69) or the target PDB files for the simulation, separated by spaces.")
+    parser.add_argument("-c", "--chain", default="-1", help="Specify the chains to be simulated (e.g., 'ABC').")
+    parser.add_argument("-d", "--debug", action="store_true", default=False, help="Enable debug mode.")
+    parser.add_argument("-f", "--frag", "--fragment", action="store_true", default=False, help="Generate fragment memories.")
+    parser.add_argument("-e","--extended", action="store_true", default=False, help="Start from an extended structure generated using PyMOL (ensure it's installed). Supports single chain only.")
+    parser.add_argument("-m","--membrane", action="store_true", default=False, help="Enable membrane protein simulations.")
+    parser.add_argument("--hybrid", action="store_true", default=False, help="Enable hybrid simulations.")
+    parser.add_argument("-v", "--verbose", type=int, default=0, const=1, nargs='?', help="Set verbosity level. Default is 0 (no output). Use --verbose to enable info output, and --verbose 2 for debug output.")
+    parser.add_argument("-s","--predict_ssweight_from_fasta", action="store_true", default=False, help="Predict secondary structure weight from FASTA sequence.")
+    parser.add_argument("-i","--resetIds", action="store_true", default=False, help="Rewrite chain and residue index. By default, chains will be renamed from 'A' and indices will start from 1.")
+    parser.add_argument("--keepLigands", action="store_true", default=False, help="Preserve ligands in the protein structure.")
+    parser.add_argument("--to", default=None, help="Folder to create the project in. Default is the name of the protein")
+    parser.add_argument("--test", action="store_true", default=False, help="Tests the current module")
+
+      # Create a subparser for frag-related arguments
+    frag_parser = parser.add_argument_group("frag", "Arguments for fragment memory generation. Only used if --frag is specified")
+    frag_parser.add_argument("--frag_database", default=openawsem.data_path.blast, help="Specify the database for fragment generation.")
+    frag_parser.add_argument("--frag_fasta", default=None, help="Provide the FASTA file for fragment generation.")
+    frag_parser.add_argument("--frag_N_mem", type=int, default=20, help="Number of memories to generate per fragment.")
+    frag_parser.add_argument("--frag_brain_damage", type=float, choices=[0, 0.5, 1, 2], default=0, help="Control the inclusion or exclusion of homologous protein structures for generating fragment memories.\n 0: Homologs allowed; include all hits\n 0.5: Self-only; Include only homologs with >90%% similarity\n 1: Homologs excluded; Exclude all homologs (any similarity percent)\n 2: Homologs only; Include only homologous structures (except >90%% similarity)")
+    frag_parser.add_argument("--frag_fragmentLength", type=int, default=9, help="Length of the fragments to be generated.")
+    frag_parser.add_argument("--frag_cutoff_identical", type=int, default=90, help="Identity cutoff for self-structures")
+
+
+    # Parse and return the command-line arguments
+    if args is None:
+        args = parser.parse_args()
+    else:
+        args = parser.parse_args(args)
+
+    args.keepIds = not args.resetIds
+
+    # Set the verbosity level for logging
+    if args.verbose >= 2:
+        logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s' )
+    elif args.verbose == 1:
+        logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+    else:
+        logging.basicConfig(level=logging.ERROR, format='%(levelname)s: %(message)s')
+        warnings.simplefilter('ignore', BiopythonWarning)
+
+    logging.info("Logging started")
+
+    logging.debug(f"Arguments parsed: {args}")
+
     if args.test:
         unittest.main(argv=['first-arg-is-program-name'], exit=False) 
         exit()

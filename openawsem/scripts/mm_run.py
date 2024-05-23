@@ -200,12 +200,9 @@ def run(args):
         additional_cmd = ""
     os.system(f"{sys.executable} mm_analyze.py {args.protein} -t {os.path.join(toPath, 'movie.dcd')} --subMode {args.subMode} -f {args.forces} {analysis_fasta} {additional_cmd} -c {chain}")
 
-def main():
-    # from run_parameter import *
+def main(args=None):
     parser = argparse.ArgumentParser(
-        description="This is a python3 script to\
-        automatic copy the template file, \
-        run simulations")
+        description="This is a python3 script to automatically copy the template file and run simulations")
 
     parser.add_argument("protein", help="The name of the protein")
     parser.add_argument("--name", default="simulation", help="Name of the simulation")
@@ -231,8 +228,11 @@ def main():
     parser.add_argument("--includeLigands", action="store_true", default=False)
     parser.add_argument('--device',default=0, help='OpenCL/CUDA device index')
     parser.add_argument('--removeCMMotionRemover', action="store_true", default=False, help='Removes CMMotionRemover. Recommended for periodic boundary conditions and membrane simulations')
-    args = parser.parse_args()
-
+    
+    if args is None:
+        args = parser.parse_args()
+    else:
+        args = parser.parse_args(args)
 
     with open('commandline_args.txt', 'a') as f:
         f.write(' '.join(sys.argv))

@@ -114,7 +114,7 @@ def parseConfigTable(config_section):
         elif len(a) > 3 and a[:3] == 'row':
             data += [readData(config_section, a)]
         else:
-            logging.warn(f'Unexpected row {readData(config_section, a)}')
+            logging.warning(f'Unexpected row {readData(config_section, a)}')
     return pd.DataFrame(data, columns=columns)
 
 
@@ -486,11 +486,14 @@ def prepare_virtual_sites_v2(pdb_file, use_cis_proline=False):
             continue
         res_index = int(res_index)
 
-        r_im = model[chain][max(res_index-1,1)]
+        try:
+            r_im = model[chain][res_index-1]
+        except KeyError:
+            r_im = model[chain][res_index] # won't be used
         r_i = model[chain][res_index]
         try:
             r_ip = model[chain][res_index+1]
-        except:
+        except KeyError:
             r_ip = model[chain][res_index]  # won't be used
         if use_cis_proline and res_type == "IPR":
             n_coord = -0.2094*r_im['CA'].get_coord()+ 0.6908*r_i['CA'].get_coord() + 0.5190*r_im['O'].get_coord()

@@ -1,0 +1,22 @@
+{
+  "version": "1.2",
+  "dbname": "cullpdb_pc80.0_res0.0-3.0_len40-10000_R0.3_Xray_d2024_03_18_chains41719.fasta",
+  "dbtype": "Protein",
+  "db-version": 5,
+  "description": "cullpdb_pc80.0_res0.0-3.0_len40-10000_R0.3_Xray_d2024_03_18_chains41719.fasta",
+  "number-of-letters": 11528067,
+  "number-of-sequences": 41719,
+  "last-updated": "2024-05-01T18:47:00",
+  "number-of-volumes": 1,
+  "bytes-total": 21325612,
+  "bytes-to-cache": 11903771,
+  "files": [
+    "cullpdb_pc80.0_res0.0-3.0_len40-10000_R0.3_Xray_d2024_03_18_chains41719.fasta.pdb",
+    "cullpdb_pc80.0_res0.0-3.0_len40-10000_R0.3_Xray_d2024_03_18_chains41719.fasta.phr",
+    "cullpdb_pc80.0_res0.0-3.0_len40-10000_R0.3_Xray_d2024_03_18_chains41719.fasta.pin",
+    "cullpdb_pc80.0_res0.0-3.0_len40-10000_R0.3_Xray_d2024_03_18_chains41719.fasta.pot",
+    "cullpdb_pc80.0_res0.0-3.0_len40-10000_R0.3_Xray_d2024_03_18_chains41719.fasta.psq",
+    "cullpdb_pc80.0_res0.0-3.0_len40-10000_R0.3_Xray_d2024_03_18_chains41719.fasta.ptf",
+    "cullpdb_pc80.0_res0.0-3.0_len40-10000_R0.3_Xray_d2024_03_18_chains41719.fasta.pto"
+  ]
+}

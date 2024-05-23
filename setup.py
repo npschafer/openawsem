@@ -54,6 +54,7 @@ setup(
                       'mdtraj',],              
     entry_points={
     'console_scripts': [
+        'awsem': 'openawsem.scripts.awsem:main',
         'awsem_create = openawsem.scripts.mm_create_project:main',
         'awsem_run = openawsem.scripts.mm_run:main',
         'awsem_analyze = openawsem.scripts.mm_analyze:main',

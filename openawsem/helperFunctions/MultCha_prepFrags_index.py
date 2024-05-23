@@ -201,7 +201,7 @@ for record in SeqIO.parse(handle, "fasta"):
         pdbID = pdbfull[0:4].lower()
         pdbIDsecond = pdbfull[1:2].lower()
         pdbIDthird = pdbfull[2:3].lower()
-        chainID = pdbfull[4:5].lower()
+        chainID = pdbfull[4:5]
         failed_pdb[pdbID] = 0
         homo[pdbID] = 0
         homo_count[pdbID] = 0
@@ -282,7 +282,7 @@ for record in SeqIO.parse(handle, "fasta"):
             pdbID = pdbfull[0:4].lower()
             pdbIDsecond = pdbfull[1:2].lower()
             pdbIDthird = pdbfull[2:3].lower()
-            chainID = pdbfull[4:5].lower()
+            chainID = pdbfull[4:5]
             groFile = fLibDir + pdbID + chainID + ".gro"
             groName = pdbID + chainID + ".gro"
             pdbFile = pdbDir + pdbID.upper() + ".pdb"

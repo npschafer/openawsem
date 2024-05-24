@@ -101,9 +101,19 @@ def create_staggered_fasta(fasta_path,frags_path, parent_dir, copy_path=None, ou
             gro = pd.read_csv(gro_file, skiprows=2, delim_whitespace=True, names=['ResID', 'resName', 'name', 'serial', 'x', 'y', 'z'])
             #If not in the three_to_one dictionary, replace with 'X'
             #strange_aminoacids+= [aa for aa in gro['resName'].unique() if aa not in three_to_one.keys()]
-            fragment = ''.join(gro[(gro['name'] == 'CA') & (gro['ResID'] >= mem.mem_init) & (gro['ResID'] < (mem.mem_init + mem.length))]['resName'].map(three_to_one).fillna('X'))
+            sel=gro[(gro['name'] == 'CA') & (gro['ResID'] >= mem.mem_init) & (gro['ResID'] < (mem.mem_init + mem.length))]
+            fragment = ''.join(sel['resName'].map(three_to_one).fillna('X'))
             if len(fragment) != mem.length:
                 print(f"Fragment length mismatch for fragment {fragment} in {mem.Gro}: {len(fragment)} != {mem.length}\n{mem}")
+                present_resids = set(sel['ResID'])
+                expected_resids = set(range(mem.mem_init, mem.mem_init + mem.length))
+                missing_resids = expected_resids - present_resids
+                extra_resids = present_resids - expected_resids
+                if extra_resids:
+                    print(f"Extra ResIDs: {sorted(extra_resids)}")
+                if missing_resids:
+                    print(f"Missing ResIDs: {sorted(missing_resids)}")
+
             sequence = '-'*(mem.seq_init-1) + fragment + '-'*(len(complete_sequence) - mem.length - mem.seq_init)
             aligned_fragments.write(f">{Path(mem.Gro).stem}\n{sequence}\n")
         #if strange_aminoacids:

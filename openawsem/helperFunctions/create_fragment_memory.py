@@ -142,7 +142,7 @@ def download_pdb(pdbID, pdb_dir, max_retries=5):
     filename = f"{pdbID_lower.upper()}.pdb"
     filepath = Path(pdb_dir) / filename
 
-    if filepath.exists():
+    if filepath.exists() and filepath.stat().st_size > 0:
         logging.info(f"File {filename} already exists, skipping download.")
         return True
 

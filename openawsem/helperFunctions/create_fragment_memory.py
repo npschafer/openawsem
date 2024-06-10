@@ -593,7 +593,7 @@ if __name__ == "__main__":
     parser.add_argument("fasta_file", type=Path)
     parser.add_argument("--memories_per_position", type=int, default=20)
     parser.add_argument("--brain_damage_flag", type=float, default=1)
-    parser.add_argument("--frag_length", type=int, default = 9)
+    parser.add_argument("--frag_length", type=int, default = 10)
     parser.add_argument("--pdb_dir", type=Path, default=Path("PDBs"))
     parser.add_argument("--index_dir", type=Path, default=Path("Indices"))
     parser.add_argument("--frag_lib_dir", type=Path, default=Path("Gros"))

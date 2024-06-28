@@ -7,7 +7,7 @@ except ModuleNotFoundError:
     from simtk.openmm.app import *
     from simtk.openmm import *
     from simtk.unit import *
-from sys import stdout
+import sys
 from pdbfixer import *
 import mdtraj as md
 from Bio.PDB.Polypeptide import *
@@ -114,7 +114,7 @@ def parseConfigTable(config_section):
         elif len(a) > 3 and a[:3] == 'row':
             data += [readData(config_section, a)]
         else:
-            print(f'Unexpected row {readData(config_section, a)}')
+            logging.warning(f'Unexpected row {readData(config_section, a)}')
     return pd.DataFrame(data, columns=columns)
 
 
@@ -358,6 +358,9 @@ def identify_terminal_residues(pdb_filename):
             terminal_residues[chain.id] = (residues[0].id[1], residues[-1].id[1])
         return terminal_residues
 
+def line_number():
+    return sys._getframe(1).f_lineno
+
 def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False, keepIds=False, removeHeterogens=True):
     # for more information about PDB Fixer, see:
     # http://htmlpreview.github.io/?https://raw.github.com/pandegroup/pdbfixer/master/Manual.html
@@ -371,27 +374,27 @@ def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False, keepIds
     chains = list(fixer.topology.chains())
     chains_to_remove = [i for i, x in enumerate(chains) if x.id not in chains_to_simulate]
     fixer.removeChains(chains_to_remove)
-
+    
     #Identify Missing Residues
     fixer.findMissingResidues()
     fixer.missingResidues = {}
-
+    
     #Replace Nonstandard Residues
     fixer.findNonstandardResidues()
     fixer.replaceNonstandardResidues()
-
+    
     #Remove Heterogens
     if removeHeterogens:
         fixer.removeHeterogens(keepWater=False)
-
+    
     #Add Missing Heavy Atoms
     fixer.findMissingAtoms()
     fixer.addMissingAtoms()
-
+    
     #Add Missing Hydrogens
     fixer.addMissingHydrogens(7.0)
     PDBFile.writeFile(fixer.topology, fixer.positions, open(cleaned_pdb_filename, 'w'), keepIds=keepIds)
-
+    
     #Read sequence
     structure = PDBParser().get_structure('X', cleaned_pdb_filename)
 
@@ -483,11 +486,14 @@ def prepare_virtual_sites_v2(pdb_file, use_cis_proline=False):
             continue
         res_index = int(res_index)
 
-        r_im = model[chain][max(res_index-1,1)]
+        try:
+            r_im = model[chain][res_index-1]
+        except KeyError:
+            r_im = model[chain][res_index] # won't be used
         r_i = model[chain][res_index]
         try:
             r_ip = model[chain][res_index+1]
-        except:
+        except KeyError:
             r_ip = model[chain][res_index]  # won't be used
         if use_cis_proline and res_type == "IPR":
             n_coord = -0.2094*r_im['CA'].get_coord()+ 0.6908*r_i['CA'].get_coord() + 0.5190*r_im['O'].get_coord()
@@ -771,7 +777,7 @@ def getSeq(input_pdb_filename, chains='A', writeFastaFile=False, fromPdb=False, 
         if writeFastaFile:
             with open(fastaFile, "w") as out:
                 for chain in chains:
-                    out.write(f">{pdb.upper()}:{chain.upper()}\n")
+                    out.write(f">{pdb.upper()}:{chain}\n")
                     c = m[chain]
                     chain_seq = ""
                     for residue in c:

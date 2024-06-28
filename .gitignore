@@ -62,7 +62,8 @@ Indices
 Gros/*
 pdb_seqres.txt
 notExistPDBsList
-*.gro
+openawsem/data/Gros/*
+
 examples/*
 scratch
 jupyter

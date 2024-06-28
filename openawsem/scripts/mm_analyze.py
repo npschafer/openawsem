@@ -26,7 +26,7 @@ def analyze(args):
     setupFolderPath = os.path.dirname(args.protein)
     setupFolderPath = "." if setupFolderPath == "" else setupFolderPath
     proteinName = pdb_id = os.path.basename(args.protein)
-    chain=args.chain.upper()
+    chain=args.chain
     pdb = f"{pdb_id}.pdb"
 
     trajectoryPath = os.path.abspath(args.trajectory)
@@ -120,7 +120,7 @@ def analyze(args):
     # forceGroupTable = {"Con":11, "Chain":12, "Chi":13, "Excluded":14, "Rama":15, "Direct":16,
     #                    "Burial":17, "Mediated":18, "Contact":18, "Fragment":19, "Membrane":20, "ER":21,"TBM_Q":22, "beta_1":23, "Total":list(range(11, 26)),
     #                    "Water":[16, 18], "beta":[23, 24, 25], "Q":1}
-    showValue = ["Q", "Rg"]
+    showValue = ["Q", "Qc", "Rg"]
     # term in showEnergy will assume to take on the energy unit of kilojoule_per_mole, it will be shown in unit of kilocalories_per_mole(divided by 4.184) 
     # term in showValue will not be converted.
     showEnergy = ["Backbone", "Rama", "Contact", "Fragment", "Membrane", "ER", "TBM_Q", "Beta", "Pap", "Helical", "Debye_huckel","Total"]
@@ -164,7 +164,7 @@ def analyze(args):
             out.write(line+"\n")
         #         print(forceGroupTable[term], state.getPotentialEnergy().value_in_unit(kilocalories_per_mole))
 
-def main():
+def main(args=None):
     parser = argparse.ArgumentParser(
         description="The goal of this python3 code is to automatically create \
         the project template as fast as possible. Written by Wei Lu."
@@ -182,7 +182,10 @@ def main():
     parser.add_argument("--fromOpenMMPDB", action="store_true", default=False)
     parser.add_argument("--fasta", type=str, default="crystal_structure.fasta")
     parser.add_argument("--includeLigands", action="store_true", default=False)
-    args = parser.parse_args()
+    if args is None:
+        args = parser.parse_args()
+    else:
+        args = parser.parse_args(args)
 
     with open('analysis_commandline_args.txt', 'a') as f:
         f.write(' '.join(sys.argv))

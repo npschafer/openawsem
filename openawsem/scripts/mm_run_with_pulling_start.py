@@ -82,7 +82,7 @@ os.chdir(setupFolderPath)
 
 
 
-# chain=args.chain.upper()
+# chain=args.chain
 chain=args.chain
 pdb = f"{pdb_id}.pdb"
 

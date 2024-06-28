@@ -1,24 +1,15 @@
 #!/usr/bin/env python3
 import os
 import sys
-import random
 import time
-from random import seed, randint
 import argparse
-import platform
-from datetime import datetime
-from time import sleep
-import fileinput
 import importlib.util
 
 from openawsem import *
 from openawsem.helperFunctions.myFunctions import *
 
-# simulation_platform = "CPU"  # OpenCL, CUDA, CPU, or Reference
-# simulation_platform = "OpenCL"
 do = os.system
 cd = os.chdir
-
 
 def run(args):
     simulation_platform = args.platform
@@ -27,12 +18,16 @@ def run(args):
         if args.thread != -1:
             platform.setPropertyDefaultValue("Threads", str(args.thread))
         print(f"{simulation_platform}: {platform.getPropertyDefaultValue('Threads')} threads")
+    elif simulation_platform=="OpenCL":
+        platform.setPropertyDefaultValue('OpenCLPlatformIndex', '0')
+        platform.setPropertyDefaultValue('DeviceIndex', str(args.device))
+    elif simulation_platform=="CUDA":
+        platform.setPropertyDefaultValue('DeviceIndex', str(args.device))
 
     # if mm_run.py is not at the same location of your setup folder.
     setupFolderPath = os.path.dirname(args.protein)
     setupFolderPath = "." if setupFolderPath == "" else setupFolderPath
     proteinName = pdb_id = os.path.basename(args.protein)
-
 
     pwd = os.getcwd()
     toPath = os.path.abspath(args.to)
@@ -43,7 +38,7 @@ def run(args):
 
 
 
-    # chain=args.chain.upper()
+    # chain=args.chain
     chain=args.chain
     pdb = f"{pdb_id}.pdb"
 
@@ -109,6 +104,9 @@ def run(args):
     myForces = forces.set_up_forces(oa, submode=args.subMode, contactParameterLocation=parametersLocation)
     # print(forces)
     # oa.addForces(myForces)
+
+    if args.removeCMMotionRemover:
+        oa.system.removeForce(0)
     oa.addForcesWithDefaultForceGroup(myForces)
 
     if args.fromCheckPoint:
@@ -144,7 +142,7 @@ def run(args):
 
 
     print("reporter_frequency", reporter_frequency)
-    simulation.reporters.append(StateDataReporter(stdout, reporter_frequency, step=True, potentialEnergy=True, temperature=True))  # output energy and temperature during simulation
+    simulation.reporters.append(StateDataReporter(sys.stdout, reporter_frequency, step=True, potentialEnergy=True, temperature=True))  # output energy and temperature during simulation
     simulation.reporters.append(StateDataReporter(os.path.join(toPath, "output.log"), reporter_frequency, step=True, potentialEnergy=True, temperature=True)) # output energy and temperature to a file
     simulation.reporters.append(PDBReporter(os.path.join(toPath, "movie.pdb"), reportInterval=reporter_frequency))  # output PDBs of simulated structures
     simulation.reporters.append(DCDReporter(os.path.join(toPath, "movie.dcd"), reportInterval=reporter_frequency, append=True))  # output PDBs of simulated structures
@@ -202,19 +200,16 @@ def run(args):
         additional_cmd = ""
     os.system(f"{sys.executable} mm_analyze.py {args.protein} -t {os.path.join(toPath, 'movie.dcd')} --subMode {args.subMode} -f {args.forces} {analysis_fasta} {additional_cmd} -c {chain}")
 
-def main():
-    # from run_parameter import *
+def main(args=None):
     parser = argparse.ArgumentParser(
-        description="This is a python3 script to\
-        automatic copy the template file, \
-        run simulations")
+        description="This is a python3 script to automatically copy the template file and run simulations")
 
     parser.add_argument("protein", help="The name of the protein")
     parser.add_argument("--name", default="simulation", help="Name of the simulation")
     parser.add_argument("--to", default="./", help="location of movie file")
     parser.add_argument("-c", "--chain", type=str, default="-1")
     parser.add_argument("-t", "--thread", type=int, default=-1, help="default is using all that is available")
-    parser.add_argument("-p", "--platform", type=str, default="OpenCL")
+    parser.add_argument("-p", "--platform", type=str, default="OpenCL", choices=["OpenCL", "CPU", "HIP", "Reference", "CUDA"], help="Platform to run the simulation.")
     parser.add_argument("-s", "--steps", type=float, default=2e4, help="step size, default 1e5")
     parser.add_argument("--tempStart", type=float, default=800, help="Starting temperature")
     parser.add_argument("--tempEnd", type=float, default=200, help="Ending temperature")
@@ -231,8 +226,13 @@ def main():
     parser.add_argument("--fasta", type=str, default="crystal_structure.fasta")
     parser.add_argument("--timeStep", type=int, default=2)
     parser.add_argument("--includeLigands", action="store_true", default=False)
-    args = parser.parse_args()
-
+    parser.add_argument('--device',default=0, help='OpenCL/CUDA device index')
+    parser.add_argument('--removeCMMotionRemover', action="store_true", default=False, help='Removes CMMotionRemover. Recommended for periodic boundary conditions and membrane simulations')
+    
+    if args is None:
+        args = parser.parse_args()
+    else:
+        args = parser.parse_args(args)
 
     with open('commandline_args.txt', 'a') as f:
         f.write(' '.join(sys.argv))

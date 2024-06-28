@@ -41,7 +41,7 @@ def inWhichChain(residueId, chain_ends):
 
 
 def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=False, membrane_center=0*angstrom, k_relative_mem=1.0, periodic=False, parametersLocation=None, burialPartOn=True, withExclusion=False, forceGroup=22,
-                gammaName="gamma.dat", burialGammaName="burial_gamma.dat", membraneGammaName="membrane_gamma.dat", r_min=0.45):
+                gammaName="gamma.dat", burialGammaName="burial_gamma.dat", membraneGammaName="membrane_gamma.dat", r_min=0.45,min_sequence_separation=10,min_sequence_separation_mem=10):
     if parametersLocation is None:
         parametersLocation=openawsem.data_path.parameters
     if isinstance(k_contact, float) or isinstance(k_contact, int):
@@ -62,8 +62,8 @@ def contact_term(oa, k_contact=4.184, z_dependent=False, z_m=1.5, inMembrane=Fal
     eta = 50  # eta actually has unit of nm^-1.
     eta_sigma = 7.0
     rho_0 = 2.6
-    min_sequence_separation = 10  # means j-i > 9
-    min_sequence_separation_mem = 10
+    #min_sequence_separation = 10  # means j-i > 9 we address this by passing in parameter
+    #min_sequence_separation_mem = 10
     nwell = 2
     eta_switching = 10
     gamma_ijm = np.zeros((nwell, 20, 20))

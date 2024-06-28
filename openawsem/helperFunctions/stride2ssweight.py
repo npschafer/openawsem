@@ -12,10 +12,12 @@
 
 f = open('ssweight.stride', 'r')
 
+empty_flag = True
 for line in f:
     if not line.strip():
         continue
     else:
+        empty_flag = False
         line=line.split()
         if line[0] == 'ASG':
             if line[6] == 'Strand':
@@ -26,3 +28,6 @@ for line in f:
 
             else:
                 print('0.0 0.0')
+
+if empty_flag:
+    raise IOError('ssweight.stride file was empty due to no hydrogen bonds in starting structure. Are you starting from extended structure? If so, use --predict_ssweight_from_fasta')

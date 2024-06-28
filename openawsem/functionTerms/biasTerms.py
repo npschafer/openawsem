@@ -55,7 +55,8 @@ def read_reference_structure_for_q_calculation_3(oa, pdb_file, reference_chain_n
                     structure_interaction = [i_index, j_index, [gamma_ij, r_ijN, sigma_ij]]
                     structure_interactions.append(structure_interaction)
     # print("Done reading")
-    # print(structure_interactions)
+    #print(structure_interactions)
+    #print(len(structure_interactions))
     return structure_interactions
 
 def read_reference_structure_for_qc_calculation(oa, pdb_file, min_seq_sep=3, a=0.1, startResidueIndex=0, endResidueIndex=-1, residueIndexGroup=None):
@@ -107,6 +108,7 @@ def q_value(oa, reference_pdb_file, reference_chain_name="ALL", min_seq_sep=3, m
     # create bond force for q calculation
     normalization = len(structure_interactions)
     qvalue = CustomBondForce(f"(1/{normalization})*gamma_ij*exp(-(r-r_ijN)^2/(2*sigma_ij^2))")
+    #qvalue = CustomBondForce(f"r")
     qvalue.addPerBondParameter("gamma_ij")
     qvalue.addPerBondParameter("r_ijN")
     qvalue.addPerBondParameter("sigma_ij")

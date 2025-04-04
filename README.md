@@ -40,7 +40,8 @@ Download and install STRIDE and add it to your PATH:
 https://webclu.bio.wzw.tum.de/stride/
 ```bash
 wget https://webclu.bio.wzw.tum.de/stride/stride.tar.gz
-tar -xvzf stride.tar.gz
+mkdir stride
+tar -xvzf stride.tar.gz --directory stride
 cd stride
 make
 echo 'export PATH=$PATH:'`pwd` >> ~/.bashrc

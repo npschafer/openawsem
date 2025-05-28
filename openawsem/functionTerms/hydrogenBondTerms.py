@@ -10,10 +10,10 @@ import numpy as np
 from pathlib import Path
 import openawsem
 
-se_map_1_letter = {'A': 0,  'P': 1,  'K': 2,  'N': 3,  'R': 4,
-                   'F': 5,  'D': 6,  'Q': 7,  'E': 8,  'G': 9,
-                   'I': 10, 'H': 11, 'L': 12, 'C': 13, 'M': 14,
-                   'S': 15, 'T': 16, 'Y': 17, 'V': 18, 'W': 19}
+se_map_1_letter = {'A': 0,  'R': 1,  'N': 2,  'D': 3,  'C': 4,
+                   'Q': 5,  'E': 6,  'G': 7,  'H': 8,  'I': 9,
+                   'L': 10, 'K': 11, 'M': 12, 'F': 13, 'P': 14,
+                   'S': 15, 'T': 16, 'W': 17, 'Y': 18, 'V': 19}
 
 def isChainStart(residueId, chain_starts, n=2):
     # return true if residue is near chain starts.

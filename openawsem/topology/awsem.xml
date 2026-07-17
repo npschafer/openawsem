@@ -3,10 +3,10 @@
 <AtomTypes>
  <Type name="N" class="N" element="N" mass="0"/>
  <Type name="H" class="H" element="H" mass="0"/>
- <Type name="CA" class="CA" element="C" mass="12"/>
+ <Type name="CA" class="CA" element="C" mass="27"/>
  <Type name="C" class="C" element="C" mass="0"/>
- <Type name="O" class="O" element="O" mass="16"/>
- <Type name="CB" class="CB" element="B" mass="12"/>
+ <Type name="O" class="O" element="O" mass="28"/>
+ <Type name="CB" class="CB" element="B" mass="60"/>
 
 </AtomTypes>
 

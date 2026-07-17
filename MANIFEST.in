@@ -2,3 +2,6 @@ include openawsem/parameters/*
 recursive-include openawsem/topology *.xml
 include openawsem/data/database/*
 include openawsem/config.ini
+include CODE_OF_CONDUCT.md
+global-exclude *.py[cod] __pycache__ *.so
+

@@ -1,0 +1,1 @@
+/home/fc36/miniforge3/envs/openawsem310/bin/awsem_create 1brs.pdb --to openawsem_setup

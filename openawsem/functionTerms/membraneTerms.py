@@ -19,7 +19,7 @@ def membrane_term(oa, k=1*kilocalorie_per_mole, k_m=20, z_m=1.5, membrane_center
     k_membrane = k * oa.k_awsem
 
     # 02082024 Rebekah Added --- End
-    if oa.periodic:
+    if oa.periodic_box:
         membrane = CustomExternalForce(f"k_membrane * hydrophobicityScale *"
                                        f"( 0.5*tanh({k_m}*(z_periodic + {z_m})) + 0.5*tanh({k_m}*({z_m} - z_periodic)) )"
                                        f";z_periodic=periodicdistance(0,0,z,0,0,{membrane_center})")

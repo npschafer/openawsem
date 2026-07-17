@@ -7,7 +7,7 @@ except ModuleNotFoundError:
     from simtk.openmm.app import *
     from simtk.openmm import *
     from simtk.unit import *
-from sys import stdout
+import sys
 from pdbfixer import *
 import mdtraj as md
 from Bio.PDB.Polypeptide import *
@@ -114,7 +114,7 @@ def parseConfigTable(config_section):
         elif len(a) > 3 and a[:3] == 'row':
             data += [readData(config_section, a)]
         else:
-            print(f'Unexpected row {readData(config_section, a)}')
+            logging.warning(f'Unexpected row {readData(config_section, a)}')
     return pd.DataFrame(data, columns=columns)
 
 
@@ -320,6 +320,30 @@ class Protein(object):
         with open(seq_file, 'w+') as ps:
             ps.write(''.join(protein_sequence_one))
 
+    def corrected_resid(self, gap=100):
+        """Return per-atom residue IDs with a guaranteed gap between chains.
+
+        Inserts `gap` unused indices between consecutive chains so that
+        cross-chain residue pairs always satisfy abs(resId1-resId2) > gap.
+        
+        Args:
+            oa: OpenAWSEM system object.
+            gap (int): Number of indices to leave between chains (must exceed
+                the largest sequence-separation threshold used in energy
+                expressions, i.e. gap > 5 for excl_term).
+
+        Returns:
+            np.ndarray[int]: Adjusted residue ID per atom (length oa.natoms).
+                Non-protein atoms (oa.resi == -1) are returned as -1.
+
+        Raises:
+            ValueError: If residues within any chain are not contiguous.
+        """
+        resi = np.array(self.resi)
+        for start in self.chain_starts[1:][::-1]:
+            resi += gap * (resi >= start)
+        return resi
+
 def addNonBondedExclusions(oa, force):
     cb_fixed = [x if x > 0 else y for x, y in zip(oa.cb, oa.ca)]
     none_cb_fixed = [i for i in range(oa.natoms) if i not in cb_fixed]
@@ -341,12 +365,6 @@ def addNonBondedExclusions(oa, force):
             force.addExclusion(e1, e2)
 
 
-se_map_3_letter = {'ALA': 0,  'PRO': 1,  'LYS': 2,  'ASN': 3,  'ARG': 4,
-                   'PHE': 5,  'ASP': 6,  'GLN': 7,  'GLU': 8,  'GLY': 9,
-                   'ILE': 10, 'HIS': 11, 'LEU': 12, 'CYS': 13, 'MET': 14,
-                   'SER': 15, 'THR': 16, 'TYR': 17, 'VAL': 18, 'TRP': 19}
-
-
 def identify_terminal_residues(pdb_filename):
     # identify terminal residues
     parser = PDBParser()
@@ -357,6 +375,9 @@ def identify_terminal_residues(pdb_filename):
             residues = list(chain.get_residues())
             terminal_residues[chain.id] = (residues[0].id[1], residues[-1].id[1])
         return terminal_residues
+
+def line_number():
+    return sys._getframe(1).f_lineno
 
 def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False, keepIds=False, removeHeterogens=True):
     # for more information about PDB Fixer, see:
@@ -371,27 +392,27 @@ def prepare_pdb(pdb_filename, chains_to_simulate, use_cis_proline=False, keepIds
     chains = list(fixer.topology.chains())
     chains_to_remove = [i for i, x in enumerate(chains) if x.id not in chains_to_simulate]
     fixer.removeChains(chains_to_remove)
-
+    
     #Identify Missing Residues
     fixer.findMissingResidues()
     fixer.missingResidues = {}
-
+    
     #Replace Nonstandard Residues
     fixer.findNonstandardResidues()
     fixer.replaceNonstandardResidues()
-
+    
     #Remove Heterogens
     if removeHeterogens:
         fixer.removeHeterogens(keepWater=False)
-
+    
     #Add Missing Heavy Atoms
     fixer.findMissingAtoms()
     fixer.addMissingAtoms()
-
+    
     #Add Missing Hydrogens
     fixer.addMissingHydrogens(7.0)
     PDBFile.writeFile(fixer.topology, fixer.positions, open(cleaned_pdb_filename, 'w'), keepIds=keepIds)
-
+    
     #Read sequence
     structure = PDBParser().get_structure('X', cleaned_pdb_filename)
 
@@ -483,11 +504,14 @@ def prepare_virtual_sites_v2(pdb_file, use_cis_proline=False):
             continue
         res_index = int(res_index)
 
-        r_im = model[chain][max(res_index-1,1)]
+        try:
+            r_im = model[chain][res_index-1]
+        except KeyError:
+            r_im = model[chain][res_index] # won't be used
         r_i = model[chain][res_index]
         try:
             r_ip = model[chain][res_index+1]
-        except:
+        except KeyError:
             r_ip = model[chain][res_index]  # won't be used
         if use_cis_proline and res_type == "IPR":
             n_coord = -0.2094*r_im['CA'].get_coord()+ 0.6908*r_i['CA'].get_coord() + 0.5190*r_im['O'].get_coord()
@@ -643,9 +667,6 @@ def ensure_atom_order(input_pdb_filename, quiet=1):
                 out.write(a[1])
     os.system(f"mv tmp.pdb {input_pdb_filename}")
 
-
-
-
 def get_chain_starts_and_ends(all_res):
     chain_starts = []
     chain_ends = []
@@ -771,7 +792,7 @@ def getSeq(input_pdb_filename, chains='A', writeFastaFile=False, fromPdb=False, 
         if writeFastaFile:
             with open(fastaFile, "w") as out:
                 for chain in chains:
-                    out.write(f">{pdb.upper()}:{chain.upper()}\n")
+                    out.write(f">{pdb.upper()}:{chain}\n")
                     c = m[chain]
                     chain_seq = ""
                     for residue in c:
@@ -813,11 +834,21 @@ def download(pdb_id):
         os.rename("pdb%s.ent" % pdb_id, f"{pdb_id}.pdb")
 
 class OpenMMAWSEMSystem:
-    def __init__(self, pdb_filename, chains='A', xml_filename=xml, k_awsem=1.0, seqFromPdb=None, includeLigands=False, periodic=False):
+    def __init__(self, pdb_filename, chains='A', xml_filename=xml, k_awsem=1.0, seqFromPdb=None, includeLigands=False, 
+                 periodic_box=None, fixed_residue_indices=[]):
         # read PDB
         self.pdb = PDBFile(str(pdb_filename))
         self.forcefield = ForceField(str(xml_filename))
-        self.periodic = periodic
+        self.periodic_box = periodic_box 
+        self.fixed_residue_indices = fixed_residue_indices
+        if self.fixed_residue_indices:
+            self.fixed_atom_indices = []
+            for residue in self.pdb.topology.residues():
+                if residue.index in self.fixed_residue_indices:
+                    for atom in residue.atoms():
+                        self.fixed_atom_indices.append(atom.index)
+        else:
+            self.fixed_atom_indices = []
         if not includeLigands:
             self.system = self.forcefield.createSystem(self.pdb.topology)
             # define convenience variables
@@ -879,7 +910,12 @@ class OpenMMAWSEMSystem:
             self.natoms = self.pdb.topology.getNumAtoms()
             self.resi = [x.residue.index if x in protein_atom_list else -1 for x in atom_list]
             self.atom_lists,self.res_type=build_lists_of_atoms_2(self.nres, self.residues, protein_atom_list)
-
+        if self.periodic_box:
+            self.system.setDefaultPeriodicBoxVectors(Vec3(self.periodic_box[0],0,0),
+                                                     Vec3(0,self.periodic_box[1],0),
+                                                     Vec3(0,0,self.periodic_box[2]))
+        for atom_index in self.fixed_atom_indices:
+            self.system.setParticleMass(atom_index,0)
 
         # print(self.atom_lists,self.res_type)
         self.n =self.atom_lists['n']
@@ -922,6 +958,31 @@ class OpenMMAWSEMSystem:
     def addForcesWithDefaultForceGroup(self, forces):
         for i, (force) in enumerate(forces):
             self.addForce(force)
+
+    def corrected_resid(self, gap=100):
+        """Return per-atom residue IDs with a guaranteed gap between chains.
+
+        Inserts `gap` unused indices between consecutive chains so that
+        cross-chain residue pairs always satisfy abs(resId1-resId2) > gap.
+        
+        Args:
+            oa: OpenAWSEM system object.
+            gap (int): Number of indices to leave between chains (must exceed
+                the largest sequence-separation threshold used in energy
+                expressions, i.e. gap > 5 for excl_term).
+
+        Returns:
+            np.ndarray[int]: Adjusted residue ID per atom (length oa.natoms).
+                Non-protein atoms (oa.resi == -1) are returned as -1.
+
+        Raises:
+            ValueError: If residues within any chain are not contiguous.
+        """
+        resi = np.array(self.resi)
+        for start in self.chain_starts[1:][::-1]:
+            resi += gap * (resi >= start)
+        return resi
+
 
 
 

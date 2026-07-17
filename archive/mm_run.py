@@ -60,7 +60,7 @@ if simulation_platform == "CPU":
     print(f"{simulation_platform}: {platform.getPropertyDefaultValue('Threads')} threads")
 
 proteinName = pdb_id = args.protein
-chain=args.chain.upper()
+chain=args.chain
 pdb = f"{pdb_id}.pdb"
 
 

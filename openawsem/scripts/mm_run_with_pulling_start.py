@@ -19,8 +19,8 @@ except KeyError:
     print("Please set the environment variable name OPENAWSEM_LOCATION.\n Example: export OPENAWSEM_LOCATION='YOUR_OPENAWSEM_LOCATION'")
     exit()
 
-from openmmawsem import *
-from helperFunctions.myFunctions import *
+from openawsem import *
+from openawsem.helperFunctions.myFunctions import *
 
 # from run_parameter import *
 parser = argparse.ArgumentParser(
@@ -82,7 +82,7 @@ os.chdir(setupFolderPath)
 
 
 
-# chain=args.chain.upper()
+# chain=args.chain
 chain=args.chain
 pdb = f"{pdb_id}.pdb"
 

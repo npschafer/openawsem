@@ -19,6 +19,14 @@ three_to_one = {'ALA':'A', 'ARG':'R', 'ASN':'N', 'ASP':'D', 'CYS':'C',
                 'LEU':'L', 'LYS':'K', 'MET':'M', 'PHE':'F', 'PRO':'P',
                 'SER':'S', 'THR':'T', 'TRP':'W', 'TYR':'Y', 'VAL':'V'}
 
+def find_chain_index(res: int, chain_starts, chain_ends) -> int:
+    """
+    Find the index of the chain that contains the residue with index `res`.
+    """
+
+    chain_index = [int(chain_start<=res and res<=chain_end) for chain_start,chain_end in zip(chain_starts,chain_ends)]
+    assert sum(chain_index) == 1, f"res: {res}, chain_starts: {chain_starts}, chain_ends: {chain_ends}, list: {chain_index}"
+    return chain_index.index(1)
 
 def con_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, .153], forceGroup=20):
     # add con forces
@@ -27,11 +35,13 @@ def con_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, .153], forceGroup
     k_con *= oa.k_awsem
     con = HarmonicBondForce()
 
-    if oa.periodic:
+    if oa.periodic_box:
         con.setUsesPeriodicBoundaryConditions(True)
         print('\ncon_term is periodic')
     
     for i in range(oa.nres):
+        if i in oa.fixed_residue_indices:
+            continue
         con.addBond(oa.ca[i], oa.o[i], bond_lengths[1], k_con)
         if not oa.res_type[i] == "IGL":  # OpenAWSEM system doesn't have CB for glycine, so the following bond is not exist for Glycine, but LAMMPS include this bond by using virtual HB as CB.
             con.addBond(oa.ca[i], oa.cb[i], bond_lengths[3], k_con)
@@ -49,11 +59,13 @@ def chain_term(oa, k_chain=50208, bond_k=[1, 1, 1], bond_lengths=[0.2459108, 0.2
     k_chain *= oa.k_awsem
     chain = HarmonicBondForce()
     
-    if oa.periodic:
+    if oa.periodic_box:
         chain.setUsesPeriodicBoundaryConditions(True)
         print('\nchain_term is periodic')
 
     for i in range(oa.nres):
+        if i in oa.fixed_residue_indices:
+            continue
         if i not in oa.chain_starts and not oa.res_type[i] == "IGL":
             chain.addBond(oa.n[i], oa.cb[i], bond_lengths[0], k_chain*bond_k[0])
         if i not in oa.chain_ends and not oa.res_type[i] == "IGL":
@@ -81,17 +93,139 @@ def chi_term(oa, k_chi=251.04, chi0=-0.71, forceGroup=20):
                                         "u_x=x1-x2; u_y=y1-y2; u_z=z1-z2;"
                                         "v_x=x3-x1; v_y=y3-y1; v_z=z3-z1;")
 
-    if oa.periodic:
+    if oa.periodic_box:
         chi.setUsesPeriodicBoundaryConditions(True)
         print('\nchi_term is periodic')
 
     for i in range(oa.nres):
+        if i in oa.fixed_residue_indices:
+            continue
         if i not in oa.chain_starts and i not in oa.chain_ends and not oa.res_type[i] == "IGL":
             chi.addBond([oa.ca[i], oa.c[i], oa.n[i], oa.cb[i]])
     chi.setForceGroup(forceGroup)
     return chi
 
-def excl_term(oa, k_excl=8368, r_excl=0.35, periodic=False, excludeCB=False, forceGroup=20):
+def excl_term(oa, k_excl=8368, excludeCB=False, forceGroup=20):
+    # add excluded volume
+    # 8368 = 20 * 4.184 * 100 kJ/nm^2, converted from default value in LAMMPS AWSEM
+    #
+    # multiply interaction strength by overall scaling
+    k_excl *= oa.k_awsem
+    # We want to exclude "bonded" atoms from the potential.
+    # The bonded real (non-virtual site) pairs are:
+    #     CA_i - O_i
+    #     CA_i - CB_i
+    #     CA_i - CA_i+1
+    #      O_i - CA_i+1
+    # CAs and Os are never added as InteractionGroups,
+    # so we don't need to worry about excluding CA-O bonds.
+    # Since CB-O pairs aren't added as InteractionGroups, either,
+    # we can knock out the same-residue CA-CB interaction without side effects
+    # simply by requiring both atoms to have different resIds.
+    same_allow = "(1-delta(resId1-resId2))"
+    # If resId1 and resId2 separation is 1 and both are CA
+    # and they're in the same chain, set interaction to 0
+    diff1_allow = '(1-same_chain*delta(abs(resId1-resId2)-1)*isCA1*isCA2)'
+    # initialize Force
+    base_energy_string = f"{k_excl}*{same_allow}*{diff1_allow}*(close_in_sequence*step(rI-r)*((rI-r)^2)+(1-close_in_sequence)*step(rII-r)*((rII-r)^2))"
+    # we can't use openmm's          ^^^^^^^^^^^^^^^^^^^^^^^^ automatic bonded exclusions because they have to be the same for all Forces,
+    # so we program the exclusion for adjacent (bonded) particles into the potential
+    definitions = ";rI=0.35\
+        ;rII=r_preferred2\
+            ;close_in_sequence=same_chain*(1-at_least_5)\
+                ;at_least_5=step(abs(resId2-resId1)-5)\
+                    ;same_chain=delta(chainId2-chainId1)" # because our interactionGroups only combine pairs with the same r_preferred, r_preferred1==r_preferred2 always
+    energy_string = f'{base_energy_string}{definitions}'
+    excl = CustomNonbondedForce(energy_string)
+    # set parameters and add particles
+    excl.addPerParticleParameter("chainId")
+    excl.addPerParticleParameter("resId")
+    excl.addPerParticleParameter("r_preferred")
+    excl.addPerParticleParameter("isCA")
+    for i in range(oa.natoms):
+        res = oa.resi[i]
+        if res != -1:
+            chain = find_chain_index(res, oa.chain_starts, oa.chain_ends)
+        else: # resi==-1 reserved for DNA residues that shouldn't be included
+            chain = -1 # dummy parameter for when we add the particle to the Force
+                       # (all particles must be added to the Force, but non-protein
+                       # particles won't interact with anything because they're not
+                       # included in any InteractionGroups)
+        excl.addParticle([chain, res, 0.45 if i not in oa.o else 0.35, 1 if i in oa.ca else 0])
+    # set groups of interacting particles
+    excl.addInteractionGroup(oa.ca, oa.ca)
+    if not excludeCB:
+        excl.addInteractionGroup([x for x in oa.cb if x > 0], [x for x in oa.cb if x > 0])
+    excl.addInteractionGroup(oa.ca, [x for x in oa.cb if x > 0])
+    excl.addInteractionGroup(oa.o, oa.o)
+    # finalize and return Force
+    excl.setCutoffDistance(0.45)
+    #excl.createExclusionsFromBonds(oa.bonds, 1)
+    if oa.periodic_box:
+        excl.setNonbondedMethod(excl.CutoffPeriodic)
+        print('\nexcl_term is periodic')
+    else:
+        excl.setNonbondedMethod(excl.CutoffNonPeriodic)
+    excl.setForceGroup(forceGroup)
+    return excl
+
+def excl_term_carlos(oa, k_excl=8368, excludeCB=False, forceGroup=20):
+    """Excluded volume term preventing atomic clashes between CA, CB, and O atoms.
+
+    Applies a soft repulsive harmonic wall. Cutoff is 0.35 nm for residues close in
+    sequence (same chain, separation < 5), and 0.45 nm otherwise.
+    Default k_excl = 8368 kJ/nm² (= 20 * 4.184 * 100, from LAMMPS AWSEM).
+
+    Bonded exclusions (CA-CB same-residue, CA-CA adjacent) are encoded in the energy
+    expression rather than via createExclusionsFromBonds, which OpenMM requires to be
+    identical across all CustomNonbondedForces.
+
+    Args:
+        oa: OpenAWSEM system object.
+        k_excl (float): Force constant in kJ/nm².
+        excludeCB (bool): If True, omit CB-CB and CA-CB interactions.
+        forceGroup (int): OpenMM force group index.
+
+    Returns:
+        CustomNonbondedForce
+    """
+    k_excl *= oa.k_awsem
+
+    suppress_same_residue  = "(1-delta(seqsep))"
+    suppress_adjacent_ca   = "(1-delta(seqsep-1)*isCA1*isCA2)"
+    energy_string = (
+        f"{k_excl}*{suppress_same_residue}*{suppress_adjacent_ca}*"
+        "step(r_cutoff-r) * (r_cutoff-r)^2;"
+        "r_cutoff=0.35 + far_in_sequence * (1-isO1*isO2) * 0.10;" # 0.45 if not oxygen and far in sequence
+        "far_in_sequence=step(seqsep-5);"
+        "seqsep = abs(resId2-resId1);"
+
+    )
+    excl = CustomNonbondedForce(energy_string)
+    excl.addPerParticleParameter("resId")
+    excl.addPerParticleParameter("isO")
+    excl.addPerParticleParameter("isCA")
+
+    is_O = [1 if i in oa.o else 0 for i in range(oa.natoms)]
+    is_CA = [1 if i in oa.ca else 0 for i in range(oa.natoms)]
+
+    for resid, isO, isCA in zip(oa.corrected_resid(gap=5), is_O, is_CA):
+        excl.addParticle([resid, isO, isCA])
+
+    excl.addInteractionGroup(oa.ca, oa.ca) #CA-CA interactions
+    if not excludeCB:
+        excl.addInteractionGroup([x for x in oa.cb if x > 0], [x for x in oa.cb if x > 0]) #CB-CB interactions
+    excl.addInteractionGroup(oa.ca, [x for x in oa.cb if x > 0]) #CA-CB interactions
+    excl.addInteractionGroup(oa.o, oa.o) #O-O interactions
+
+    excl.setCutoffDistance(0.45)
+    excl.setNonbondedMethod(excl.CutoffPeriodic if oa.periodic_box else excl.CutoffNonPeriodic)
+    if oa.periodic_box:
+        print('\nexcl_term is periodic')
+    excl.setForceGroup(forceGroup)
+    return excl
+
+def legacy_excl_term(oa, k_excl=8368, r_excl=0.35, excludeCB=False, forceGroup=20):
     # add excluded volume
     # Still need to add element specific parameters
     # 8368 = 20 * 4.184 * 100 kJ/nm^2, converted from default value in LAMMPS AWSEM
@@ -100,17 +234,15 @@ def excl_term(oa, k_excl=8368, r_excl=0.35, periodic=False, excludeCB=False, for
     k_excl *= oa.k_awsem
     excl = CustomNonbondedForce(f"{k_excl}*step({r_excl}-r)*(r-{r_excl})^2")
 
-    if oa.periodic:
+    if oa.periodic_box:
         excl.setNonbondedMethod(excl.CutoffPeriodic)
         print('\nexcl_term is periodic')
     else:
         excl.setNonbondedMethod(excl.CutoffNonPeriodic)
 
+    pos = oa.pdb.positions
     for i in range(oa.natoms):
         excl.addParticle()
-    # print(oa.ca)
-    # print(oa.bonds)
-    # print(oa.cb)
     excl.addInteractionGroup(oa.ca, oa.ca)
     if not excludeCB:
         excl.addInteractionGroup([x for x in oa.cb if x > 0], [x for x in oa.cb if x > 0])
@@ -118,14 +250,11 @@ def excl_term(oa, k_excl=8368, r_excl=0.35, periodic=False, excludeCB=False, for
     excl.addInteractionGroup(oa.o, oa.o)
 
     excl.setCutoffDistance(r_excl)
-
-    # excl.setNonbondedMethod(excl.CutoffNonPeriodic)
     excl.createExclusionsFromBonds(oa.bonds, 1)
     excl.setForceGroup(forceGroup)
     return excl
 
-
-def excl_term_v2(oa, k_excl=8368, r_excl=0.35, periodic=False, excludeCB=False, forceGroup=20):
+def legacy_excl_term_v2(oa, k_excl=8368, r_excl=0.35, periodic=False, excludeCB=False, forceGroup=20):
     # this version remove the use of "createExclusionsFromBonds", which could potentially conflict with other CustomNonbondedForce and causing "All forces must have the same exclusion".
     # add excluded volume
     # Still need to add element specific parameters
@@ -135,7 +264,7 @@ def excl_term_v2(oa, k_excl=8368, r_excl=0.35, periodic=False, excludeCB=False, 
     k_excl *= oa.k_awsem
     excl = CustomNonbondedForce(f"{k_excl}*step(abs(res1-res2)-2+isChainEdge1*isChainEdge2+isnot_Ca1+isnot_Ca2)*step({r_excl}-r)*(r-{r_excl})^2")
     
-    if oa.periodic:
+    if oa.periodic_box:
         excl.setNonbondedMethod(excl.CutoffPeriodic)
         print("\nexcel_term is periodic")
     else:
@@ -188,7 +317,7 @@ def rama_term(oa, k_rama=8.368, num_rama_wells=3, w=[1.3149, 1.32016, 1.0264], s
     rama_string = rama_function+rama_parameters
     rama = CustomCompoundBondForce(5, rama_string)
 
-    if oa.periodic:
+    if oa.periodic_box:
         rama.setUsesPeriodicBoundaryConditions(True)
         print('\nrama_term is periodic')
 
@@ -201,6 +330,8 @@ def rama_term(oa, k_rama=8.368, num_rama_wells=3, w=[1.3149, 1.32016, 1.0264], s
         rama.addGlobalParameter(f"phi0{i}", phi_i[i])
         rama.addGlobalParameter(f"psi0{i}", psi_i[i])
     for i in range(oa.nres):
+        if i in oa.fixed_residue_indices and i-1 in oa.fixed_residue_indices and i+1 in oa.fixed_residue_indices:
+            continue
         if i not in oa.chain_starts and i not in oa.chain_ends and not oa.res_type[i] == "IGL" and not oa.res_type[i] == "IPR":
             rama.addBond([oa.c[i-1], oa.n[i], oa.ca[i], oa.c[i], oa.n[i+1]])
     rama.setForceGroup(forceGroup)
@@ -220,7 +351,7 @@ def rama_proline_term(oa, k_rama_proline=8.368, num_rama_proline_wells=2, w=[2.1
     rama_string = rama_function+rama_parameters
     rama = CustomCompoundBondForce(5, rama_string)
 
-    if oa.periodic:
+    if oa.periodic_box:
         rama.setUsesPeriodicBoundaryConditions(True)
         print('\nrama_proline_term is periodic')
 
@@ -233,6 +364,8 @@ def rama_proline_term(oa, k_rama_proline=8.368, num_rama_proline_wells=2, w=[2.1
         rama.addGlobalParameter(f"phi0_P{i}", phi_i[i])
         rama.addGlobalParameter(f"psi0_P{i}", psi_i[i])
     for i in range(oa.nres):
+        if i in oa.fixed_residue_indices and i-1 in oa.fixed_residue_indices and i+1 in oa.fixed_residue_indices:
+            continue
         if i not in oa.chain_starts and i not in oa.chain_ends and oa.res_type[i] == "IPR":
             rama.addBond([oa.c[i-1], oa.n[i], oa.ca[i], oa.c[i], oa.n[i+1]])
     rama.setForceGroup(forceGroup)
@@ -254,7 +387,7 @@ def rama_ssweight_term(oa, k_rama_ssweight=8.368, num_rama_wells=2, w=[2.0, 2.0]
     rama_string = rama_function+rama_parameters
     ramaSS = CustomCompoundBondForce(5, rama_string)
     
-    if oa.periodic:
+    if oa.periodic_box:
         ramaSS.setUsesPeriodicBoundaryConditions(True)
         print('\nrama_ssweight_term is periodic')
 
@@ -267,6 +400,8 @@ def rama_ssweight_term(oa, k_rama_ssweight=8.368, num_rama_wells=2, w=[2.0, 2.0]
         ramaSS.addGlobalParameter(f"phi0SS{i}", phi_i[i])
         ramaSS.addGlobalParameter(f"psi0SS{i}", psi_i[i])
     for i in range(oa.nres):
+        if i in oa.fixed_residue_indices and i-1 in oa.fixed_residue_indices and i+1 in oa.fixed_residue_indices:
+            continue
         if i not in oa.chain_starts and i not in oa.chain_ends and not oa.res_type[i] == "IGL" and not oa.res_type == "IPR":
             ramaSS.addBond([oa.c[i-1], oa.n[i], oa.ca[i], oa.c[i], oa.n[i+1]], [i])
     ssweight = np.loadtxt(ssweight_file)
@@ -274,7 +409,35 @@ def rama_ssweight_term(oa, k_rama_ssweight=8.368, num_rama_wells=2, w=[2.0, 2.0]
     ramaSS.setForceGroup(forceGroup)
     return ramaSS
 
-
+def AM_rama(oa, k_rama=4.184, forceGroup=21, map_dir=f'{os.environ.get("OPENAWSEM_LOCATION")}/parameters/rama'):
+    #TODO: this method is still under construction
+    if oa.fixed_residue_indices:
+        raise NotImplementedError("AM_rama is not yet supported for systems where certain absolute residue positions are fixed in space")
+    if len(oa.chain_starts) > 1:
+        raise NotImplementedError("AM_rama is not yet supported for systems with more than one chain")
+    # initialize Force
+    ramaAM = CMAPTorsionForce()
+    # add map and dihedrals to the Force
+    assert len(oa.seq) == oa.nres
+    for res_index in range(1,oa.nres-1):
+        # one map for each set of 3 -- could be reduced for reduntant sequences
+        # TODO: reuse previously configured Map for second, third, etc. occurrences of each 3-letter motif
+        # If we have a super diverse/long sequence, this will still require too much RAM/vRAM, but I think
+        # we can get away with this strategy for most systems
+        ramaAM.addMap(90,k_rama*np.load(f'{map_dir}/{oa.seq[res_index-1:res_index+2]}.npy')) # column-major flattened 90x90 grid
+        three_segment = oa.seq[res_index-1:res_index+2]
+        phi1 = oa.c[res_index-1]
+        phi2 = psi1 = oa.n[res_index]
+        phi3 = psi2 = oa.ca[res_index]
+        phi4 = psi3 = oa.c[res_index]
+        psi4 = oa.n[res_index+1]
+        ramaAM.addTorsion(res_index-1, phi1, phi2, phi3, phi4, psi1, psi2, psi3, psi4) 
+    # finish Force setup
+    if oa.periodic_box:
+        ramaAM.setUsesPeriodicBoundaryConditions(True)
+        print('\nAM_rama is periodic') 
+    ramaAM.setForceGroup(forceGroup)
+    return ramaAM
 
 def side_chain_term(oa, k=1*kilocalorie_per_mole, gmmFileFolder="/Users/weilu/opt/parameters/side_chain", forceGroup=25):
     # add chi forces
@@ -345,7 +508,7 @@ def side_chain_term(oa, k=1*kilocalorie_per_mole, gmmFileFolder="/Users/weilu/op
                                         r2=10*distance(p2,p4);\
                                         r3=10*distance(p3,p4)")
     
-    if oa.periodic:
+    if oa.periodic_box:
         side_chain.setUsesPeriodicBoundaryConditions(True)
 
     side_chain.addPerBondParameter("res")
@@ -366,7 +529,7 @@ def chain_no_cb_constraint_term(oa, k_chain=50208, bond_lengths=[0.2459108, 0.25
     k_chain *= oa.k_awsem
     chain = HarmonicBondForce()
 
-    if oa.periodic:
+    if oa.periodic_box:
         chain.setUsesPeriodicBoundaryConditions(True)
 
     for i in range(oa.nres):
@@ -382,7 +545,7 @@ def con_no_cb_constraint_term(oa, k_con=50208, bond_lengths=[.3816, .240, .276, 
     k_con *= oa.k_awsem
     con = HarmonicBondForce()
 
-    if oa.periodic:
+    if oa.periodic_box:
         con.setUsesPeriodicBoundaryConditions(True)
     
     for i in range(oa.nres):
@@ -437,7 +600,7 @@ def cbd_excl_term(oa, k=1*kilocalorie_per_mole, r_excl=0.7, fileLocation='cbd_cb
     excl.addInteractionGroup([x for x in oa.cb if x > 0], [x for x in oa.cb if x > 0])
 
     excl.setCutoffDistance(r_excl)
-    if oa.periodic:
+    if oa.periodic_box:
         excl.setNonbondedMethod(excl.CutoffPeriodic)
     else:
         excl.setNonbondedMethod(excl.CutoffNonPeriodic)

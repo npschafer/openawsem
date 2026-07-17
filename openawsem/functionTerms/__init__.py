@@ -5,3 +5,4 @@ from . import membraneTerms
 from . import biasTerms
 from . import templateTerms
 from . import hydrogenBondTerms
+from . import constraints

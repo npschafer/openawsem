@@ -40,59 +40,67 @@ class Atom:
         print(self.atom_no, self.atom_name, self.res_no, self.res_name, self.x, self.y, self.z, self.desc)
 
     def write_(self, f):
-    	f.write( ("     "+str(self.res_no))[-5:] )
-    	f.write( ("     "+self.res_name)[-5:] )
-    	f.write( " " + (self.atom_name+"    ")[:4] )
-    	f.write( ("     "+str(self.atom_no))[-5:] )
-    	f.write( ("        "+str(round(self.x/10,3)))[-8:] )
-    	f.write( ("        "+str(round(self.y/10,3)))[-8:] )
-    	f.write( ("        "+str(round(self.z/10,3)))[-8:] )
-    	f.write("\n")
+        f.write( ("     "+str(self.res_no))[-5:] )
+        f.write( ("     "+self.res_name)[-5:] )
+        f.write( " " + (self.atom_name+"    ")[:4] )
+        f.write( ("     "+str(self.atom_no))[-5:] )
+        f.write( ("        "+str(round(self.x/10,3)))[-8:] )
+        f.write( ("        "+str(round(self.y/10,3)))[-8:] )
+        f.write( ("        "+str(round(self.z/10,3)))[-8:] )
+        f.write("\n")
 
 def Pdb2Gro(pdb_file, gro_file, ch_name):
-	from Bio.PDB.PDBParser import PDBParser
+    from Bio.PDB.PDBParser import PDBParser
 
-	p = PDBParser(PERMISSIVE=1, QUIET=True)
+    p = PDBParser(PERMISSIVE=1, QUIET=True)
 
-	pdb_id = pdb_file
-	if pdb_file[-4:].lower()!=".pdb":
-		pdb_file = pdb_file + ".pdb"
-	if pdb_id[-4:].lower()==".pdb":
-		pdb_id = pdb_id[:-4]
+    pdb_id = pdb_file
+    if pdb_file[-4:].lower()!=".pdb":
+        pdb_file = pdb_file + ".pdb"
+    if pdb_id[-4:].lower()==".pdb":
+        pdb_id = pdb_id[:-4]
 
-	output = gro_file
+    output = gro_file
 
-	s = p.get_structure(pdb_id, pdb_file)
-	chains = s[0].get_list()
+    s = p.get_structure(pdb_id, pdb_file)
+    chains = s[0].get_list()
 
-	if ch_name=='':
-		ch_name = 'A'
+    if ch_name=='':
+        ch_name = 'A'
 
-	for chain in chains:
-		if chain.get_id()==ch_name:
-			ires = 0
-			iatom = 0
-			res_name = ""
-			atoms = []
-			for res in chain:
-				is_regular_res = res.has_id('N') and res.has_id('CA') and res.has_id('C')
-				res_id = res.get_id()[0]
-				if (res_id ==' ' or res_id =='H_MSE' or res_id =='H_M3L' or res_id=='H_CAS') and is_regular_res:
-					ires = ires + 1
-					res_name = res.get_resname()
-					residue_no = res.get_id()[1]
-					for atom in res:
-						iatom = iatom + 1
-						atom_name = atom.get_name()
-						xyz = atom.get_coord()
+    chain_names=[chain.get_id() for chain in chains]
+    if ch_name not in chain_names:
+        #If the chain name is not found, try to find the Capitalize the chain name
+        ch_name = ch_name.upper()
 
-#						residue_no = atom.get_full_id()[3][1]
-						atoms.append( Atom(iatom, atom_name, residue_no, res_name, xyz) )
+    if ch_name not in chain_names:
+        raise ValueError(f"Chain name {ch_name} not found in the chains ({chain_names}) from the pdb file {pdb_file}")
 
-	out = open(output, 'w')
-	out.write(" Structure-Based gro file\n")
-	out.write( ("            "+str(len(atoms)))[-12:] )
-	out.write("\n")
-	for iatom in atoms:
-		iatom.write_(out)
-	out.close()
+    for chain in chains:
+        if chain.get_id()==ch_name:
+            ires = 0
+            iatom = 0
+            res_name = ""
+            atoms = []
+            for res in chain:
+                is_regular_res = res.has_id('N') and res.has_id('CA') and res.has_id('C')
+                res_id = res.get_id()[0]
+                if (res_id ==' ' or res_id =='H_MSE' or res_id =='H_M3L' or res_id=='H_CAS') and is_regular_res:
+                    ires = ires + 1
+                    res_name = res.get_resname()
+                    residue_no = res.get_id()[1]
+                    for atom in res:
+                        iatom = iatom + 1
+                        atom_name = atom.get_name()
+                        xyz = atom.get_coord()
+
+#                        residue_no = atom.get_full_id()[3][1]
+                        atoms.append( Atom(iatom, atom_name, residue_no, res_name, xyz) )
+
+    out = open(output, 'w')
+    out.write(" Structure-Based gro file\n")
+    out.write( ("            "+str(len(atoms)))[-12:] )
+    out.write("\n")
+    for iatom in atoms:
+        iatom.write_(out)
+    out.close()

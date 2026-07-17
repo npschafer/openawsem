@@ -19,8 +19,8 @@ except KeyError:
     print("Example run: python mm_evaluate_native.py 1r69 --to 1r69_native_energy \nPlease set the environment variable name OPENAWSEM_LOCATION.\n Example: export OPENAWSEM_LOCATION='YOUR_OPENAWSEM_LOCATION'")
     exit()
 
-from openmmawsem import *
-from helperFunctions.myFunctions import *
+from openawsem import *
+from openawsem.helperFunctions.myFunctions import *
 
 # from run_parameter import *
 parser = argparse.ArgumentParser(

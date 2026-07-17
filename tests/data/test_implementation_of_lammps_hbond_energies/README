@@ -1,0 +1,41 @@
+This test compares hydrogen bond energies calculated by OpenAWSEM under the "old" method, meant to mimic LAMMPS AWSEM-MD commit cea754f (https://github.com/adavtyan/awsemmd), to the energies computed by a LAMMPS binary compiled from the source at commit cea754f.
+
+As for the other energy tests, we need for each protein *_energies.csv  *-openmmawsem.pdb, *-crystal_structure.pdb, *-crystal_structure.fasta,
+*-movie.dcd, and *-ssweight. 
+
+Since we are not checking associative memory or Debye-Huckel energies, we do not need *-single_frags.mem, *-single_frags.npy, *.gro, or *-charge.txt.
+
+The make_test_for_* directories contain the files needed to generate the test input files: LAMMPS setup scripts, LAMMPS input files, LAMMPS trajectories, trajectories reformatted using BuildAllAtomsFromLammps_openAWSEM.py, OpenAWSEM projects giving the required crystal_structure.pdb and crystal_structure.fasta files, and LAMMPS output files (energy.log being the important one)
+
+To make a test for a new PDB, create directory make_test_for_PDBID, put your PDB file there, change into the directory, then:
+conda activate openawsem310                                                                  # openawsem installation required                           
+awsem_create PDBID.pdb
+cp PDBID/ssweight ./ssweight                                                                 # or modify if if you don't like what openawsem did
+##############################################################
+# ALTERNATIVELY, MAKE EVERYTHING BETA BY DOING THE FOLLOWING
+n=36 # or whatever the total number of residues in your system is
+for ((i=0; i<$n; i++)); do
+    echo "0.0 1.0" >> ssweight
+done
+#############################################################
+cp ssweight ../$PDBID-ssweight
+cp ssweight ../"${PDBID}-ssweight"
+cp PDBID/crystal_structure.pdb ../$PDBID-crystal_structure.pdb   
+cp PDBID/crystal_structure.fasta ../$PDBID-crystal_structure.fasta 
+cp PDBID/PDBID-openmmawsem.pdb ../$PDBID-openmmawsem.pdb
+conda deactivate
+conda activate lammps_awsem                                                                  # suggested to configure dependencies
+bash ../lammps_setup_scripts/NewPdb2Lammps.sh $PDBID $PDBID                                    # requires python=2.7.15, Bio=1.76
+cp ../lammps_setup_parameters/* .
+sed -i -e 's/peptide/awsemmd/g' $PDBID.in
+sed -i -e 's/run\t\t10000/run\t\t0/g' $PDBID.in                                               # 0 or whatever number of steps you want to run
+~/lammps24/lammps-29Aug2024/src/lmp_serial < $PDBID.in > lammps_stdout.txt                    # or whatever the path to your lammps binary is 
+python3 ../BuildAllAtomsFromLammps_openAWSEM.py dump.lammpstrj lammps_movie.pdb $PDBID.seq    # requires python=3.6.8 (other versions probably okay)
+vmd lammps_movie.pdb -e ../convert_pdb_to_dcd.tcl             
+cp lammps_movie.dcd ../$PDBID-movie.dcd
+TAKE THE INFORMATION FROM energy.log AND PUT IT IN ../PDBID_energies.csv, FOLLOWING THE FORMAT OF OTHER PDBID_energies.csv FILES
+DON'T FORGET TO ADD PDBID TO THE PROTEINS LIST IN THE TEST SCRIPT, test_implementation_of_lammps_hbond_energies.py
+
+See make_test.sh for an example
+
+2ohx_A has parallel intramolecular beta sheets in the 18-45 and 45+ sequence separation ranges

@@ -39,9 +39,10 @@ STRIDE is used for secondary structure prediction.
 Download and install STRIDE and add it to your PATH:
 https://webclu.bio.wzw.tum.de/stride/
 ```bash
+mkdir stride
+cd stride
 wget https://webclu.bio.wzw.tum.de/stride/stride.tar.gz
 tar -xvzf stride.tar.gz
-cd stride
 make
 echo 'export PATH=$PATH:'`pwd` >> ~/.bashrc
 ```
@@ -69,7 +70,7 @@ echo 'export PATH=$PATH:'`pwd` >> ~/.bashrc
 * Download pdb_seqres.txt and put it in the cloned openawsem repository location
 
 ```bash
-wget ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt
+wget https://files.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt
 OPENAWSEM_LOCATION=$(python -c "import openawsem; print(openawsem.__location__)")
 cp pdb_seqres.txt $OPENAWSEM_LOCATION/data
 ```
@@ -153,13 +154,39 @@ Simulation of the amino terminal domain of Phage 434 repressor (1r69)
    ./mm_analyze.py 1r69 > energy.dat
    ```
 
-## Notes:
+## CLI Tools
+
+### Fix Amino Acid Names (`awsem fix_aminoacids`)
+
+Converts AWSEM placeholder residue names (NGP, IGL, IPR) to standard amino acids using a sequence file.
+
+```bash
+awsem fix_aminoacids movie.pdb -f crystal_structure.fasta -o movie_standard.pdb
+```
+
+### All-Atom Reconstruction (`awsem reconstruct`)
+
+Reconstructs all-atom structures from AWSEM+3SPN2 coarse-grained models using SCWRL4 (protein) and DNAbackmap (DNA).
+
+```bash
+# Protein + DNA
+awsem reconstruct model.pdb -f protein.seq --scwrl /path/to/Scwrl4 --dnabackmap /path/to/DNAbackmap
+
+# Protein only (no DNAbackmap needed)
+awsem reconstruct protein.pdb -f protein.seq --scwrl /path/to/Scwrl4
+```
+
+**Requirements** [SCWRL4](https://dunbrack.fccc.edu/lab/scwrl), [DNAbackmap](https://www.cafemol.org/download/) (DNA only)
+
+## Notes
 AWSEM is capable of modeling protein-DNA interactions when used together with open3SPN2, which can be found in a separate package at https://github.com/cabb99/open3spn2.
 
 For small proteins, the LAMMPS version may be faster than OpenAWSEM, especially if a GPU is unavailable. Consider using http://awsem-md.org for such cases.
 
 A quick check of the stability of a protein in AWSEM can be done using the frustratometer server http://frustratometer.qb.fcen.uba.ar/
 
+## Acknowledgements
+This project is also supported by the Center for Theoretical Biological Physics (NSF Grants PHY-2019745 and PHY-1522550), with additional support from the D.R. Bullard Welch Chair at Rice University (Grant No. C-0016 to PGW).  We thank AMD (Advanced Micro Devices, Inc.) for the donation of high-performance computing hardware and HPC resources.  Carlos Bueno was supported by the MolSSI Software Fellowship. The skeleton of this project is based on the [Computational Molecular Science Python Cookiecutter](https://github.com/molssi/cookiecutter-cms) version 1.11.
 
 
 ## Data availability

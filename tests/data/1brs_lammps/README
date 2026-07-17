@@ -1,0 +1,19 @@
+To calculate energies in lammps to make into tests,
+you do a normal lammps setup and run, but you add 
+a few extra dump commands (see 1brs.in, for example)
+that record the coordinates in higher precision than
+the default.
+
+Once you have done your lammps run, you collect 
+the Con and Excl energy from log.lammps (emol
+and epair, respectively) and all other energies
+from energy.log. These go in PDBID-lammps_energies.csv.
+
+Finally, add the pdb id and terms that you want to test
+to test_energies_lammps.py. If you want to distribute
+the tests to others, you should track the lammps setup
+folder in git so that others can access the correct
+dump.lammpstrj when they run the test script (openawsem
+reads the coordinates from this file to make sure it is
+calculating the energies of precisely the same configurations
+that lammps used).

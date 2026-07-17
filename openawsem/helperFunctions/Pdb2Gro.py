@@ -88,12 +88,18 @@ def pdb2gro(pdb_file, output, chain_name=""):
         for iatom in atoms:
             iatom.write_(out)
 
-
-if __name__ == "__main__":
+def main(args=None):
     parser = argparse.ArgumentParser(description="Convert PDB to GRO format.")
     parser.add_argument("pdb_file", help="Input PDB file")
     parser.add_argument("output", help="Output GRO file")
     parser.add_argument("chain", nargs='?', default="", help="Optional chain name")
-    args = parser.parse_args()
+    if args is None:
+        args = parser.parse_args()
+    else:
+        args = parser.parse_args(args)
 
     pdb2gro(args.pdb_file, args.output, args.chain)
+
+
+if __name__ == "__main__":
+    main()

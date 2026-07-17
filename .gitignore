@@ -1,3 +1,7 @@
+# =========================
+# Operating System Files
+# =========================
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
@@ -17,13 +21,7 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-# =========================
-# Operating System Files
-# =========================
-
 # OSX
-# =========================
-
 .DS_Store
 .AppleDouble
 .LSOverride
@@ -45,32 +43,164 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# =========================
+# Editor and IDE Files
+# =========================
 .idea
 .vscode
+*.iml
+*.iws
+*.ipr
+*.sublime-workspace
+*.sublime-project
+*.swp
 
-# ipython
-.ipynb_checkpoints
+# =========================
+# Python Bytecode, C extensions, and Build Artifacts
+# =========================
+__pycache__/
 __pycache__
+*.py[cod]
+*$py.class
+*.so
 
-# test Folder
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+*.dirty
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# In-tree generated files
+*/_version.py
+
+# =========================
+# Environment and Virtualenv
+# =========================
+.env
+.venv
+venv/
+ENV/
+
+# pyenv
+.python-version
+
+# =========================
+# Jupyter and IPython
+# =========================
+.ipynb_checkpoints
+
+# =========================
+# Test, Scratch, and Local Folders
+# =========================
 test
 _local
-*.bak
+scratch
+jupyter
 
+# =========================
+# Project Data and Artifacts
+# =========================
 PDBs
 Indices
 Gros/*
 pdb_seqres.txt
 notExistPDBsList
-*.gro
+openawsem/data/Gros/*
+openawsem/parameters/rama
+
+# =========================
+# Examples and Deprecated
+# =========================
 examples/*
 scratch
 jupyter
 build
 *_deprecated*
+tests/data/1brs_lammps/openawsem_setup
+tests/data/test_implementation_of_lammps_hbond_energies/6rb9_small_last_try/*
+tests/data/test_implementation_of_lammps_hbond_energies/6rb9/*
+tests/data/test_implementation_of_lammps_hbond_energies/6rb9_AB_barrel-ssweight
+tests/data/test_implementation_of_lammps_hbond_energies/8j47_IGECA/*
+tests/data/test_implementation_of_lammps_hbond_energies/experiment_1le5_A_DD/*
+tests/data/test_implementation_of_lammps_hbond_energies/experiment_2onv/*
+tests/data/test_implementation_of_lammps_hbond_energies/make_test_for_2l8x/*
+tests/data/test_implementation_of_lammps_hbond_energies/make_test_for_2mlt_1to5/*
+tests/data/test_implementation_of_lammps_hbond_energies/make_test_for_2mlt_full/*
+tests/data/test_implementation_of_lammps_hbond_energies/1le5_A_DD*
+tests/data/test_implementation_of_lammps_hbond_energies/2mlt*
+tests/data/test_implementation_of_lammps_hbond_energies/2MLT.pdb
+tests/data/test_implementation_of_lammps_hbond_energies/6klw*
+tests/data/test_implementation_of_lammps_hbond_energies/2ohx_A/*
+tests/data/test_implementation_of_lammps_hbond_energies/openawsem_computed_energies.txt
+tests/data/*frags.npy
+tests/data/analysis_commandline_args.txt
+tests/data/commandline_args.txt
+tests/data/split_energies
+tests/data/split_energies_excl4.5
+tests/data/old
+tests/data/test_backbone_energies
+tests/data/extra_double
+backup_files/*
+hb_test/*
+# =========================
+# Coverage, Testing, and Reports
+# =========================
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+/tests/CI_files
 
-#pip
-*.egg-info
-*.dirty
-dist/*
+# =========================
+# Translations
+# =========================
+*.mo
+*.pot
 
+# =========================
+# Django, Flask, Scrapy, Sphinx, PyBuilder
+# =========================
+*.log
+local_settings.py
+instance/
+.webassets-cache
+.scrapy
+docs/_build/
+target/
+
+# =========================
+# Miscellaneous
+# =========================
+site
+.mypy_cache/
+celerybeat-schedule
+*.sage.py
+.ropeproject
+.spyderproject
+.spyproject
+*profraw

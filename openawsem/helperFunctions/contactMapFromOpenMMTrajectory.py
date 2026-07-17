@@ -14,7 +14,7 @@ except KeyError:
     exit()
 
 # from myFunctions import *
-from helperFunctions.myFunctions import *
+from openawsem.helperFunctions.myFunctions import *
 
 
 parser = argparse.ArgumentParser(

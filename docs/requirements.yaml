@@ -1,0 +1,28 @@
+name: docs_OpenAWSEM
+channels:
+
+  - conda-forge
+
+  - defaults
+dependencies:
+    # Base depends
+  - python
+  - pip
+  
+  - pydata-sphinx-theme
+  - sphinx-design
+  - sphinx-copybutton
+  - biopython
+  - matplotlib
+  - numpy
+  - pandas
+  - openmm
+  - pdbfixer
+  - mdtraj
+  - requests
+
+
+    # Pip-only installs
+  - pip:
+    - -e ../
+
